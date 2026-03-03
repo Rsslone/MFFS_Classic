@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": {
+      "tag": "forge:gems/diamond"
+    },
+    "R": {
+      "tag": "forge:dusts/redstone"
+    },
+    "S": {
+      "tag": "forge:ingots/steel"
+    }
+  },
+  "pattern": [
+    "RSR",
+    "SDS",
+    "RSR"
+  ],
+  "result": {
+    "count": 9,
+    "item": "mffs:focus_matrix"
+  },
+  "show_notification": true
+}

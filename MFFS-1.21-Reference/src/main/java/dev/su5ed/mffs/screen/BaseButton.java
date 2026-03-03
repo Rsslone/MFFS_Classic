@@ -1,0 +1,41 @@
+package dev.su5ed.mffs.screen;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+
+public abstract class BaseButton extends AbstractButton {
+    private final Runnable onPress;
+
+    public BaseButton(int x, int y, int width, int height, Runnable onPress) {
+        super(x, y, width, height, Component.empty());
+
+        this.onPress = onPress;
+    }
+
+    @Override
+    public void onPress(InputWithModifiers input) {
+        this.onPress.run();
+    }
+
+    @Override
+    protected void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        Identifier widgetsLocation = SPRITES.get(this.active, this.isHovered());
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, widgetsLocation, getX(), getY(), this.width, this.height, ARGB.white(this.alpha));
+
+        renderFg(guiGraphics, minecraft, mouseX, mouseY, partialTick);
+    }
+
+    protected abstract void renderFg(GuiGraphics guiGraphics, Minecraft minecraft, int mouseX, int mouseY, float partialTick);
+
+    @Override
+    protected void updateWidgetNarration(NarrationElementOutput output) {}
+}

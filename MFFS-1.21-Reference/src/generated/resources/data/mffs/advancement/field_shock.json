@@ -1,0 +1,31 @@
+{
+  "parent": "mffs:projector",
+  "criteria": {
+    "shocked": {
+      "conditions": {
+        "damageType": "mffs:field_shock",
+        "killed": true
+      },
+      "trigger": "mffs:damage_source"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.mffs.field_shock.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "mffs:shock_module"
+    },
+    "title": {
+      "translate": "advancements.mffs.field_shock.title"
+    }
+  },
+  "requirements": [
+    [
+      "shocked"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

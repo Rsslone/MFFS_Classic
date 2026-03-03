@@ -1,0 +1,110 @@
+package dev.su5ed.mffs.util.inventory;
+
+// =============================================================================
+// 1.12.2 Backport: SlotInventory
+// Replaced 1.21.x Slot (net.minecraft.world.inventory.Slot) with
+//   Slot from net.minecraft.inventory.Slot (1.12.2 MCP mapping)
+// Replaced Container/SimpleContainer stub with IInventory stub
+// ITextComponent instead of Component for tooltips
+// mayPlace() → isItemValid(); mayPickup() → canTakeStack()
+// setChanged() → onSlotChanged(); remove(n) → decrStackSize(n); set() → putStack()
+// getItem() → getStack()
+// =============================================================================
+
+import dev.su5ed.mffs.util.TooltipSlot;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.Slot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Collections;
+import java.util.List;
+
+public class SlotInventory extends Slot implements TooltipSlot {
+
+    /** A no-op inventory placeholder — all real I/O is delegated to InventorySlot. */
+    private static final class EmptyInventory implements IInventory {
+        static final EmptyInventory INSTANCE = new EmptyInventory();
+        @Override public int getSizeInventory() { return 0; }
+        @Override public boolean isEmpty() { return true; }
+        @Override public ItemStack getStackInSlot(int i) { return ItemStack.EMPTY; }
+        @Override public ItemStack decrStackSize(int i, int n) { return ItemStack.EMPTY; }
+        @Override public ItemStack removeStackFromSlot(int i) { return ItemStack.EMPTY; }
+        @Override public void setInventorySlotContents(int i, ItemStack s) {}
+        @Override public int getInventoryStackLimit() { return 64; }
+        @Override public void markDirty() {}
+        @Override public boolean isUsableByPlayer(EntityPlayer p) { return true; }
+        @Override public void openInventory(EntityPlayer p) {}
+        @Override public void closeInventory(EntityPlayer p) {}
+        @Override public boolean isItemValidForSlot(int i, ItemStack s) { return false; }
+        @Override public int getField(int i) { return 0; }
+        @Override public void setField(int i, int v) {}
+        @Override public int getFieldCount() { return 0; }
+        @Override public void clear() {}
+        @Override public String getName() { return ""; }
+        @Override public boolean hasCustomName() { return false; }
+        @Override public ITextComponent getDisplayName() { return new TextComponentString(""); }
+    }
+
+    private final InventorySlot inventorySlot;
+    @Nullable
+    private final ITextComponent tooltip;
+
+    public SlotInventory(InventorySlot inventorySlot, int x, int y) {
+        this(inventorySlot, x, y, null);
+    }
+
+    public SlotInventory(InventorySlot inventorySlot, int x, int y, @Nullable ITextComponent tooltip) {
+        super(EmptyInventory.INSTANCE, -1, x, y);
+        this.inventorySlot = inventorySlot;
+        this.tooltip = tooltip;
+    }
+
+    @Override
+    public void onSlotChanged() {
+        super.onSlotChanged();
+        this.inventorySlot.onChanged(true);
+    }
+
+    @Override
+    public boolean isItemValid(ItemStack stack) {
+        return !stack.isEmpty() && this.inventorySlot.canInsert(stack);
+    }
+
+    @Override
+    public ItemStack getStack() {
+        return this.inventorySlot.getItem();
+    }
+
+    @Override
+    public void putStack(ItemStack stack) {
+        this.inventorySlot.setItem(stack);
+        onSlotChanged();
+    }
+
+    @Override
+    public void onSlotChange(ItemStack oldStack, ItemStack newStack) {}
+
+    @Override
+    public int getSlotStackLimit() {
+        return 64;
+    }
+
+    @Override
+    public boolean canTakeStack(EntityPlayer player) {
+        return this.inventorySlot.canExtract();
+    }
+
+    @Override
+    public ItemStack decrStackSize(int amount) {
+        return this.inventorySlot.extract(amount, false);
+    }
+
+    @Override
+    public List<ITextComponent> getTooltips() {
+        return this.tooltip != null ? Collections.singletonList(this.tooltip) : Collections.emptyList();
+    }
+}

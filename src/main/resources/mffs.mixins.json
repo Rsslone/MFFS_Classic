@@ -1,0 +1,14 @@
+{
+  "_note": "1.21.x NeoForge mixin config - superseded in 1.12.2 backport by mixins.mffs.json (MixinBooter format). This file is not read by 1.12.2 Forge.",
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.su5ed.mffs.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+      "LevelMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

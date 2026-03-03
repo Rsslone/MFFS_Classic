@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "guidebook": {
+      "trigger": "mffs:guidebook"
+    }
+  },
+  "requirements": [
+    [
+      "guidebook"
+    ]
+  ],
+  "rewards": {
+    "loot": [
+      "mffs:grant_book_on_first_join"
+    ]
+  },
+  "sends_telemetry_event": true
+}

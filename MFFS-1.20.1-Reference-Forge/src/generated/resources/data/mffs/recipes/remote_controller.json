@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "mffs:battery"
+    },
+    "R": {
+      "tag": "forge:dusts/redstone"
+    },
+    "S": {
+      "tag": "forge:ingots/steel"
+    }
+  },
+  "pattern": [
+    " R ",
+    "SBS",
+    "SBS"
+  ],
+  "result": {
+    "item": "mffs:remote_controller"
+  },
+  "show_notification": true
+}

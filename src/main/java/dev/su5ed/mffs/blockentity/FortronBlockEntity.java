@@ -1,0 +1,205 @@
+package dev.su5ed.mffs.blockentity;
+
+// =============================================================================
+// 1.12.2 Backport: FortronBlockEntity
+// Key changes:
+//   BlockEntityType(pos,state) constructor -> no-arg
+//   FluidType.BUCKET_VOLUME (NeoForge, 1000) -> use literal 1000
+//   level.invalidateCapabilities() -> not needed in 1.12.2
+//   onChunkUnloaded() -> onChunkUnload() in 1.12.2
+//   getBlockState().getValue(ACTIVE) -> world.getBlockState(pos).getValue(ACTIVE)
+//   level.setBlockAndUpdate -> world.setBlockState
+//   levle.hasNeighborSignal -> world.isBlockPowered
+//   ValueInput/Output -> NBTTagCompound
+// =============================================================================
+
+import dev.su5ed.mffs.api.Activatable;
+import dev.su5ed.mffs.api.card.CoordLink;
+import dev.su5ed.mffs.api.card.FrequencyCard;
+import dev.su5ed.mffs.api.fortron.FortronStorage;
+import dev.su5ed.mffs.api.security.BiometricIdentifier;
+import dev.su5ed.mffs.api.security.BiometricIdentifierLink;
+import dev.su5ed.mffs.block.BaseEntityBlock;
+import dev.su5ed.mffs.setup.ModCapabilities;
+import dev.su5ed.mffs.util.*;
+import dev.su5ed.mffs.util.inventory.InventorySlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.common.capabilities.Capability;
+import one.util.streamex.StreamEx;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+public abstract class FortronBlockEntity extends InventoryBlockEntity implements BiometricIdentifierLink, Activatable {
+    public final InventorySlot frequencySlot;
+    public final FortronStorageImpl fortronStorage;
+
+    private boolean markSendFortron = true;
+    private boolean active;
+    protected int animation;
+
+    protected FortronBlockEntity() {
+        super();
+        // 1000 mB per bucket (replaces NeoForge FluidType.BUCKET_VOLUME)
+        this.fortronStorage = new FortronStorageImpl(this, getBaseFortronTankCapacity() * 1000, this::markDirty);
+        this.frequencySlot = addSlot("frequency", InventorySlot.Mode.BOTH, ModUtil::isCard, this::onFrequencySlotChanged);
+    }
+
+    public int getAnimation() {
+        return this.animation;
+    }
+
+    public void setMarkSendFortron(boolean markSendFortron) {
+        this.markSendFortron = markSendFortron;
+    }
+
+    /** @return The initial fortron tank capacity in buckets */
+    public int getBaseFortronTankCapacity() {
+        return 1;
+    }
+
+    protected List<ItemStack> getCards() {
+        return java.util.Collections.singletonList(this.frequencySlot.getItem());
+    }
+
+    protected void animate() {
+        if (isActive()) this.animation++;
+    }
+
+    protected void onFrequencySlotChanged(ItemStack stack) {
+        FrequencyCard card = stack.getCapability(ModCapabilities.FREQUENCY_CARD, null);
+        if (card != null) {
+            card.setFrequency(this.fortronStorage.getFrequency());
+        }
+    }
+
+    @Override
+    public boolean isActive() {
+        if (this.world.isRemote) {
+            return this.world.getBlockState(this.pos).getValue(BaseEntityBlock.ACTIVE);
+        }
+        return this.active || this.world.isBlockPowered(this.pos);
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        this.active = active;
+        markDirty();
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        FrequencyGrid.instance().register(this.fortronStorage);
+    }
+
+    // 1.12.2: onChunkUnload() (not onChunkUnloaded)
+    @Override
+    public void onChunkUnload() {
+        super.onChunkUnload();
+        FrequencyGrid.instance().unregister(this.fortronStorage);
+    }
+
+    @Override
+    public void tickServer() {
+        super.tickServer();
+        boolean active = isActive();
+        net.minecraft.block.state.IBlockState state = this.world.getBlockState(this.pos);
+        if (state.getValue(BaseEntityBlock.ACTIVE) != active) {
+            this.world.setBlockState(this.pos, state.withProperty(BaseEntityBlock.ACTIVE, active));
+        }
+    }
+
+    @Override
+    public void tickClient() {
+        super.tickClient();
+        animate();
+    }
+
+    /**
+     * Called before the tile entity is removed from the world.
+     * Transfers remaining Fortron to nearby tiles.
+     */
+    public void preRemoveSideEffects(BlockPos pos) {
+        if (this.markSendFortron) {
+            Fortron.transferFortron(this.fortronStorage, FrequencyGrid.instance().get(this.world, this.pos, 100, this.fortronStorage.getFrequency()), TransferMode.DRAIN, Integer.MAX_VALUE);
+        }
+        // Note: level.invalidateCapabilities not needed in 1.12.2
+    }
+
+    // -------------------------------------------------------------------------
+    // Capability exposure: FortronStorage
+    // -------------------------------------------------------------------------
+
+    @Override
+    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
+        if (capability == ModCapabilities.FORTRON) {
+            return true;
+        }
+        return super.hasCapability(capability, facing);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing) {
+        if (capability == ModCapabilities.FORTRON) {
+            return (T) this.fortronStorage;
+        }
+        return super.getCapability(capability, facing);
+    }
+
+    @Override
+    protected void loadCommonTag(NBTTagCompound compound) {
+        super.loadCommonTag(compound);
+        if (compound.hasKey("fortronStorage")) {
+            this.fortronStorage.readNbt(compound.getCompoundTag("fortronStorage"));
+        }
+        this.active = compound.getBoolean("active");
+    }
+
+    @Override
+    protected void saveCommonTag(NBTTagCompound compound) {
+        super.saveCommonTag(compound);
+        NBTTagCompound fortronTag = new NBTTagCompound();
+        this.fortronStorage.writeNbt(fortronTag);
+        compound.setTag("fortronStorage", fortronTag);
+        compound.setBoolean("active", this.active);
+    }
+
+    @Override
+    public BiometricIdentifier getBiometricIdentifier() {
+        return getBiometricIdentifiers().stream().findFirst().orElse(null);
+    }
+
+    @Override
+    public Set<BiometricIdentifier> getBiometricIdentifiers() {
+        // Look up BiometricIdentifiers via CoordLink + FrequencyGrid
+        // In 1.12.2: get link from CoordLink.getLink(stack), call world.getTileEntity(pos),
+        //   then check if it has ModCapabilities.BIOMETRIC_IDENTIFIER via getCapability
+        return StreamEx.of(getCards())
+            .mapPartial(stack -> {
+                if (stack.getItem() instanceof CoordLink link) {
+                    BlockPos linkPos = link.getLink(stack);
+                    if (linkPos != null) {
+                        net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(linkPos);
+                        if (te != null) {
+                            BiometricIdentifier bi = te.getCapability(ModCapabilities.BIOMETRIC_IDENTIFIER, null);
+                            return Optional.ofNullable(bi);
+                        }
+                    }
+                }
+                return Optional.empty();
+            })
+            .append(StreamEx.of(FrequencyGrid.instance().get(this.fortronStorage.getFrequency()))
+                .mapPartial(storage -> {
+                    net.minecraft.tileentity.TileEntity te = storage.getOwner();
+                    return Optional.ofNullable(te != null ? te.getCapability(ModCapabilities.BIOMETRIC_IDENTIFIER, null) : null);
+                }))
+            .toSet();
+    }
+}
