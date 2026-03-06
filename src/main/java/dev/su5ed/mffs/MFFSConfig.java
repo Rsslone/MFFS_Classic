@@ -72,6 +72,8 @@ public final class MFFSConfig {
     // -------------------------------------------------------------------------
     /** Apply a fancy glitch effect on projector mode renders. */
     public static boolean enableProjectorModeGlitch = true;
+    /** Spacing used for force field light sources: 1 = every block, 3 = ~1/3 of blocks emit light. */
+    public static int forceFieldLightSpacing = 3;
 
     // =========================================================================
     // Load / Save
@@ -133,6 +135,10 @@ public final class MFFSConfig {
         // -- Client (best-effort; Configuration does not distinguish client/common in 1.12.2) --
         enableProjectorModeGlitch = configuration.getBoolean("enableProjectorModeGlitch", "client", enableProjectorModeGlitch,
             "Apply a fancy glitch effect on projector mode renders. Reload resources to apply change.");
+
+        // -- Performance --
+        forceFieldLightSpacing = configuration.getInt("forceFieldLightSpacing", "performance", forceFieldLightSpacing, 1, Integer.MAX_VALUE,
+            "Controls spacing for force field light sources. 1 = every block emits, 3 = ~1/3 of blocks.");
 
         if (configuration.hasChanged()) {
             configuration.save();

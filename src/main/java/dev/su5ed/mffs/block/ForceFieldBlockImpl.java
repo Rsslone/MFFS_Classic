@@ -87,6 +87,11 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
 
     @Override
     public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
+        // Only a subset of force field blocks emit light based on configured spacing.
+        // With spacing 3, roughly 1/3 of blocks emit light — reduces lighting BFS cost.
+        int spacing = Math.max(1, MFFSConfig.forceFieldLightSpacing);
+        if ((pos.getX() + pos.getY() + pos.getZ()) % spacing != 0) return 0;
+
         return Optional.ofNullable(world.getTileEntity(pos))
             .map(te -> te instanceof ForceFieldBlockEntity f ? f.getClientBlockLight() : null)
             .orElseGet(() -> super.getLightValue(state, world, pos));
