@@ -1,89 +1,98 @@
 package dev.su5ed.mffs;
 
+// =============================================================================
+// 1.12.2 Backport: Forge event handler
+// 1.21.x used NeoForge bus events; here we use Forge 1.12.2 event types.
+// Key changes:
+//   MobSpawnEvent.PositionCheck   -> LivingSpawnEvent.CheckSpawn
+//   EntityJoinLevelEvent          -> EntityJoinWorldEvent
+//   PlayerInteractEvent.RightClickBlock / LeftClickBlock (1.12.2 subclasses)
+//   ServerStartingEvent           -> FMLServerStartingEvent (handled in MFFSMod)
+//   Level / ServerLevel           -> World / WorldServer
+//   ICancellableEvent             -> standard Forge setCanceled
+//   ServerPlayer                  -> EntityPlayerMP
+//   block.get().is(other)         -> block == ModBlocks.FORCE_FIELD (direct ref)
+//   Guidebook criterion trigger   -> removed (no advancement triggers in 1.12.2)
+// =============================================================================
+
 import dev.su5ed.mffs.api.EventForceManipulate;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.setup.ModModules;
-import dev.su5ed.mffs.setup.ModObjects;
 import dev.su5ed.mffs.util.Fortron;
-import dev.su5ed.mffs.util.FrequencyGrid;
 import dev.su5ed.mffs.util.ModUtil;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.bus.api.ICancellableEvent;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class ForgeEventHandler {
 
-    @SubscribeEvent
-    public static void serverStarting(ServerStartingEvent event) {
-        FrequencyGrid.reinitiate();
-    }
+    // Note: FMLServerStartingEvent is an FML lifecycle event, not a Forge bus event.
+    // It is handled in MFFSMod.serverStarting() instead.
 
     @SubscribeEvent
-    public static void eventPreForceManipulate(EventForceManipulate.EventPreForceManipulate event) {
-        BlockEntity be = event.getLevel().getBlockEntity(event.getBeforePos());
-
-        if (be instanceof FortronBlockEntity fortronBlockEntity) {
+    public void eventPreForceManipulate(EventForceManipulate.EventPreForceManipulate event) {
+        TileEntity te = event.getWorld().getTileEntity(event.getBeforePos());
+        if (te instanceof FortronBlockEntity fortronBlockEntity) {
             fortronBlockEntity.setMarkSendFortron(false);
         }
     }
 
     @SubscribeEvent
-    public static void onPlayerRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        onPlayerInteract(event, Fortron.Action.RIGHT_CLICK_BLOCK);
+    public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        onPlayerInteractInternal(event, event.getEntityPlayer(), event.getWorld(), event.getPos(), Fortron.Action.RIGHT_CLICK_BLOCK);
     }
 
     @SubscribeEvent
-    public static void onPlayerLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
-        if (event.getLevel().getBlockState(event.getPos()).is(ModBlocks.FORCE_FIELD.get())) {
+    public void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        World world = event.getWorld();
+        BlockPos pos = event.getPos();
+        // If the block is a force field, cancel the interaction entirely
+        if (world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD) {
             event.setCanceled(true);
         } else {
-            onPlayerInteract(event, Fortron.Action.LEFT_CLICK_BLOCK);
+            onPlayerInteractInternal(event, event.getEntityPlayer(), world, pos, Fortron.Action.LEFT_CLICK_BLOCK);
         }
     }
 
     @SubscribeEvent
-    public static void livingSpawnEvent(MobSpawnEvent.PositionCheck event) {
-        InterdictionMatrix interdictionMatrix = Fortron.getNearestInterdictionMatrix(event.getEntity().level(), BlockPos.containing(event.getX(), event.getY(), event.getZ()));
+    public void livingSpawnEvent(LivingSpawnEvent.CheckSpawn event) {
+        BlockPos pos = new BlockPos(MathHelper.floor(event.getX()), MathHelper.floor(event.getY()), MathHelper.floor(event.getZ()));
+        InterdictionMatrix interdictionMatrix = Fortron.getNearestInterdictionMatrix(event.getWorld(), pos);
         if (interdictionMatrix != null && interdictionMatrix.hasModule(ModModules.ANTI_SPAWN)) {
-            event.setResult(MobSpawnEvent.PositionCheck.Result.FAIL);
+            event.setResult(Event.Result.DENY);
         }
     }
 
     @SubscribeEvent
-    public static void onPlayerJoinLevel(EntityJoinLevelEvent event) {
-        if (event.getEntity() instanceof ServerPlayer serverPlayer && MFFSConfig.COMMON.giveGuidebookOnFirstJoin.get()) {
-            ModObjects.GUIDEBOOK_TRIGGER.get().trigger(serverPlayer);
-        }
+    public void onEntityJoinWorld(EntityJoinWorldEvent event) {
+        // TODO: Patchouli guidebook on first join (no criterion triggers in 1.12.2)
+        // If Patchouli is present, use its API to give the book.
+        // For now this handler is a no-op until a Patchouli / manual NBT check is implemented.
+        // Original 1.21.x: if (entity instanceof ServerPlayer player && COMMON.giveGuidebookOnFirstJoin.get())
+        //                       ModObjects.GUIDEBOOK_TRIGGER.get().trigger(player);
     }
 
-    private static void onPlayerInteract(PlayerInteractEvent event, Fortron.Action action) {
-        if (event instanceof ICancellableEvent cancellableEvent) {
-            Player player = event.getEntity();
-            if (!player.isCreative()) {
-                Level level = event.getLevel();
-                BlockPos pos = event.getPos();
-                InterdictionMatrix interdictionMatrix = Fortron.getNearestInterdictionMatrix(level, pos);
-                if (interdictionMatrix != null) {
-                    BlockState state = level.getBlockState(pos);
-                    if (state.is(ModBlocks.BIOMETRIC_IDENTIFIER.get()) && Fortron.isPermittedByInterdictionMatrix(interdictionMatrix, player, FieldPermission.CONFIGURE_SECURITY_CENTER)) {
-                        return;
-                    }
-                    if (!Fortron.hasPermission(level, pos, interdictionMatrix, action, player)) {
-                        player.displayClientMessage(ModUtil.translate("info", "interdiction_matrix.no_permission", interdictionMatrix.getTitle()), false);
-                        cancellableEvent.setCanceled(true);
-                    }
+    private void onPlayerInteractInternal(PlayerInteractEvent event, EntityPlayer player, World world, BlockPos pos, Fortron.Action action) {
+        if (!player.isCreative()) {
+            InterdictionMatrix interdictionMatrix = Fortron.getNearestInterdictionMatrix(world, pos);
+            if (interdictionMatrix != null) {
+                if (world.getBlockState(pos).getBlock() == ModBlocks.BIOMETRIC_IDENTIFIER
+                    && Fortron.isPermittedByInterdictionMatrix(interdictionMatrix, player, FieldPermission.CONFIGURE_SECURITY_CENTER)) {
+                    return;
+                }
+                if (!Fortron.hasPermission(world, pos, interdictionMatrix, action, player)) {
+                    player.sendStatusMessage(ModUtil.translate("info", "interdiction_matrix.no_permission", interdictionMatrix.getTitle()), false);
+                    event.setCanceled(true);
                 }
             }
         }

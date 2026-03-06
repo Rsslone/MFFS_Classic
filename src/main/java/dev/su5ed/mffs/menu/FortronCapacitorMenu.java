@@ -1,23 +1,27 @@
 package dev.su5ed.mffs.menu;
 
+// 1.12.2 Backport: FortronCapacitorMenu
+// BlockPos → net.minecraft.util.math.BlockPos
+// Player → EntityPlayer; Inventory → InventoryPlayer
+// addDataSlot(new DataSlotWrapper()) → addDataSlot(getter, setter)
+
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
-import dev.su5ed.mffs.setup.ModMenus;
-import dev.su5ed.mffs.setup.ModObjects;
-import dev.su5ed.mffs.util.DataSlotWrapper;
 import dev.su5ed.mffs.util.TransferMode;
 import dev.su5ed.mffs.util.inventory.SlotInventory;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import one.util.streamex.EntryStream;
 
 public class FortronCapacitorMenu extends FortronMenu<FortronCapacitorBlockEntity> {
 
-    public FortronCapacitorMenu(int containerId, BlockPos pos, Player player, Inventory playerInventory) {
-        super(ModMenus.FORTRON_CAPACITOR_MENU.get(), ModObjects.FORTRON_CAPACITOR_BLOCK_ENTITY.get(), containerId, pos, player, playerInventory);
+    public FortronCapacitorMenu(World world, BlockPos pos, EntityPlayer player, InventoryPlayer playerInventory) {
+        super(world, pos, player, playerInventory);
 
         layoutPlayerInventorySlots(8, 135);
-        addDataSlot(new DataSlotWrapper(() -> this.blockEntity.getTransferMode().ordinal(), i -> this.blockEntity.setTransferMode(TransferMode.values()[i])));
+        addDataSlot(() -> this.blockEntity.getTransferMode().ordinal(),
+            i -> this.blockEntity.setTransferMode(TransferMode.values()[i]));
 
         EntryStream.of(this.blockEntity.upgradeSlots)
             .forKeyValue((i, slot) -> addInventorySlot(new SlotInventory(slot, 154, 47 + i * 20)));

@@ -1,126 +1,149 @@
 package dev.su5ed.mffs;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
-import org.apache.commons.lang3.tuple.Pair;
+// =============================================================================
+// 1.12.2 Backport: Configuration
+// 1.21.x used NeoForge ModConfigSpec (data-driven, registered at build time).
+// In 1.12.2 we use net.minecraftforge.common.config.Configuration, loaded
+// during FMLPreInitializationEvent via event.getSuggestedConfigurationFile().
+// All values are stored as plain fields; call MFFSConfig.load(configFile)
+// from MFFSMod.preInit and MFFSConfig.save() when done.
+// =============================================================================
 
-public class MFFSConfig {
-    static final ModConfigSpec COMMON_SPEC;
-    static final ModConfigSpec CLIENT_SPEC;
+import net.minecraftforge.common.config.Configuration;
 
-    public static final Common COMMON;
-    public static final Client CLIENT;
+import java.io.File;
 
-    static {
-        Pair<Common, ModConfigSpec> commonPair = new ModConfigSpec.Builder().configure(Common::new);
-        COMMON = commonPair.getLeft();
-        COMMON_SPEC = commonPair.getRight();
+public final class MFFSConfig {
 
-        Pair<Client, ModConfigSpec> clientPair = new ModConfigSpec.Builder().configure(Client::new);
-        CLIENT = clientPair.getLeft();
-        CLIENT_SPEC = clientPair.getRight();
-    }
+    private static Configuration configuration;
 
-    private MFFSConfig() {
-    }
+    // -------------------------------------------------------------------------
+    // General
+    // -------------------------------------------------------------------------
+    /** Turning this to false will make MFFS run without electricity or energy systems required. */
+    public static boolean enableElectricity            = true;
+    /** Cache allows temporary data saving to decrease calculations required. */
+    public static boolean useCache                     = true;
+    /** How many force field blocks can be generated per tick? Less reduces lag. */
+    public static int     maxFFGenPerTick              = 1_000_000;
+    /** Allow server operators to bypass Force Field biometry. */
+    public static boolean allowOpBiometryOverride      = true;
+    /** Should the interdiction matrix interact with creative players? */
+    public static boolean interactCreative             = true;
+    /** Max custom mode field scale. */
+    public static int     maxCustomModeScale           = 200;
+    /** Give players a copy of the MFFS guidebook when they first join a world. */
+    public static boolean giveGuidebookOnFirstJoin     = true;
 
-    public static final class Common {
-        public final ModConfigSpec.BooleanValue enableElectricity;
-        public final ModConfigSpec.BooleanValue useCache;
-        public final ModConfigSpec.IntValue maxFFGenPerTick;
-        public final ModConfigSpec.BooleanValue allowOpBiometryOverride;
-        public final ModConfigSpec.BooleanValue interactCreative;
-        public final ModConfigSpec.IntValue maxCustomModeScale;
-        public final ModConfigSpec.BooleanValue giveGuidebookOnFirstJoin;
+    // -------------------------------------------------------------------------
+    // Coercion Deriver
+    // -------------------------------------------------------------------------
+    /** FE to convert into 1 Fortron. */
+    public static int coercionDriverFePerFortron                  = 400;
+    /** FE to subtract when converting Fortron to FE. */
+    public static int coercionDriverFortronToFeLoss               = 1;
+    /** Base limit of Fortron produced per tick. */
+    public static int coercionDriverFortronPerTick                = 200;
+    /** Production bonus per speed module. */
+    public static int coercionDriverFortronPerTickSpeedModule     = 200;
 
-        public final ModConfigSpec.IntValue coercionDriverFePerFortron;
-        public final ModConfigSpec.IntValue coercionDriverFortronToFeLoss;
-        public final ModConfigSpec.IntValue coercionDriverFortronPerTick;
-        public final ModConfigSpec.IntValue coercionDriverFortronPerTickSpeedModule;
+    // -------------------------------------------------------------------------
+    // Balance
+    // -------------------------------------------------------------------------
+    /** Fortron catalyst production multiplier. */
+    public static double catalystMultiplier          = 2.0;
+    /** The number of ticks a single catalyst item lasts. */
+    public static int    catalystBurnTime            = 10 * 20;
+    /** Energy to consume when the Interdiction Matrix kills a player. */
+    public static int    interdictionMatrixKillEnergy = 0;
 
-        public final ModConfigSpec.DoubleValue catalystMultiplier;
-        public final ModConfigSpec.IntValue catalystBurnTime;
+    // -------------------------------------------------------------------------
+    // Force Field
+    // -------------------------------------------------------------------------
+    /** Prevent authorized players from taking damage when passing through force fields. */
+    public static boolean disableForceFieldDamageForAuthorizedPlayers  = false;
+    /** Remove confusion and slowness effects for authorized players passing through force fields. */
+    public static boolean disableForceFieldEffectsForAuthorizedPlayers = false;
+    /** Allow authorized players to walk through force fields without sneaking. */
+    public static boolean allowWalkThroughForceFields                  = false;
 
-        public final ModConfigSpec.IntValue interdictionMatrixKillEnergy;
+    // -------------------------------------------------------------------------
+    // Client
+    // -------------------------------------------------------------------------
+    /** Apply a fancy glitch effect on projector mode renders. */
+    public static boolean enableProjectorModeGlitch = true;
 
-        public final ModConfigSpec.BooleanValue disableForceFieldDamageForAuthorizedPlayers;
-        public final ModConfigSpec.BooleanValue disableForceFieldEffectsForAuthorizedPlayers;
-        public final ModConfigSpec.BooleanValue allowWalkThroughForceFields;
+    // =========================================================================
+    // Load / Save
+    // =========================================================================
 
-        private Common(ModConfigSpec.Builder builder) {
-            builder.push("general");
-            this.enableElectricity = builder
-                .comment("Turning this to false will make MFFS run without electricity or energy systems required. Great for vanilla!")
-                .define("enableElectricity", true);
-            this.useCache = builder
-                .comment("Cache allows temporary data saving to decrease calculations required")
-                .define("useCache", true);
-            this.maxFFGenPerTick = builder
-                .comment("How many force field blocks can be generated per tick? Less reduces lag.")
-                .defineInRange("maxFFGenPerTick", 1_000_000, 0, Integer.MAX_VALUE);
-            this.allowOpBiometryOverride = builder
-                .comment("Allow server operators to bypass Force Field biometry")
-                .define("allowOpBiometryOverride", true);
-            this.interactCreative = builder
-                .comment("Should the interdiction matrix interact with creative players?")
-                .define("interactCreative", true);
-            this.maxCustomModeScale = builder
-                .comment("Max custom mode field scale")
-                .defineInRange("maxCustomModeScale", 200, 0, Integer.MAX_VALUE);
-            this.giveGuidebookOnFirstJoin = builder
-                .comment("Give players a copy of the MFFS guidebook when they first join a world")
-                .define("giveGuidebookOnFirstJoin", true);
-            builder.pop();
+    /**
+     * Load the configuration from disk. Call from {@link MFFSMod#preInit}:
+     * <pre>MFFSConfig.load(event.getSuggestedConfigurationFile());</pre>
+     */
+    public static void load(File configFile) {
+        configuration = new Configuration(configFile);
+        configuration.load();
 
-            builder.push("coercion_deriver");
-            this.coercionDriverFePerFortron = builder
-                .comment("FE to convert into 1 Fortron")
-                .defineInRange("feCostPerFortron", 400, 1, Integer.MAX_VALUE);
-            this.coercionDriverFortronToFeLoss = builder
-                .comment("FE to subtract when converting Fortron to FE")
-                .defineInRange("fortronToFeLoss", 1, 0, Integer.MAX_VALUE);
-            this.coercionDriverFortronPerTick = builder
-                .comment("Base limit of fortron produced per tick (20 per second). Scales with speed modules and catalyst.")
-                .defineInRange("fortronPerTick", 200, 1, Integer.MAX_VALUE);
-            coercionDriverFortronPerTickSpeedModule = builder
-                .comment("Production bonus per speed module. production = fortronPerTick + (fortronPerTick * speedModuleCount)... or x2 multiplicative")
-                .defineInRange("fortronPerTickSpeedModule", 200, 1, Integer.MAX_VALUE);
-            builder.pop();
+        // -- General --
+        enableElectricity = configuration.getBoolean("enableElectricity", "general", enableElectricity,
+            "Turning this to false will make MFFS run without electricity or energy systems required. Great for vanilla!");
+        useCache = configuration.getBoolean("useCache", "general", useCache,
+            "Cache allows temporary data saving to decrease calculations required");
+        maxFFGenPerTick = configuration.getInt("maxFFGenPerTick", "general", maxFFGenPerTick, 0, Integer.MAX_VALUE,
+            "How many force field blocks can be generated per tick? Less reduces lag.");
+        allowOpBiometryOverride = configuration.getBoolean("allowOpBiometryOverride", "general", allowOpBiometryOverride,
+            "Allow server operators to bypass Force Field biometry");
+        interactCreative = configuration.getBoolean("interactCreative", "general", interactCreative,
+            "Should the interdiction matrix interact with creative players?");
+        maxCustomModeScale = configuration.getInt("maxCustomModeScale", "general", maxCustomModeScale, 0, Integer.MAX_VALUE,
+            "Max custom mode field scale");
+        giveGuidebookOnFirstJoin = configuration.getBoolean("giveGuidebookOnFirstJoin", "general", giveGuidebookOnFirstJoin,
+            "Give players a copy of the MFFS guidebook when they first join a world");
 
-            builder.push("balance");
-            this.catalystMultiplier = builder
-                .comment("Fortron catalyst production multiplier")
-                .defineInRange("catalystMultiplier", 2.0, 0.0, 10_000.0);
-            this.catalystBurnTime = builder
-                .comment("The amount of ticks a single catalyst item lasts for")
-                .defineInRange("catalystBurnTime", 10 * 20, 1, 10_000);
-            this.interdictionMatrixKillEnergy = builder
-                .comment("Energy to consume when the Interdiction Matrix kills a player")
-                .defineInRange("interdictionMatrixKillEnergy", 0, 0, Integer.MAX_VALUE);
-            builder.pop();
+        // -- Coercion Deriver --
+        coercionDriverFePerFortron = configuration.getInt("feCostPerFortron", "coercion_deriver", coercionDriverFePerFortron, 1, Integer.MAX_VALUE,
+            "FE to convert into 1 Fortron");
+        coercionDriverFortronToFeLoss = configuration.getInt("fortronToFeLoss", "coercion_deriver", coercionDriverFortronToFeLoss, 0, Integer.MAX_VALUE,
+            "FE to subtract when converting Fortron to FE");
+        coercionDriverFortronPerTick = configuration.getInt("fortronPerTick", "coercion_deriver", coercionDriverFortronPerTick, 1, Integer.MAX_VALUE,
+            "Base limit of fortron produced per tick (20 per second). Scales with speed modules and catalyst.");
+        coercionDriverFortronPerTickSpeedModule = configuration.getInt("fortronPerTickSpeedModule", "coercion_deriver",
+            coercionDriverFortronPerTickSpeedModule, 1, Integer.MAX_VALUE,
+            "Production bonus per speed module.");
 
-            builder.push("force_field");
-            this.disableForceFieldDamageForAuthorizedPlayers = builder
-                .comment("Prevent authorized players from taking damage when passing through force fields")
-                .define("disableForceFieldDamageForAuthorizedPlayers", false);
-            this.disableForceFieldEffectsForAuthorizedPlayers = builder
-                .comment("Remove confusion and slowness effects for authorized players passing through force fields")
-                .define("disableForceFieldEffectsForAuthorizedPlayers", false);
-            this.allowWalkThroughForceFields = builder
-                .comment("Allow authorized players to walk through force fields without sneaking. WARNING: May cause occasional clipping issues on horizontal platforms.")
-                .define("allowWalkThroughForceFields", false);
-            builder.pop();
+        // -- Balance --
+        catalystMultiplier = configuration.getFloat("catalystMultiplier", "balance", (float) catalystMultiplier, 0f, 10_000f,
+            "Fortron catalyst production multiplier");
+        catalystBurnTime = configuration.getInt("catalystBurnTime", "balance", catalystBurnTime, 1, 10_000,
+            "The amount of ticks a single catalyst item lasts for");
+        interdictionMatrixKillEnergy = configuration.getInt("interdictionMatrixKillEnergy", "balance", interdictionMatrixKillEnergy, 0, Integer.MAX_VALUE,
+            "Energy to consume when the Interdiction Matrix kills a player");
+
+        // -- Force Field --
+        disableForceFieldDamageForAuthorizedPlayers = configuration.getBoolean("disableForceFieldDamageForAuthorizedPlayers", "force_field",
+            disableForceFieldDamageForAuthorizedPlayers,
+            "Prevent authorized players from taking damage when passing through force fields");
+        disableForceFieldEffectsForAuthorizedPlayers = configuration.getBoolean("disableForceFieldEffectsForAuthorizedPlayers", "force_field",
+            disableForceFieldEffectsForAuthorizedPlayers,
+            "Remove confusion and slowness effects for authorized players passing through force fields");
+        allowWalkThroughForceFields = configuration.getBoolean("allowWalkThroughForceFields", "force_field", allowWalkThroughForceFields,
+            "Allow authorized players to walk through force fields without sneaking. WARNING: May cause occasional clipping issues on horizontal platforms.");
+
+        // -- Client (best-effort; Configuration does not distinguish client/common in 1.12.2) --
+        enableProjectorModeGlitch = configuration.getBoolean("enableProjectorModeGlitch", "client", enableProjectorModeGlitch,
+            "Apply a fancy glitch effect on projector mode renders. Reload resources to apply change.");
+
+        if (configuration.hasChanged()) {
+            configuration.save();
         }
     }
 
-    public static final class Client {
-        public final ModConfigSpec.BooleanValue enableProjectorModeGlitch;
-
-        private Client(ModConfigSpec.Builder builder) {
-            builder.push("general");
-            this.enableProjectorModeGlitch = builder
-                .comment("Apply a fancy glitch effect on projector mode renders. Reload resources to apply change.")
-                .define("enableProjectorModeGlitch", true);
-            builder.pop();
+    public static void save() {
+        if (configuration != null && configuration.hasChanged()) {
+            configuration.save();
         }
     }
+
+    private MFFSConfig() {}
 }

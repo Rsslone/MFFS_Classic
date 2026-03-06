@@ -1,5 +1,27 @@
 package dev.su5ed.mffs.render.model;
 
+/**
+ * 1.12.2 backport of DelegateBlockModelPart.
+ *
+ * Reference (1.21): a {@code ModelPart} subclass used by the 1.21
+ * {@code BlockEntityRenderDelegate} to chain a block entity's renderer
+ * as a sub-part of another entity's model hierarchy,
+ * using {@code SubmitNodeCollector}.
+ *
+ * In 1.12.2, neither {@code ModelPart} (the layered-model system introduced
+ * in 1.17) nor the {@code SubmitNodeCollector} render pipeline exist.
+ * TESR chaining is not used; camouflage is drawn directly in
+ * {@link dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer}.
+ *
+ * This class is retained as an empty structural placeholder.
+ */
+public final class DelegateBlockModelPart {
+    private DelegateBlockModelPart() {}
+}
+
+/* class_NeoForge_1_21_x (DelegateBlockModelPart):
+package dev.su5ed.mffs.render.model;
+
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockModelPart;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
@@ -45,3 +67,5 @@ public class DelegateBlockModelPart implements BlockModelPart {
         return this.delegate.ambientOcclusion();
     }
 }
+
+*/

@@ -1,5 +1,28 @@
 package dev.su5ed.mffs.render.model;
 
+/**
+ * 1.12.2 backport of ForceFieldBlockModel.
+ *
+ * Reference (1.20.1): implements {@code IDynamicBakedModel} to dynamically
+ * return either the default force-field model quads or the camouflage block's
+ * quads at bake time, selected based on
+ * {@code ModelData} attached to the {@code ForceFieldBlockEntity}.
+ *
+ * In 1.12.2, {@code IDynamicBakedModel} does not exist. Camouflage rendering
+ * is handled at runtime by
+ * {@link dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer}, which uses
+ * {@code BlockRendererDispatcher.renderBlock()} in a TESR render call.
+ * The block model itself is a plain static JSON model for the non-camo state.
+ *
+ * This class is retained as an empty structural placeholder.
+ */
+public final class ForceFieldBlockModel {
+    private ForceFieldBlockModel() {}
+}
+
+/* class_NeoForge_1_21_x (ForceFieldBlockModel):
+package dev.su5ed.mffs.render.model;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -65,3 +88,5 @@ public class ForceFieldBlockModel extends DelegateBlockStateModel {
         return Pair.of(this.defaultModel, state);
     }
 }
+
+*/

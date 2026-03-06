@@ -1,5 +1,15 @@
 package dev.su5ed.mffs.datagen;
 
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON resources are in src/main/resources/ directly.
+
+public final class BlockTagsGen {
+    private BlockTagsGen() {}
+}
+
+/* class_NeoForge_1_21_x (BlockTagsGen):
+package dev.su5ed.mffs.datagen;
+
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.setup.ModTags;
@@ -36,3 +46,4 @@ public class BlockTagsGen extends BlockTagsProvider {
         return MFFSMod.NAME + " Block Tags";
     }
 }
+*/

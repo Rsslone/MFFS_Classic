@@ -1,3 +1,9 @@
+# =============================================================================
+# NOTE: This file is the 1.21.x NeoForge mod descriptor. It is NOT read by
+# Minecraft Forge 1.12.2. The 1.12.2 equivalent is src/main/resources/mcmod.info
+# which is populated via gradle.properties template expansion.
+# This file is kept for reference only during the backport process.
+# =============================================================================
 modLoader="javafml"
 loaderVersion="[1,)"
 license="Code: MIT, Assets: All Rights Reserved"

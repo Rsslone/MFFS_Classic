@@ -1,5 +1,25 @@
 package dev.su5ed.mffs.datagen;
 
+// 1.12.2 does not use NeoForge DataProvider API.
+// There is no GatherDataEvent / DataGenerator in 1.12.2.
+// Reference (1.21): @EventBusSubscriber registering ModelsGen, BlockTagsGen,
+// ItemTagsGen, RecipesGen, LootTableProvider, AdvancementProvider, DamageTypeTagsGen.
+
+public final class ModDataGen {
+    private ModDataGen() {}
+}
+
+/* class_NeoForge_1_21_x (ModDataGen):
+package dev.su5ed.mffs.datagen;
+
+// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+public final class ModDataGen {
+    private ModDataGen() {}
+}
+
+/* class_NeoForge_1_21_x (ModDataGen):
+package dev.su5ed.mffs.datagen;
+
 import dev.su5ed.mffs.MFFSMod;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistrySetBuilder;
@@ -46,3 +66,7 @@ public final class ModDataGen {
 
     private ModDataGen() {}
 }
+
+* /
+
+*/

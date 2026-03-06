@@ -1,64 +1,79 @@
 package dev.su5ed.mffs.item;
 
-import com.google.common.base.Suppliers;
-import dev.su5ed.mffs.util.ModUtil;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
+// =============================================================================
+// 1.12.2 Backport: BaseItem
+// Key changes:
+//   Item(Properties) → Item() with setter methods
+//   appendHoverText(TooltipDisplay, Consumer<Component>) → addInformation(List<String>)
+//   ExtendedItemProperties → simplified shim (description via boolean flag)
+//   Component/ChatFormatting → String + TextFormatting
+//   BuiltInRegistries → getRegistryName()
+// =============================================================================
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class BaseItem extends Item {
-    private final Supplier<Component> description;
 
-    public BaseItem(ExtendedItemProperties properties) {
-        super(properties.properties);
+    /** If true, hovering with Shift shows the item's description translation. */
+    protected final boolean showDescription;
 
-        this.description = properties.description != null ? Suppliers.memoize(() -> properties.description.apply(this)) : null;
+    public BaseItem() {
+        this(false);
     }
 
-    protected void appendHoverTextPre(ItemStack stack, TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag flag) {}
+    public BaseItem(boolean showDescription) {
+        this.showDescription = showDescription;
+    }
+
+    /**
+     * Override to inject tooltip lines before the description line.
+     * Equivalent of 1.21.x {@code appendHoverTextPre}.
+     */
+    @SideOnly(Side.CLIENT)
+    protected void addInformationPre(ItemStack stack, @Nullable World worldIn, List<String> tooltip,
+                                     net.minecraft.client.util.ITooltipFlag flagIn) {}
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltipDisplay, tooltipAdder, flag);
-
-        appendHoverTextPre(stack, context, tooltipDisplay, tooltipAdder, flag);
-        if (this.description != null) {
-            if (Minecraft.getInstance().hasShiftDown()) {
-                tooltipAdder.accept(this.description.get());
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip,
+                               net.minecraft.client.util.ITooltipFlag flagIn) {
+        super.addInformation(stack, worldIn, tooltip, flagIn);
+        addInformationPre(stack, worldIn, tooltip, flagIn);
+        if (this.showDescription) {
+            if (Minecraft.getMinecraft().gameSettings.keyBindSneak.isKeyDown()) {
+                // Shift held: show full description
+                String descKey = "item.mffs." + this.getRegistryName().getPath() + ".description";
+                tooltip.add(TextFormatting.GRAY + I18n.format(descKey));
             } else {
-                tooltipAdder.accept(ModUtil.translate("info", "show_details", ModUtil.translate("info", "key.shift").withStyle(ChatFormatting.GRAY))
-                    .withStyle(ChatFormatting.DARK_GRAY));
+                // Hint to hold Shift
+                tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.show_details",
+                    TextFormatting.GRAY + I18n.format("info.mffs.key.shift")));
             }
         }
     }
 
+    // -----------------------------------------------------------------
+    // Compatibility shim for old 1.21.x ExtendedItemProperties pattern.
+    // In 1.12.2, just pass `showDescription=true` to the BaseItem ctor.
+    // This stub class lets callers that haven't been fully ported to
+    // compile without errors while the migration is in progress.
+    // -----------------------------------------------------------------
     public static class ExtendedItemProperties {
-        private final Properties properties;
+        public boolean hasDescription;
 
-        private Function<Item, Component> description;
-
-        public ExtendedItemProperties(Properties properties) {
-            this.properties = properties;
-        }
-
-        public Properties getProperties() {
-            return this.properties;
-        }
-
+        /** No-op in 1.12.2; use BaseItem(true) instead. */
         public ExtendedItemProperties description() {
-            this.description = item -> {
-                String name = BuiltInRegistries.ITEM.getKey(item).getPath();
-                return ModUtil.translate("item", name + ".description").withStyle(ChatFormatting.GRAY);
-            };
+            this.hasDescription = true;
             return this;
         }
     }

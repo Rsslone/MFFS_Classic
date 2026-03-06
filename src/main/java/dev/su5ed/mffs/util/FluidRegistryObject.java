@@ -1,5 +1,23 @@
 package dev.su5ed.mffs.util;
 
+/**
+ * 1.12.2 backport of FluidRegistryObject.
+ *
+ * Reference (1.21): holds memoized {@code Supplier<FluidType>},
+ * {@code Supplier<Fluid>} (source), and {@code Supplier<Fluid>} (flowing)
+ * for use with NeoForge's {@code BaseFlowingFluid} + {@code DeferredRegister}.
+ *
+ * In 1.12.2: fluid registration is done directly via {@link net.minecraftforge.fluids.FluidRegistry}.
+ * The Fortron fluid is registered in {@link dev.su5ed.mffs.setup.ModFluids}.
+ * This class is an empty structural placeholder.
+ */
+public final class FluidRegistryObject {
+    private FluidRegistryObject() {}
+}
+
+/* class_NeoForge_1_21_x (FluidRegistryObject):
+package dev.su5ed.mffs.util;
+
 import com.google.common.base.Suppliers;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.BaseFlowingFluid;
@@ -46,3 +64,5 @@ public class FluidRegistryObject {
         return this.flowingFluid.get();
     }
 }
+
+*/

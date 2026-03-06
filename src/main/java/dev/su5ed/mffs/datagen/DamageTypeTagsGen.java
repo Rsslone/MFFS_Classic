@@ -1,5 +1,15 @@
 package dev.su5ed.mffs.datagen;
 
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON resources are in src/main/resources/ directly.
+
+public final class DamageTypeTagsGen {
+    private DamageTypeTagsGen() {}
+}
+
+/* class_NeoForge_1_21_x (DamageTypeTagsGen):
+package dev.su5ed.mffs.datagen;
+
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.ModObjects;
 import net.minecraft.core.HolderLookup;
@@ -22,3 +32,4 @@ public class DamageTypeTagsGen extends DamageTypeTagsProvider {
         tag(Tags.DamageTypes.IS_TECHNICAL).add(ModObjects.FIELD_SHOCK_TYPE);
     }
 }
+*/

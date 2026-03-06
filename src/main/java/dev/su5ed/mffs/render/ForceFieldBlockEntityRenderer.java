@@ -1,48 +1,60 @@
 package dev.su5ed.mffs.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+// 1.12.2 Backport: ForceFieldBlockEntityRenderer
+// Renders the camouflage block model when a ForceFieldBlockEntity has a camouflage state.
+// Uses TESR with BlockRendererDispatcher to render the disguise block's model.
+
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
-import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.state.CameraRenderState;
-import net.minecraft.world.phys.Vec3;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.BlockRendererDispatcher;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.GL11;
 
-public class ForceFieldBlockEntityRenderer implements BlockEntityRenderer<ForceFieldBlockEntity, ForceFieldBlockEntityRenderer.ForceFieldRenderState> {
-
-    public ForceFieldBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
-    }
-
-    public static class ForceFieldRenderState extends BlockEntityRenderState {
-        public ForceFieldBlockEntity blockEntity;
-        public boolean hasCamouflage;
-    }
+@SideOnly(Side.CLIENT)
+public class ForceFieldBlockEntityRenderer extends TileEntitySpecialRenderer<ForceFieldBlockEntity> {
 
     @Override
-    public ForceFieldRenderState createRenderState() {
-        return new ForceFieldRenderState();
-    }
+    public void render(ForceFieldBlockEntity te, double x, double y, double z,
+                       float partialTicks, int destroyStage, float alpha) {
+        IBlockState camouflage = te.getCamouflage();
+        if (camouflage == null) return;
 
-    @Override
-    public void extractRenderState(ForceFieldBlockEntity blockEntity, ForceFieldRenderState renderState, float partialTick, Vec3 cameraPosition, ModelFeatureRenderer.@Nullable CrumblingOverlay breakProgress) {
-        BlockEntityRenderer.super.extractRenderState(blockEntity, renderState, partialTick, cameraPosition, breakProgress);
+        Minecraft mc = Minecraft.getMinecraft();
+        BlockRendererDispatcher dispatcher = mc.getBlockRendererDispatcher();
+        BlockPos pos = te.getPos();
 
-        renderState.blockEntity = null;
-        renderState.hasCamouflage = blockEntity.getCamouflage() != null;
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x, y, z);
 
-        if (renderState.hasCamouflage) {
-            BlockEntityRenderDelegate.INSTANCE.prepareRenderState(blockEntity, partialTick, cameraPosition, breakProgress);
+        // Bind block texture atlas
+        mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+
+        // Render the camouflage block model
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+        // Offset buffer to block position relative
+        buffer.setTranslation(-pos.getX(), -pos.getY(), -pos.getZ());
+
+        try {
+            dispatcher.getModelForState(camouflage);
+            dispatcher.renderBlock(camouflage, pos, te.getWorld(), buffer);
+        } catch (Exception ignored) {
+            // Fail silently if block model can't render
         }
-    }
 
-    @Override
-    public void submit(ForceFieldRenderState renderState, PoseStack poseStack, SubmitNodeCollector nodeCollector, CameraRenderState cameraRenderState) {
-        if (!renderState.hasCamouflage) {
-            return;
-        }
-        BlockEntityRenderDelegate.INSTANCE.tryRenderDelegate(renderState.blockEntity, poseStack, nodeCollector, cameraRenderState);
+        buffer.setTranslation(0, 0, 0);
+        tessellator.draw();
+
+        GlStateManager.popMatrix();
     }
 }

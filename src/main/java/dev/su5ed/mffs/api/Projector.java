@@ -1,14 +1,17 @@
 package dev.su5ed.mffs.api;
 
+// 1.12.2 Backport: Projector interface
+// BlockEntity->TileEntity, Direction->EnumFacing,
+// BlockState->IBlockState, ItemStack/BlockPos namespace changes.
+
 import dev.su5ed.mffs.api.module.ModuleAcceptor;
 import dev.su5ed.mffs.api.module.ProjectorMode;
 import dev.su5ed.mffs.api.security.BiometricIdentifierLink;
 import dev.su5ed.mffs.util.inventory.InventorySlot;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -18,12 +21,13 @@ import java.util.Set;
  * @author Calclavia
  */
 public interface Projector extends ModuleAcceptor, BiometricIdentifierLink {
-    BlockEntity be();
-    
-    BlockState getCachedBlockState(BlockPos pos);
+    TileEntity be();
+
+    // TODO: IBlockState getCachedBlockState(BlockPos pos);
+    // net.minecraft.block.state.IBlockState
 
     /**
-     * @return Is the projector value?
+     * @return Is the projector active?
      */
     boolean isActive();
 
@@ -62,10 +66,10 @@ public interface Projector extends ModuleAcceptor, BiometricIdentifierLink {
     /**
      * Gets the slot IDs based on the direction given.
      */
-    Collection<InventorySlot> getSlotsFromSide(Direction side);
+    Collection<InventorySlot> getSlotsFromSide(EnumFacing side);
 
     /**
-     * * @return Gets all the blocks that are occupying the force field.
+     * @return Gets all the blocks that are occupying the force field.
      */
     Collection<TargetPosPair> getCalculatedFieldPositions();
 
@@ -80,7 +84,7 @@ public interface Projector extends ModuleAcceptor, BiometricIdentifierLink {
     Set<BlockPos> getInteriorPoints();
 
     /**
-     * * @return The amount of ticks this projector has existed in the world.
+     * @return The amount of ticks this projector has existed in the world.
      */
     long getTicks();
 

@@ -1,5 +1,15 @@
 package dev.su5ed.mffs.datagen;
 
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON resources are in src/main/resources/ directly.
+
+public final class AdvancementsGen {
+    private AdvancementsGen() {}
+}
+
+/* class_NeoForge_1_21_x (AdvancementsGen):
+package dev.su5ed.mffs.datagen;
+
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModMenus;
@@ -92,3 +102,4 @@ public class AdvancementsGen implements AdvancementSubProvider {
         return MFFSMod.MODID + ":" + name;
     }
 }
+*/

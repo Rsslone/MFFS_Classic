@@ -1,5 +1,27 @@
 package dev.su5ed.mffs.compat;
 
+/**
+ * 1.12.2 backport of MFFSProbeProvider.
+ *
+ * Reference (1.21): implements {@code IProbeInfoProvider} (The One Probe API)
+ * to show camouflage block info and FE/Fortron readouts on block hover.
+ *
+ * In 1.12.2: The One Probe (mcjty.theoneprobe) is available for 1.12.2 and uses
+ * a compatible but different API:
+ * <ul>
+ *   <li>{@code addProbeInfo(ProbeMode, IProbeInfo, EntityPlayer, World, IBlockState, IProbeHitData)}</li>
+ *   <li>Registered via IMC: {@code FMLInterModComms.sendFunctionMessage("theoneprobe", "getTheOneProbe", ...)}</li>
+ * </ul>
+ * A full port requires the TOP 1.12.2 API jar on the compile classpath.
+ * This class is an empty structural placeholder until that dependency is added.
+ */
+public final class MFFSProbeProvider {
+    private MFFSProbeProvider() {}
+}
+
+/* class_NeoForge_1_21_x (MFFSProbeProvider):
+package dev.su5ed.mffs.compat;
+
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
 import mcjty.theoneprobe.api.*;
@@ -80,3 +102,4 @@ public class MFFSProbeProvider {
     }
 }
 
+*/

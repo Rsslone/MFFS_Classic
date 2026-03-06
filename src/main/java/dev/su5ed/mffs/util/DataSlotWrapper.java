@@ -1,5 +1,12 @@
 package dev.su5ed.mffs.util;
 
+// 1.12.2 Backport: DataSlotWrapper is no longer used in active code.
+// FortronMenu now tracks data slots via dataGetters/dataSetters lambda lists
+// and detectAndSendChanges() / updateProgressBar() directly.
+// Old NeoForge implementation preserved below for reference.
+
+/* class DataSlotWrapper_NeoForge_1_21_x:
+
 import net.minecraft.world.inventory.DataSlot;
 
 import java.util.function.IntConsumer;
@@ -24,3 +31,4 @@ public class DataSlotWrapper extends DataSlot {
         this.setter.accept(value);
     }
 }
+*/

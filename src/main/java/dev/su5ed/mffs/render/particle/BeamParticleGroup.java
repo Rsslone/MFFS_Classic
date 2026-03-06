@@ -1,5 +1,23 @@
 package dev.su5ed.mffs.render.particle;
 
+/**
+ * 1.12.2 backport of BeamParticleGroup.
+ *
+ * Reference (1.21): extends {@code ParticleGroup<BeamParticle>} — a batched
+ * rendering mechanism where particles are extracted into a {@code ParticleGroupRenderState}
+ * and submitted together via a {@code SubmitNodeCollector}.
+ *
+ * In 1.12.2 there is no {@code ParticleGroup} system. Each {@link BeamParticle}
+ * renders itself independently via {@code renderParticle()} called by the
+ * {@code EffectRenderer}. This class is retained as an empty placeholder.
+ */
+public final class BeamParticleGroup {
+    private BeamParticleGroup() {}
+}
+
+/* class_NeoForge_1_21_x (BeamParticleGroup):
+package dev.su5ed.mffs.render.particle;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.su5ed.mffs.render.ModRenderType;
@@ -87,3 +105,5 @@ public class BeamParticleGroup extends ParticleGroup<BeamParticle> {
         }
     }
 }
+
+*/

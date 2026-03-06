@@ -1,7 +1,7 @@
 package dev.su5ed.mffs.api.security;
 
 import dev.su5ed.mffs.api.card.IdentificationCard;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.EntityPlayer;
 
 import java.util.Optional;
 
@@ -15,7 +15,7 @@ public interface BiometricIdentifier {
      * @param player     - Player.
      * @param permission - The permission.
      */
-    boolean isAccessGranted(Player player, FieldPermission permission);
+    boolean isAccessGranted(EntityPlayer player, FieldPermission permission);
 
     /**
      * Gets the card currently placed in the manipulating slot.

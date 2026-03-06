@@ -1,5 +1,25 @@
 package dev.su5ed.mffs.datagen;
 
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON resources live in src/main/resources/ directly.
+// Reference (1.21): extends ItemTagsProvider — adds FORTRON_FUEL tag (lapis, quartz)
+// and INGOTS_STEEL tag (steel ingot).
+
+public final class ItemTagsGen {
+    private ItemTagsGen() {}
+}
+
+/* class_NeoForge_1_21_x (ItemTagsGen):
+package dev.su5ed.mffs.datagen;
+
+// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+public final class ItemTagsGen {
+    private ItemTagsGen() {}
+}
+
+/* class_NeoForge_1_21_x (ItemTagsGen):
+package dev.su5ed.mffs.datagen;
+
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModTags;
@@ -27,3 +47,7 @@ public class ItemTagsGen extends ItemTagsProvider {
         return MFFSMod.NAME + " Item Tags";
     }
 }
+
+* /
+
+*/

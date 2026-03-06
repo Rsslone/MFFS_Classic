@@ -1,52 +1,50 @@
 package dev.su5ed.mffs.setup;
 
-import com.mojang.authlib.GameProfile;
-import com.mojang.serialization.Codec;
-import dev.su5ed.mffs.MFFSMod;
-import dev.su5ed.mffs.api.security.FieldPermission;
-import dev.su5ed.mffs.item.CustomProjectorModeItem.Mode;
-import dev.su5ed.mffs.item.CustomProjectorModeItem.StructureCoords;
-import dev.su5ed.mffs.util.ModUtil;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.util.ExtraCodecs;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredRegister;
+// =============================================================================
+// 1.12.2 Backport: Item data storage
+// DataComponentType<T> is a NeoForge/1.21.x concept and does NOT exist in 1.12.2.
+// In 1.12.2 all item data is stored directly as NBT on ItemStack via:
+//   - ItemStack.getTagCompound() / setTagCompound(NBTTagCompound)
+//   - ItemStack.getOrCreateSubCompound("mffs")
+// The fields below document the intended NBT keys for each former DataComponent.
+//
+// Former DataComponentType fields and their 1.12.2 NBT key equivalents:
+//   REMOTE_LINK_POS   -> NBT key "linkX", "linkY", "linkZ" (or packed long)
+//   ENERGY            -> NBT key "energy" (int)
+//   CARD_FREQUENCY    -> NBT key "frequency" (int)
+//   ID_CARD_PROFILE   -> NBT key "profile" (GameProfile serialised via NBT)
+//   ID_CARD_PERMISSIONS -> NBT key "permissions" (NBTTagList of FieldPermission names)
+//   PATTERN_ID        -> NBT key "patternId" (String)
+//   STRUCTURE_COORDS  -> NBT key "structureCoords" (NBTTagCompound)
+//   STRUCTURE_MODE    -> NBT key "structureMode" (String enum name)
+// =============================================================================
 
-import java.util.List;
-import java.util.function.Supplier;
-
+/**
+ * Data storage constants for MFFS items (1.12.2 NBT-based approach).
+ * Replaces NeoForge DataComponentType registry from 1.21.x.
+ */
 public final class ModDataComponentTypes {
-    private static final DeferredRegister<DataComponentType<?>> DATA_COMPONENT_TYPES = DeferredRegister.create(BuiltInRegistries.DATA_COMPONENT_TYPE, MFFSMod.MODID);
 
-    public static final Supplier<DataComponentType<BlockPos>> REMOTE_LINK_POS = DATA_COMPONENT_TYPES.register(
-        "remote_link_pos", () -> DataComponentType.<BlockPos>builder().persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC).build());
-    public static final Supplier<DataComponentType<Integer>> ENERGY = DATA_COMPONENT_TYPES.register(
-        "energy", () -> DataComponentType.<Integer>builder().persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build());
+    // NBT sub-tag root for all MFFS item data
+    public static final String ROOT_TAG = "mffs";
 
-    public static final Supplier<DataComponentType<Integer>> CARD_FREQUENCY = DATA_COMPONENT_TYPES.register(
-        "card_frequency", () -> DataComponentType.<Integer>builder().persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build());
+    // Remote Controller link position
+    public static final String NBT_LINK_POS = "linkPos"; // stored as long (BlockPos.asLong)
+
+    // Battery energy storage
+    public static final String NBT_ENERGY = "energy";
+
+    // Frequency Card
+    public static final String NBT_CARD_FREQUENCY = "frequency";
 
     // Identification Card
-    public static final Supplier<DataComponentType<GameProfile>> ID_CARD_PROFILE = DATA_COMPONENT_TYPES.register(
-        "id_card_profile", () -> DataComponentType.<GameProfile>builder().persistent(ExtraCodecs.AUTHLIB_GAME_PROFILE).networkSynchronized(ByteBufCodecs.GAME_PROFILE).build());
-    public static final Supplier<DataComponentType<List<FieldPermission>>> ID_CARD_PERMISSIONS = DATA_COMPONENT_TYPES.register(
-        "id_card_permissions", () -> DataComponentType.<List<FieldPermission>>builder().persistent(ModUtil.FIELD_PERMISSION_CODEC.listOf()).networkSynchronized(ModUtil.FIELD_PERMISSION_STREAM_CODEC.apply(ByteBufCodecs.list())).build());
+    public static final String NBT_ID_CARD_PROFILE     = "profile";     // GameProfile NBT
+    public static final String NBT_ID_CARD_PERMISSIONS = "permissions"; // NBTTagList of strings
 
-    // Custom Projector mode
-    public static final Supplier<DataComponentType<String>> PATTERN_ID = DATA_COMPONENT_TYPES.register(
-        "pattern_id", () -> DataComponentType.<String>builder().persistent(Codec.STRING).networkSynchronized(ByteBufCodecs.STRING_UTF8).build());
-    public static final Supplier<DataComponentType<StructureCoords>> STRUCTURE_COORDS = DATA_COMPONENT_TYPES.register(
-        "structure_coords", () -> DataComponentType.<StructureCoords>builder().persistent(StructureCoords.CODEC).networkSynchronized(StructureCoords.STREAM_CODEC).build());
-    public static final Supplier<DataComponentType<Mode>> STRUCTURE_MODE = DATA_COMPONENT_TYPES.register(
-        "structure_mode", () -> DataComponentType.<Mode>builder().persistent(Mode.CODEC).networkSynchronized(Mode.STREAM_CODEC).build());
+    // Custom Projector Mode
+    public static final String NBT_PATTERN_ID       = "patternId";
+    public static final String NBT_STRUCTURE_COORDS = "structureCoords";
+    public static final String NBT_STRUCTURE_MODE   = "structureMode";
 
-    public static void init(IEventBus bus) {
-        DATA_COMPONENT_TYPES.register(bus);
-    }
-
-    private ModDataComponentTypes() {
-    }
+    private ModDataComponentTypes() {}
 }

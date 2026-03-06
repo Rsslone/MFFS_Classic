@@ -1,21 +1,32 @@
 package dev.su5ed.mffs.util.loot;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.criterion.ContextAwarePredicate;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.SimpleCriterionTrigger;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.damagesource.DamageType;
-
-import java.util.Optional;
-
 /**
- * Source: Mekanism's <a href="https://github.com/mekanism/Mekanism/blob/b0b9bec27bcfd4795ad1eb94f6f96c1cbc42a06d/src/main/java/mekanism/common/advancements/triggers/MekanismDamageTrigger.java">MekanismDamageTrigger</a>
+ * 1.12.2 backport of DamageSourceTrigger.
+ *
+ * Reference (1.21): extends {@code SimpleCriterionTrigger<TriggerInstance>};
+ * fires when a player takes damage matching a specific
+ * {@code ResourceKey<DamageType>} (and optionally dies from it), used to
+ * award the "shocked by a force field" advancement.
+ *
+ * In 1.12.2:
+ * <ul>
+ *   <li>Damage types are plain string keys on {@code DamageSource}, not a
+ *       registry. The shock damage is created via
+ *       {@code new DamageSource("mffs.field_shock")}.</li>
+ *   <li>The 1.12.2 advancement/trigger framework ({@code IJsonSerializable}
+ *       + {@code ICriteriaTrigger}) exists in principle but is far more
+ *       limited and rarely used by mods. Advancements are authored as static
+ *       JSON files; custom triggers require nontrivial boilerplate.</li>
+ *   <li>All callers that used to fire this trigger have had the trigger call
+ *       removed in the 1.12.2 backport.</li>
+ * </ul>
+ * This class is an empty structural placeholder.
  */
-public class DamageSourceTrigger extends SimpleCriterionTrigger<DamageSourceTrigger.TriggerInstance> {
+public final class DamageSourceTrigger {
+    private DamageSourceTrigger() {}
+}
+
+/* class_NeoForge_1_21_x (DamageSourceTrigger):
 
     @Override
     public Codec<TriggerInstance> codec() {
@@ -40,3 +51,4 @@ public class DamageSourceTrigger extends SimpleCriterionTrigger<DamageSourceTrig
         }
     }
 }
+*/

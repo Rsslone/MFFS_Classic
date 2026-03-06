@@ -1,5 +1,23 @@
 package dev.su5ed.mffs.render.particle;
 
+/**
+ * 1.12.2 backport of MovingHolograpParticleGroup.
+ *
+ * Reference (1.21): extends {@code ParticleGroup<MovingHologramParticle>} —
+ * a batched rendering mechanism using {@code ParticleGroupRenderState}.
+ *
+ * In 1.12.2 there is no {@code ParticleGroup} system. Each
+ * {@link MovingHologramParticle} renders itself independently via
+ * {@code renderParticle()} called by the {@code EffectRenderer}.
+ * This class is retained as an empty placeholder.
+ */
+public final class MovingHolograpParticleGroup {
+    private MovingHolograpParticleGroup() {}
+}
+
+/* class_NeoForge_1_21_x (MovingHolograpParticleGroup):
+package dev.su5ed.mffs.render.particle;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.util.TranslucentVertexConsumer;
@@ -103,3 +121,5 @@ public class MovingHolograpParticleGroup extends ParticleGroup<MovingHologramPar
         }
     }
 }
+
+*/

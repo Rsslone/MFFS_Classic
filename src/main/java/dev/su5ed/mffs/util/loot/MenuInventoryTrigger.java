@@ -1,5 +1,26 @@
 package dev.su5ed.mffs.util.loot;
 
+/**
+ * 1.12.2 backport of MenuInventoryTrigger.
+ *
+ * Reference (1.21): extends {@code SimpleCriterionTrigger<TriggerInstance>};
+ * fires when a player has a specific {@code MenuType} open with the given
+ * items present in the menu's inventory. Used by {@code AdvancementsGen} to
+ * award the "use custom camouflage" advancement.
+ *
+ * In 1.12.2: the advancement / criterion trigger system exists but
+ * {@code SimpleCriterionTrigger} and codec-based {@code TriggerInstance}
+ * are 1.19+ concepts. The entire datagen layer is a no-op placeholder in the
+ * 1.12.2 backport (JSON advancement files are authored manually in
+ * src/main/resources/). This class is an empty structural placeholder.
+ */
+public final class MenuInventoryTrigger {
+    private MenuInventoryTrigger() {}
+}
+
+/* class_NeoForge_1_21_x (MenuInventoryTrigger):
+package dev.su5ed.mffs.util.loot;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -54,3 +75,5 @@ public class MenuInventoryTrigger extends SimpleCriterionTrigger<MenuInventoryTr
         }
     }
 }
+
+*/

@@ -1,14 +1,16 @@
 package dev.su5ed.mffs.util.inventory;
 
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.common.util.ValueIOSerializable;
+// 1.12.2 Backport: InventorySlot
+// Removed ValueIOSerializable (NeoForge); NBT persistence handled by InventorySlotItemHandler.serializeNBT/deserializeNBT
+// ItemStack.isSameItemSameComponents() → ItemStack.areItemsEqual() + areItemStackTagsEqual()
+// stack.copyWithCount(n) → copy().setCount(n)
+
+import net.minecraft.item.ItemStack;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class InventorySlot implements ValueIOSerializable {
+public class InventorySlot {
     private final InventorySlotItemHandler parent;
     private final String name;
     private final Mode mode;
@@ -73,7 +75,13 @@ public class InventorySlot implements ValueIOSerializable {
                 this.content.setCount(total);
             }
             int remainder = this.content.getCount() + stack.getCount() - this.content.getMaxStackSize();
-            ItemStack result = remainder > 0 ? stack.copyWithCount(remainder) : ItemStack.EMPTY;
+            ItemStack result;
+            if (remainder > 0) {
+                result = stack.copy();
+                result.setCount(remainder);
+            } else {
+                result = ItemStack.EMPTY;
+            }
             onChanged(true);
             return result;
         }
@@ -87,11 +95,13 @@ public class InventorySlot implements ValueIOSerializable {
     public ItemStack extract(int amount, boolean simulate) {
         if (canExtract()) {
             if (!simulate) {
-                ItemStack stack = this.content.split(amount);
+                ItemStack stack = this.content.splitStack(amount);
                 onChanged(true);
                 return stack;
             }
-            return this.content.copyWithCount(Math.min(amount, this.content.getCount()));
+            ItemStack copy = this.content.copy();
+            copy.setCount(Math.min(amount, this.content.getCount()));
+            return copy;
         }
         return ItemStack.EMPTY;
     }
@@ -104,19 +114,10 @@ public class InventorySlot implements ValueIOSerializable {
     }
 
     private boolean canAdd(ItemStack stack) {
-        return accepts(stack) && (this.content.isEmpty() || ItemStack.isSameItemSameComponents(this.content, stack));
-    }
-
-    @Override
-    public void serialize(ValueOutput valueOutput) {
-        if (!this.content.isEmpty()) {
-            valueOutput.store("item", ItemStack.CODEC, this.content);
-        }
-    }
-
-    @Override
-    public void deserialize(ValueInput valueInput) {
-        this.content = valueInput.read("item", ItemStack.CODEC).orElse(ItemStack.EMPTY);
+        // In 1.12.2: same item + same NBT = stackable
+        return accepts(stack) && (this.content.isEmpty()
+            || (ItemStack.areItemsEqual(this.content, stack)
+                && ItemStack.areItemStackTagsEqual(this.content, stack)));
     }
 
     public enum Mode {

@@ -1,8 +1,12 @@
 package dev.su5ed.mffs.util.inventory;
 
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
+// 1.12.2 Backport: SlotInventoryFilter
+// mayPlace()/mayPickup() → isItemValid()/canTakeStack()
+// allowModification(Player) does not exist in 1.12.2 Slot — removed
+// remove(int) → decrStackSize(int)
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 
 public class SlotInventoryFilter extends SlotInventory {
 
@@ -11,22 +15,17 @@ public class SlotInventoryFilter extends SlotInventory {
     }
 
     @Override
-    public boolean mayPlace(@NotNull ItemStack stack) {
+    public boolean isItemValid(ItemStack stack) {
         return false;
     }
 
     @Override
-    public boolean mayPickup(Player player) {
+    public boolean canTakeStack(EntityPlayer player) {
         return false;
     }
 
     @Override
-    public boolean allowModification(Player player) {
-        return false;
-    }
-
-    @Override
-    public ItemStack remove(int amount) {
+    public ItemStack decrStackSize(int amount) {
         return ItemStack.EMPTY;
     }
 }

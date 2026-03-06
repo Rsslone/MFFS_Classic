@@ -1,109 +1,136 @@
 package dev.su5ed.mffs.blockentity;
 
-import com.mojang.logging.LogUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.ProblemReporter;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.TagValueOutput;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.network.PacketDistributor;
-import org.slf4j.Logger;
+import dev.su5ed.mffs.network.Network;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ITickable;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import java.util.List;
 
-public abstract class BaseBlockEntity extends BlockEntity implements MenuProvider {
-    private static final Logger LOGGER = LogUtils.getLogger();
+public abstract class BaseBlockEntity extends TileEntity implements ITickable {
 
     private long tickCounter;
 
-    protected BaseBlockEntity(BlockEntityType<? extends BaseBlockEntity> type, BlockPos pos, BlockState state) {
-        super(type, pos, state);
+    // Required no-arg constructor for TileEntity registration
+    protected BaseBlockEntity() {
+        super();
     }
 
     public long getTicks() {
         return this.tickCounter;
     }
 
-    public void tickClient() {
+    // 1.12.2 Backport: Forge's default shouldRefresh for modded TEs uses reference
+    // identity (oldState != newState), which destroys the TE on ANY metadata change.
+    // Override to only refresh when the block type actually changes.
+    @Override
+    public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newState) {
+        return oldState.getBlock() != newState.getBlock();
+    }
+
+    // ITickable.update() - dispatches to client/server tick
+    @Override
+    public void update() {
         ++this.tickCounter;
-    }
-
-    public void tickServer() {
-        ++this.tickCounter;
-    }
-
-    public void provideAdditionalDrops(List<? super ItemStack> drops) {
-    }
-
-    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!this.level.isClientSide()) {
-            player.openMenu(this, this.worldPosition);
+        if (this.world != null) {
+            if (this.world.isRemote) {
+                tickClient();
+            } else {
+                tickServer();
+            }
         }
-        return InteractionResult.SUCCESS;
     }
 
-    public Component getDisplayName() {
-        return getBlockState().getBlock().getName();
+    public void tickClient() {}
+
+    public void tickServer() {}
+
+    /**
+     * Called when the block is broken to gather drops. Subclasses should add items to the list.
+     */
+    public void provideAdditionalDrops(List<? super ItemStack> drops) {}
+
+    /**
+     * Return a display name for use in GUI titles.
+     */
+    public ITextComponent getDisplayName() {
+        return new TextComponentTranslation(getBlockType().getTranslationKey() + ".name");
+    }
+
+    // -------------------------------------------------------------------------
+    // NBT serialization (replaces ValueOutput/ValueInput / saveAdditional/loadAdditional)
+    // -------------------------------------------------------------------------
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
+        super.writeToNBT(compound);
+        saveCommonTag(compound);
+        saveTag(compound);
+        return compound;
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag;
-        try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
-            TagValueOutput output = TagValueOutput.createWithContext(scopedCollector, provider);
-            this.saveCommonTag(output);
-            tag = output.buildResult();
-        }
+    public void readFromNBT(NBTTagCompound compound) {
+        super.readFromNBT(compound);
+        loadCommonTag(compound);
+        loadTag(compound);
+    }
+
+    /** Called by both writeToNBT and getUpdateTag. Override to write shared state. */
+    protected void saveCommonTag(NBTTagCompound compound) {}
+
+    /** Called by writeToNBT only. Override to write server-only / extra state. */
+    protected void saveTag(NBTTagCompound compound) {}
+
+    /** Called by readFromNBT and handleUpdateTag. Override to read shared state. */
+    protected void loadCommonTag(NBTTagCompound compound) {}
+
+    /** Called by readFromNBT only. Override to read server-only / extra state. */
+    protected void loadTag(NBTTagCompound compound) {}
+
+    // -------------------------------------------------------------------------
+    // Client sync (SPacketUpdateTileEntity / getUpdateTag)
+    // -------------------------------------------------------------------------
+
+    @Override
+    public SPacketUpdateTileEntity getUpdatePacket() {
+        return new SPacketUpdateTileEntity(this.pos, 0, getUpdateTag());
+    }
+
+    @Override
+    public NBTTagCompound getUpdateTag() {
+        NBTTagCompound tag = super.getUpdateTag();
+        saveCommonTag(tag);
         return tag;
     }
 
     @Override
-    public void handleUpdateTag(ValueInput input) {
-        super.handleUpdateTag(input);
-        loadCommonTag(input);
+    public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
+        handleUpdateTag(pkt.getNbtCompound());
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
-        saveCommonTag(output);
-        saveTag(output);
+    public void handleUpdateTag(NBTTagCompound tag) {
+        super.handleUpdateTag(tag);
+        loadCommonTag(tag);
     }
 
-    @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
-        loadCommonTag(input);
-        loadTag(input);
-    }
-
-    protected void loadCommonTag(ValueInput input) {
-    }
-
-    protected void saveCommonTag(ValueOutput output) {
-    }
-
-    protected void loadTag(ValueInput input) {
-    }
-
-    protected void saveTag(ValueOutput output) {
-    }
-
-    public <T extends CustomPacketPayload> void sendToChunk(T msg) {
-        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) this.level, this.level.getChunkAt(this.worldPosition).getPos(), msg);
+    /**
+     * Sends a network packet to all players tracking this tile entity's chunk.
+     * Replaces PacketDistributor.sendToPlayersTrackingChunk.
+     */
+    public <T extends IMessage> void sendToChunk(T msg) {
+        if (this.world != null && !this.world.isRemote) {
+            Network.sendToAllAround(msg, this.world, this.pos, 64);
+        }
     }
 }

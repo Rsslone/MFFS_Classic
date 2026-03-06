@@ -1,15 +1,26 @@
 package dev.su5ed.mffs.util.loot;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.criterion.ContextAwarePredicate;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.SimpleCriterionTrigger;
-import net.minecraft.server.level.ServerPlayer;
+/**
+ * 1.12.2 backport of FieldShapeTrigger.
+ *
+ * Reference (1.21): extends {@code SimpleCriterionTrigger<TriggerInstance>};
+ * fires unconditionally (always {@code true}) when a projector field shape is
+ * changed, used to award the "change the field shape" advancement.
+ *
+ * In 1.12.2: no mod-side criterion trigger registration. Advancements are
+ * authored as static JSON files in
+ * {@code src/main/resources/data/mffs/advancements/}. The shape-change
+ * advancement would need to be driven by a different mechanism (e.g. a
+ * stat-increment or an NBT-predicate advancement) rather than a custom trigger.
+ * All callers that used to fire this trigger have had the trigger call removed
+ * in the 1.12.2 backport.
+ * This class is an empty structural placeholder.
+ */
+public final class FieldShapeTrigger {
+    private FieldShapeTrigger() {}
+}
 
-import java.util.Optional;
-
-public class FieldShapeTrigger extends SimpleCriterionTrigger<FieldShapeTrigger.TriggerInstance> {
+/* class_NeoForge_1_21_x (FieldShapeTrigger):
     @Override
     public Codec<TriggerInstance> codec() {
         return TriggerInstance.CODEC;
@@ -30,3 +41,4 @@ public class FieldShapeTrigger extends SimpleCriterionTrigger<FieldShapeTrigger.
         }
     }
 }
+*/

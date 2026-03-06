@@ -1,5 +1,29 @@
 package dev.su5ed.mffs.render;
 
+/**
+ * 1.12.2 backport of BlockEntityRenderDelegate.
+ *
+ * Reference (1.20.1 / SecurityCraft): delegates the rendering of a
+ * {@code ForceFieldBlockEntity} to another block's
+ * {@code BlockEntityRenderer}, used to display the camouflage block model
+ * (including any animated TESR effects). Maintains a cache of delegate
+ * {@code BlockEntity} instances and their renderers.
+ *
+ * In 1.12.2, this delegation is not needed because
+ * {@link ForceFieldBlockEntityRenderer} directly uses
+ * {@code BlockRendererDispatcher.renderBlock()} to draw the camouflage
+ * block's baked model in immediate mode. There is no TESR-to-TESR
+ * delegation mechanism in 1.12.2.
+ *
+ * This class is retained as an empty structural placeholder.
+ */
+public final class BlockEntityRenderDelegate {
+    private BlockEntityRenderDelegate() {}
+}
+
+/* class_NeoForge_1_21_x (BlockEntityRenderDelegate):
+package dev.su5ed.mffs.render;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
@@ -21,7 +45,7 @@ import java.util.Map;
 
 /**
  * SOURCE: Geforce132/SecurityCraft <a href="https://github.com/Geforce132/SecurityCraft/blob/1.19.3/src/main/java/net/geforcemods/securitycraft/util/BlockEntityRenderDelegate.java">BlockEntityRenderDelegate</a>
- */
+ * /
 public final class BlockEntityRenderDelegate {
     public static final BlockEntityRenderDelegate INSTANCE = new BlockEntityRenderDelegate();
 
@@ -96,3 +120,5 @@ public final class BlockEntityRenderDelegate {
     private record DelegateRendererInfo(BlockEntity delegateBlockEntity, BlockEntityRenderer delegateRenderer) {
     }
 }
+
+*/
