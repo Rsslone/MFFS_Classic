@@ -141,7 +141,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     public int computeAnimationSpeed() {
-        int speed = 4;
+        int speed = 2;
         int fortronCost = getFortronCost();
         if (isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost)) {
             speed *= fortronCost / 8.0F;
