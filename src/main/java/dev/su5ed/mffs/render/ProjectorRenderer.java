@@ -37,10 +37,17 @@ public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockE
         GlStateManager.translate(x + 0.5, y + 1.5, z + 0.5);
         GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
 
+        // Match RenderType.entityTranslucent: enable alpha blending, disable alpha test
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        GlStateManager.disableAlpha();
+
         float activePartial = te.isActive() ? partialTicks : 0;
         float rotAngle = (te.getAnimation() + activePartial) * te.getAnimationSpeed();
         MODEL.render(rotAngle, 0.0625F);
 
+        GlStateManager.enableAlpha();
+        GlStateManager.disableBlend();
         GlStateManager.popMatrix();
 
         // Phase 2: Render holographic pyramid + mode shape (when mode is present)

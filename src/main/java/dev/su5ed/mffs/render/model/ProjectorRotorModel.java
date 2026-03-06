@@ -29,7 +29,7 @@ public class ProjectorRotorModel extends ModelBase {
 
     public ProjectorRotorModel() {
         this.textureWidth = 128;
-        this.textureHeight = 64;
+        this.textureHeight = 128;
 
         // All parts use rotation point (0, 16, 0) matching the 1.7.10 reference.
         // This works with the standard TESR translate(y+1.5) + rotate(180,0,0,1) pattern.
