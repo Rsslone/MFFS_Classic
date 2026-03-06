@@ -22,6 +22,7 @@ import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.security.BiometricIdentifier;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
+import dev.su5ed.mffs.setup.ModCapabilities;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModModules;
 import dev.su5ed.mffs.util.ModUtil;
@@ -59,6 +60,19 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         this.bannedItemSlots = IntStreamEx.range(9)
             .mapToObj(i -> addVirtualSlot("banned_item_" + i))
             .toList();
+    }
+
+    @Override
+    public boolean hasCapability(net.minecraftforge.common.capabilities.Capability<?> capability, @Nullable net.minecraft.util.EnumFacing facing) {
+        if (capability == ModCapabilities.INTERDICTION_MATRIX) return true;
+        return super.hasCapability(capability, facing);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getCapability(net.minecraftforge.common.capabilities.Capability<T> capability, @Nullable net.minecraft.util.EnumFacing facing) {
+        if (capability == ModCapabilities.INTERDICTION_MATRIX) return (T) this;
+        return super.getCapability(capability, facing);
     }
 
     public int getWarningRange() {

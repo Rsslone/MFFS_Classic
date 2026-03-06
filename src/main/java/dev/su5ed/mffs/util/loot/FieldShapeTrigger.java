@@ -1,6 +1,21 @@
 package dev.su5ed.mffs.util.loot;
 
-// TODO: 1.12.2 advancement trigger not yet implemented.
+/**
+ * 1.12.2 backport of FieldShapeTrigger.
+ *
+ * Reference (1.21): extends {@code SimpleCriterionTrigger<TriggerInstance>};
+ * fires unconditionally (always {@code true}) when a projector field shape is
+ * changed, used to award the "change the field shape" advancement.
+ *
+ * In 1.12.2: no mod-side criterion trigger registration. Advancements are
+ * authored as static JSON files in
+ * {@code src/main/resources/data/mffs/advancements/}. The shape-change
+ * advancement would need to be driven by a different mechanism (e.g. a
+ * stat-increment or an NBT-predicate advancement) rather than a custom trigger.
+ * All callers that used to fire this trigger have had the trigger call removed
+ * in the 1.12.2 backport.
+ * This class is an empty structural placeholder.
+ */
 public final class FieldShapeTrigger {
     private FieldShapeTrigger() {}
 }

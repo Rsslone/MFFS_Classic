@@ -1,6 +1,18 @@
 package dev.su5ed.mffs.util;
 
-// TODO: Not yet backported to 1.12.2 (Phase 16).
+/**
+ * 1.12.2 backport of TranslucentVertexConsumer.
+ *
+ * Reference (1.21): extends {@code VertexConsumerWrapper}; overrides
+ * {@code setColor()} to multiply the incoming alpha by a fixed factor,
+ * used to render semi-transparent hologram / force-field overlays.
+ *
+ * In 1.12.2, there is no {@code VertexConsumer} / {@code PoseStack} pipeline.
+ * Alpha-scaled rendering is handled in {@link dev.su5ed.mffs.render.BlockHighlighter}
+ * by passing the alpha value directly to {@code GlStateManager.color(r,g,b,a)}
+ * and using {@code GL11.GL_BLEND} / {@code GL11.GL_SRC_ALPHA}.
+ * This class is an empty structural placeholder.
+ */
 public final class TranslucentVertexConsumer {
     private TranslucentVertexConsumer() {}
 }

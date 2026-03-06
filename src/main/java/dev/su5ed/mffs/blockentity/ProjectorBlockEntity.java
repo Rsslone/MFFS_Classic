@@ -110,6 +110,19 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.upgradeSlots = createUpgradeSlots(6, this::isMatrixModuleOrPass, stack -> destroyField());
     }
 
+    @Override
+    public boolean hasCapability(net.minecraftforge.common.capabilities.Capability<?> capability, @Nullable EnumFacing facing) {
+        if (capability == ModCapabilities.PROJECTOR) return true;
+        return super.hasCapability(capability, facing);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getCapability(net.minecraftforge.common.capabilities.Capability<T> capability, @Nullable EnumFacing facing) {
+        if (capability == ModCapabilities.PROJECTOR) return (T) this;
+        return super.getCapability(capability, facing);
+    }
+
     // 1.21.x: @SubscribeEvent + NeoForge.EVENT_BUS → @SubscribeEvent + MinecraftForge.EVENT_BUS
     @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
     public void onSetBlock(SetBlockEvent event) {

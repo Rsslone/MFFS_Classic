@@ -50,11 +50,11 @@ public class ProjectorRotorModel extends ModelBase {
         this.thingback.setRotationPoint(0.0F, 16.0F, 0.0F);
 
         this.thingright = new ModelRenderer(this, 0, 20);
-        this.thingright.addBox(-6.0F, -2.0F, -2.0F, 4, 8, 4);
+        this.thingright.addBox(2.0F, -2.0F, -2.0F, 4, 8, 4);
         this.thingright.setRotationPoint(0.0F, 16.0F, 0.0F);
 
         this.thingleft = new ModelRenderer(this, 0, 20);
-        this.thingleft.addBox(2.0F, -2.0F, -2.0F, 4, 8, 4);
+        this.thingleft.addBox(-6.0F, -2.0F, -2.0F, 4, 8, 4);
         this.thingleft.setRotationPoint(0.0F, 16.0F, 0.0F);
 
         // Big attachers (top/bottom plates, wide)

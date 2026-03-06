@@ -1,6 +1,22 @@
 package dev.su5ed.mffs.render;
 
-// TODO: Not yet backported to 1.12.2 (Phase 13 - Rendering).
+/**
+ * 1.12.2 backport of BlockEntityRenderDelegate.
+ *
+ * Reference (1.20.1 / SecurityCraft): delegates the rendering of a
+ * {@code ForceFieldBlockEntity} to another block's
+ * {@code BlockEntityRenderer}, used to display the camouflage block model
+ * (including any animated TESR effects). Maintains a cache of delegate
+ * {@code BlockEntity} instances and their renderers.
+ *
+ * In 1.12.2, this delegation is not needed because
+ * {@link ForceFieldBlockEntityRenderer} directly uses
+ * {@code BlockRendererDispatcher.renderBlock()} to draw the camouflage
+ * block's baked model in immediate mode. There is no TESR-to-TESR
+ * delegation mechanism in 1.12.2.
+ *
+ * This class is retained as an empty structural placeholder.
+ */
 public final class BlockEntityRenderDelegate {
     private BlockEntityRenderDelegate() {}
 }

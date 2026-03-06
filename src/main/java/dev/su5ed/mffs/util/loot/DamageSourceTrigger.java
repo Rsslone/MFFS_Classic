@@ -1,8 +1,27 @@
 package dev.su5ed.mffs.util.loot;
 
-// TODO: 1.12.2 advancement trigger not yet implemented.
-// In 1.12.2, this would use ICriterionTrigger<ICriterionInstance> pattern.
-// Currently unused since shockEntity() no longer fires advancement triggers.
+/**
+ * 1.12.2 backport of DamageSourceTrigger.
+ *
+ * Reference (1.21): extends {@code SimpleCriterionTrigger<TriggerInstance>};
+ * fires when a player takes damage matching a specific
+ * {@code ResourceKey<DamageType>} (and optionally dies from it), used to
+ * award the "shocked by a force field" advancement.
+ *
+ * In 1.12.2:
+ * <ul>
+ *   <li>Damage types are plain string keys on {@code DamageSource}, not a
+ *       registry. The shock damage is created via
+ *       {@code new DamageSource("mffs.field_shock")}.</li>
+ *   <li>The 1.12.2 advancement/trigger framework ({@code IJsonSerializable}
+ *       + {@code ICriteriaTrigger}) exists in principle but is far more
+ *       limited and rarely used by mods. Advancements are authored as static
+ *       JSON files; custom triggers require nontrivial boilerplate.</li>
+ *   <li>All callers that used to fire this trigger have had the trigger call
+ *       removed in the 1.12.2 backport.</li>
+ * </ul>
+ * This class is an empty structural placeholder.
+ */
 public final class DamageSourceTrigger {
     private DamageSourceTrigger() {}
 }

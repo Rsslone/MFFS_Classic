@@ -1,6 +1,9 @@
 package dev.su5ed.mffs.datagen;
 
-// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON loot tables live in src/main/resources/data/mffs/loot_tables/ directly.
+// Reference (1.21): ModBlockLoot (block self-drops) & ModItemLoot (biometric item drop).
+
 public final class LootTableGen {
     private LootTableGen() {}
 }

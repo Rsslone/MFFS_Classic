@@ -1,6 +1,20 @@
 package dev.su5ed.mffs.render.model;
 
-// TODO: Not yet backported to 1.12.2 (Phase 13 - Rendering).
+/**
+ * 1.12.2 backport of DelegateBlockModelPart.
+ *
+ * Reference (1.21): a {@code ModelPart} subclass used by the 1.21
+ * {@code BlockEntityRenderDelegate} to chain a block entity's renderer
+ * as a sub-part of another entity's model hierarchy,
+ * using {@code SubmitNodeCollector}.
+ *
+ * In 1.12.2, neither {@code ModelPart} (the layered-model system introduced
+ * in 1.17) nor the {@code SubmitNodeCollector} render pipeline exist.
+ * TESR chaining is not used; camouflage is drawn directly in
+ * {@link dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer}.
+ *
+ * This class is retained as an empty structural placeholder.
+ */
 public final class DelegateBlockModelPart {
     private DelegateBlockModelPart() {}
 }

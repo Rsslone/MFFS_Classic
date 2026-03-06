@@ -1,6 +1,19 @@
 package dev.su5ed.mffs.render;
 
+import dev.su5ed.mffs.MFFSMod;
+import dev.su5ed.mffs.item.CustomProjectorModeItem;
+import dev.su5ed.mffs.network.Network;
+import dev.su5ed.mffs.network.StructureDataRequestPacket;
+import dev.su5ed.mffs.setup.ModItems;
+import net.minecraft.client.Minecraft;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -8,14 +21,28 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Client-side cache for custom projector mode structure shapes.
- * Shapes are stored per dimension + structure ID and updated via SetStructureShapePacket.
+ * Client-side cache for custom projector mode structure shapes,
+ * and event handler that renders selection highlights while the item is held.
+ *
+ * Reference (1.20.1): uses {@code RenderLevelStageEvent.AFTER_WEATHER},
+ *   {@code VoxelShape}, {@code ResourceKey<Level>}.
+ * In 1.12.2: uses {@code RenderWorldLastEvent},
+ *   {@code Set<BlockPos>}, {@code int dimensionId}.
  */
+@Mod.EventBusSubscriber(value = Side.CLIENT, modid = MFFSMod.MODID)
 public final class CustomProjectorModeClientHandler {
+    private static final float MIN_ALPHA    = 0.1F;
+    private static final float MAX_ALPHA    = BlockHighlighter.LIGHT_RED.alpha();
+    private static final int   PERIOD_TICKS = 30;
+
     // Map: dimension ID → (structure ID → shape positions)
     private static final Map<Integer, Map<String, Set<BlockPos>>> STRUCTURE_SHAPES = new HashMap<>();
 
     private CustomProjectorModeClientHandler() {}
+
+    // -------------------------------------------------------------------------
+    // Shape cache – called by SetStructureShapePacket
+    // -------------------------------------------------------------------------
 
     /** Called by SetStructureShapePacket to update client-side shape data. */
     public static void setShape(int dimension, String structId, @Nullable Set<BlockPos> shape) {
@@ -32,5 +59,87 @@ public final class CustomProjectorModeClientHandler {
     public static Set<BlockPos> getShape(int dimension, String structId) {
         Map<String, Set<BlockPos>> map = STRUCTURE_SHAPES.get(dimension);
         return map != null ? map.get(structId) : null;
+    }
+
+    /**
+     * Return the cached shape for the item stack's pattern ID, or request it
+     * from the server if not yet cached.
+     */
+    @Nullable
+    private static Set<BlockPos> getOrRequestShape(ItemStack stack, int dimensionId) {
+        String id = ModItems.CUSTOM_MODE.getId(stack);
+        if (id == null) return null;
+        Map<String, Set<BlockPos>> map = STRUCTURE_SHAPES.get(dimensionId);
+        if (map == null || !map.containsKey(id)) {
+            Network.CHANNEL.sendToServer(new StructureDataRequestPacket(id));
+            // Mark as pending so we don't spam the server
+            setShape(dimensionId, id, null);
+            return null;
+        }
+        return map.get(id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Render event
+    // -------------------------------------------------------------------------
+
+    @SubscribeEvent
+    public static void renderLevel(RenderWorldLastEvent event) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.player == null || mc.world == null) return;
+
+        float partialTick = event.getPartialTicks();
+
+        // Find a custom-mode item in the player's hands
+        ItemStack mainHand = mc.player.getHeldItemMainhand();
+        ItemStack offHand  = mc.player.getHeldItemOffhand();
+        ItemStack stack = null;
+        if (!mainHand.isEmpty() && mainHand.getItem() instanceof CustomProjectorModeItem) {
+            stack = mainHand;
+        } else if (!offHand.isEmpty() && offHand.getItem() instanceof CustomProjectorModeItem) {
+            stack = offHand;
+        }
+        if (stack == null) return;
+
+        // ---- Selection point highlights ----
+        CustomProjectorModeItem.StructureCoords coords = CustomProjectorModeItem.StructureCoords.fromStack(stack);
+
+        if (coords != null && coords.primary != null) {
+            BlockHighlighter.highlightBlock(partialTick, coords.primary, BlockHighlighter.LIGHT_GREEN);
+
+            if (coords.secondary != null) {
+                // Both points selected: show both highlights + area outline
+                BlockHighlighter.highlightBlock(partialTick, coords.secondary, BlockHighlighter.LIGHT_RED);
+                BlockHighlighter.highlightArea(partialTick, coords.primary, coords.secondary);
+            } else if (mc.objectMouseOver != null
+                    && mc.objectMouseOver.typeOfHit == RayTraceResult.Type.BLOCK) {
+                // Primary selected, hovering over a potential secondary: pulsing red + area preview
+                BlockPos hovered = mc.objectMouseOver.getBlockPos();
+                float tick  = mc.world.getTotalWorldTime() % PERIOD_TICKS;
+                float alpha = MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA)
+                    * 0.5F * (float) Math.abs(Math.sin(2 * Math.PI * tick / PERIOD_TICKS) + 1.0);
+                BlockHighlighter.highlightBlock(partialTick, hovered,
+                    BlockHighlighter.LIGHT_RED.withAlpha(alpha));
+                BlockHighlighter.highlightArea(partialTick, coords.primary, hovered);
+            }
+        }
+
+        // ---- Pattern ID shape highlight ----
+        String id = ModItems.CUSTOM_MODE.getId(stack);
+        if (id != null) {
+            int dimensionId = mc.world.provider.getDimension();
+            Set<BlockPos> shape = getOrRequestShape(stack, dimensionId);
+            if (shape != null && !shape.isEmpty()) {
+                // Compute the axis-aligned bounding box of all structure blocks
+                int minX = shape.stream().mapToInt(BlockPos::getX).min().getAsInt();
+                int minY = shape.stream().mapToInt(BlockPos::getY).min().getAsInt();
+                int minZ = shape.stream().mapToInt(BlockPos::getZ).min().getAsInt();
+                int maxX = shape.stream().mapToInt(BlockPos::getX).max().getAsInt() + 1;
+                int maxY = shape.stream().mapToInt(BlockPos::getY).max().getAsInt() + 1;
+                int maxZ = shape.stream().mapToInt(BlockPos::getZ).max().getAsInt() + 1;
+                BlockHighlighter.highlightArea(partialTick,
+                    new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ), null);
+            }
+        }
     }
 }

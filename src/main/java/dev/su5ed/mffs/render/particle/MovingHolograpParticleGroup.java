@@ -1,6 +1,16 @@
 package dev.su5ed.mffs.render.particle;
 
-// TODO: Not yet backported to 1.12.2 (Phase 13 - Rendering).
+/**
+ * 1.12.2 backport of MovingHolograpParticleGroup.
+ *
+ * Reference (1.21): extends {@code ParticleGroup<MovingHologramParticle>} —
+ * a batched rendering mechanism using {@code ParticleGroupRenderState}.
+ *
+ * In 1.12.2 there is no {@code ParticleGroup} system. Each
+ * {@link MovingHologramParticle} renders itself independently via
+ * {@code renderParticle()} called by the {@code EffectRenderer}.
+ * This class is retained as an empty placeholder.
+ */
 public final class MovingHolograpParticleGroup {
     private MovingHolograpParticleGroup() {}
 }

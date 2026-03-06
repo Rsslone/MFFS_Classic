@@ -1,6 +1,10 @@
 package dev.su5ed.mffs.datagen;
 
-// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON recipe files live in src/main/resources/data/mffs/recipes/ directly.
+// Reference (1.21): extends RecipeProvider — shaped/shapeless crafting recipes
+// for all MFFS items, blocks, and upgrade modules.
+
 public final class RecipesGen {
     private RecipesGen() {}
 }

@@ -1,7 +1,21 @@
 package dev.su5ed.mffs.compat;
 
-// TODO: Port to 1.12.2 versions of the compat mod APIs.
-
+/**
+ * 1.12.2 backport of MFFSJeiPlugin.
+ *
+ * Reference (1.21, NeoForge):
+ * <ul>
+ *   <li>{@code @JeiPlugin} annotation + {@code IModPlugin} from JEI NeoForge API</li>
+ *   <li>Hides the Fortron fluid from JEI ingredient list</li>
+ *   <li>Registers {@link BasicGhostIngredientHandler} for {@code InterdictionMatrixScreen}</li>
+ * </ul>
+ *
+ * In 1.12.2: JEI uses {@code mezz.jei.api.IModPlugin} / {@code @JEIPlugin}
+ * with a different registration lifecycle. The fluid hiding API and ghost
+ * ingredient system differ significantly.
+ * A full port requires the JEI 1.12.2 API jar on the compile classpath.
+ * This class is an empty structural placeholder until that dependency is added.
+ */
 public final class MFFSJeiPlugin {
     private MFFSJeiPlugin() {}
 }

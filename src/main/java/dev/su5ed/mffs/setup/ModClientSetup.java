@@ -32,8 +32,11 @@ import dev.su5ed.mffs.render.ProjectorRenderer;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.setup.ModItems;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -111,6 +114,25 @@ public final class ModClientSetup {
         registerItemModel(ModItems.ANTI_PERSONNEL_MODULE);
         registerItemModel(ModItems.ANTI_SPAWN_MODULE);
         registerItemModel(ModItems.CONFISCATION_MODULE);
+    }
+
+    @SubscribeEvent
+    public static void onBlockColorHandler(ColorHandlerEvent.Block event) {
+        event.getBlockColors().registerBlockColorHandler(
+            (state, access, pos, tintIndex) -> {
+                if (access != null && pos != null) {
+                    TileEntity te = access.getTileEntity(pos);
+                    if (te instanceof ForceFieldBlockEntity forceField) {
+                        IBlockState camo = forceField.getCamouflage();
+                        if (camo != null) {
+                            return event.getBlockColors().colorMultiplier(camo, access, pos, tintIndex);
+                        }
+                    }
+                }
+                return 0x34FEFF; // default cyan tint matching reference
+            },
+            ModBlocks.FORCE_FIELD
+        );
     }
 
     private static void registerItemModel(Item item) {

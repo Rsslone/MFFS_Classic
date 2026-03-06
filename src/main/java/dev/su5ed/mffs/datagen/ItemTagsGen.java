@@ -1,6 +1,10 @@
 package dev.su5ed.mffs.datagen;
 
-// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON resources live in src/main/resources/ directly.
+// Reference (1.21): extends ItemTagsProvider — adds FORTRON_FUEL tag (lapis, quartz)
+// and INGOTS_STEEL tag (steel ingot).
+
 public final class ItemTagsGen {
     private ItemTagsGen() {}
 }

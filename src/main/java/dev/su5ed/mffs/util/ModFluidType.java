@@ -1,6 +1,18 @@
 package dev.su5ed.mffs.util;
 
-// TODO: Not yet backported to 1.12.2 (Phase 16).
+/**
+ * 1.12.2 backport of ModFluidType.
+ *
+ * Reference (1.21): extends NeoForge {@code FluidType}, holding
+ * {@code FluidRenderInfo} (still/flowing/overlay texture + tint color) and
+ * a fluent {@code FluidProperties} builder class.
+ *
+ * In 1.12.2 there is no {@code FluidType} concept. The Fortron fluid is
+ * registered as a plain {@link net.minecraftforge.fluids.Fluid} with texture
+ * paths passed directly to the constructor in
+ * {@link dev.su5ed.mffs.setup.ModFluids}.
+ * This class is an empty structural placeholder.
+ */
 public final class ModFluidType {
     private ModFluidType() {}
 }

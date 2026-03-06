@@ -1,6 +1,20 @@
 package dev.su5ed.mffs.render;
 
-// TODO: Not yet backported to 1.12.2 (Phase 13 - Rendering).
+/**
+ * 1.12.2 backport of ModParticleType.
+ *
+ * Reference (1.20.1): extends {@code ParticleType<T extends ParticleOptions>},
+ * registered via {@code DeferredRegister<ParticleType<?>>} in ModObjects.
+ *
+ * In 1.12.2 there is no {@code ParticleType} registry. Custom particles are
+ * spawned by directly instantiating the particle class and adding it to
+ * {@code Minecraft.getMinecraft().effectRenderer}. The particle type
+ * registration done by this class in 1.20.1 is handled by the direct
+ * instantiation in {@code ClientPacketHandler} and
+ * {@code dev.su5ed.mffs.util.Fortron}.
+ *
+ * This class is retained as a structural placeholder.
+ */
 public final class ModParticleType {
     private ModParticleType() {}
 }

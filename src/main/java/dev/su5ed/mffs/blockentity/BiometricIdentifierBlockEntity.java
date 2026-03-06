@@ -45,6 +45,19 @@ public class BiometricIdentifierBlockEntity extends FortronBlockEntity implement
     }
 
     @Override
+    public boolean hasCapability(net.minecraftforge.common.capabilities.Capability<?> capability, @javax.annotation.Nullable net.minecraft.util.EnumFacing facing) {
+        if (capability == ModCapabilities.BIOMETRIC_IDENTIFIER) return true;
+        return super.hasCapability(capability, facing);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getCapability(net.minecraftforge.common.capabilities.Capability<T> capability, @javax.annotation.Nullable net.minecraft.util.EnumFacing facing) {
+        if (capability == ModCapabilities.BIOMETRIC_IDENTIFIER) return (T) this;
+        return super.getCapability(capability, facing);
+    }
+
+    @Override
     public Optional<IdentificationCard> getManipulatingCard() {
         // 1.21.x: stack.getCapability(ModCapabilities.IDENTIFICATION_CARD) — no direction needed for items
         return Optional.ofNullable(this.rightsSlot.getItem().getCapability(ModCapabilities.IDENTIFICATION_CARD, null))

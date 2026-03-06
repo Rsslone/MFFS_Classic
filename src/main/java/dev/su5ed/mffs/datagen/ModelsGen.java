@@ -1,6 +1,10 @@
 package dev.su5ed.mffs.datagen;
 
-// TODO: Not yet backported to 1.12.2 (Phase 15/16).
+// 1.12.2 does not use NeoForge DataProvider API.
+// JSON model files live in src/main/resources/assets/mffs/models/ directly.
+// Reference (1.21): extends BlockStateProvider — generates blockstate JSON and
+// item models for all MFFS blocks, plus handheld models for tools.
+
 public final class ModelsGen {
     private ModelsGen() {}
 }

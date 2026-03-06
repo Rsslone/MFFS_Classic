@@ -243,6 +243,16 @@ public abstract class FortronMenu<T extends FortronBlockEntity & Activatable> ex
     }
 
     @Override
+    public void addListener(IContainerListener listener) {
+        super.addListener(listener);
+        // Force-send all custom tracked values to the new listener immediately,
+        // matching what vanilla does for its own integer properties via sendAllWindowProperties.
+        for (int i = 0; i < this.dataGetters.size(); i++) {
+            listener.sendWindowProperty(this, i, this.dataGetters.get(i).getAsInt());
+        }
+    }
+
+    @Override
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
         for (int i = 0; i < this.dataGetters.size(); i++) {

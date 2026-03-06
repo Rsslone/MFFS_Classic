@@ -1,7 +1,19 @@
 package dev.su5ed.mffs.compat;
 
-// TODO: Port to 1.12.2 versions of the compat mod APIs.
-
+/**
+ * 1.12.2 backport of BasicGhostIngredientHandler.
+ *
+ * Reference (1.21): implements JEI's {@code IGhostIngredientHandler<T>};
+ * maps each active {@code SlotInventoryFilter} slot in any
+ * {@code BaseScreen} to a drop-target that sends a
+ * {@link dev.su5ed.mffs.network.SetItemInSlotPacket} when an ingredient is
+ * dropped onto it.
+ *
+ * In 1.12.2: JEI's ghost ingredient API ({@code IGhostIngredientHandler})
+ * exists but has a different signature and is part of the JEI 1.12.2 API jar.
+ * A full port requires that dependency on the compile classpath.
+ * This class is an empty structural placeholder until that dependency is added.
+ */
 public final class BasicGhostIngredientHandler {
     private BasicGhostIngredientHandler() {}
 }

@@ -129,9 +129,10 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
         if (projectorOpt.isPresent() && entityIn instanceof EntityPlayer player) {
             BiometricIdentifier identifier = projectorOpt.get().getBiometricIdentifier();
             if (isAuthorized(identifier, player)) {
-                if (MFFSConfig.allowWalkThroughForceFields) {
+                boolean isAbove = player.posY >= pos.getY() + 0.99;
+                if (!isAbove && MFFSConfig.allowWalkThroughForceFields) {
                     return null; // authorized walk-through
-                } else if (player.isSneaking()) {
+                } else if (!isAbove && player.isSneaking()) {
                     return null; // sneak through
                 }
             }
