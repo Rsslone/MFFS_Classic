@@ -65,14 +65,15 @@ public class CubeProjectorMode implements ProjectorMode {
         BlockPos negScale = projector.getNegativeScale();
         BlockPos posScale = projector.getPositiveScale();
         // Replicate AABB.encapsulatingFullBlocks(-negScale + (1,1,1), posScale).contains(rotated)
+        // AABB.contains uses strict < for upper bounds (half-open interval)
         double minX = -negScale.getX() + 1;
         double minY = -negScale.getY() + 1;
         double minZ = -negScale.getZ() + 1;
         double maxX = posScale.getX() + 1;
         double maxY = posScale.getY() + 1;
         double maxZ = posScale.getZ() + 1;
-        return rotated.x >= minX && rotated.x <= maxX
-            && rotated.y >= minY && rotated.y <= maxY
-            && rotated.z >= minZ && rotated.z <= maxZ;
+        return rotated.x >= minX && rotated.x < maxX
+            && rotated.y >= minY && rotated.y < maxY
+            && rotated.z >= minZ && rotated.z < maxZ;
     }
 }
