@@ -17,7 +17,11 @@ public class CoercionDeriverTopModel extends ModelBase {
 
     public CoercionDeriverTopModel() {
         this.textureWidth = 64;
-        this.textureHeight = 32;
+        // Texture file is 128x128 but content occupies only the top 128x64 region.
+        // Declaring textureHeight=64 (not 32) keeps UV_y = 19/64 = 0.297, which maps
+        // to pixel row 38 in the 128-tall file — correctly inside the content area.
+        // (64x32 declaration would give UV_y = 0.594 → pixel row 76 → transparent gap.)
+        this.textureHeight = 64;
         // 1.7.10: texOffs(24,19), box(-2, 14, -2, 4, 1, 4)
         this.tout = new ModelRenderer(this, 24, 19);
         this.tout.addBox(-2.0F, 14.0F, -2.0F, 4, 1, 4);
