@@ -82,7 +82,7 @@ public class SlotInventory extends Slot implements TooltipSlot {
     @Override
     public void putStack(ItemStack stack) {
         this.inventorySlot.setItem(stack);
-        onSlotChanged();
+        // onSlotChanged() intentionally omitted — setItem() already notifies via onChanged
     }
 
     @Override

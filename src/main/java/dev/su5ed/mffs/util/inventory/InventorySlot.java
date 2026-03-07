@@ -19,6 +19,7 @@ public class InventorySlot {
     private final boolean virtual;
 
     private ItemStack content = ItemStack.EMPTY;
+    private ItemStack lastNotifiedContent = ItemStack.EMPTY;
 
     public InventorySlot(InventorySlotItemHandler parent, String name, Mode mode, Predicate<ItemStack> filter, Consumer<ItemStack> onChanged, boolean virtual) {
         this.parent = parent;
@@ -59,7 +60,12 @@ public class InventorySlot {
 
     public void setItem(ItemStack stack, boolean notify) {
         this.content = stack;
-        onChanged(notify);
+        if (notify) {
+            onChanged(true);
+        } else {
+            // Silent set (e.g. NBT load) — sync snapshot to avoid spurious fire later
+            this.lastNotifiedContent = stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+        }
     }
 
     public ItemStack insert(ItemStack stack, boolean simulate) {
@@ -108,8 +114,17 @@ public class InventorySlot {
 
     protected void onChanged(boolean notify) {
         if (notify) {
-            this.parent.onChanged();
-            this.onChanged.accept(getItem());
+            ItemStack current = getItem();
+            boolean same = (this.lastNotifiedContent.isEmpty() && current.isEmpty())
+                || (!this.lastNotifiedContent.isEmpty() && !current.isEmpty()
+                    && ItemStack.areItemsEqual(this.lastNotifiedContent, current)
+                    && ItemStack.areItemStackTagsEqual(this.lastNotifiedContent, current)
+                    && this.lastNotifiedContent.getCount() == current.getCount());
+            if (!same) {
+                this.lastNotifiedContent = current.isEmpty() ? ItemStack.EMPTY : current.copy();
+                this.parent.onChanged();
+                this.onChanged.accept(current);
+            }
         }
     }
 
