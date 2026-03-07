@@ -78,6 +78,7 @@ item.mffs.tube_mode.name=Tube Mode
 item.mffs.pyramid_mode.name=Pyramid Mode
 item.mffs.cylinder_mode.name=Cylinder Mode
 item.mffs.custom_mode.name=Custom Mode
+item.mffs.custom_mode.description=Save a custom field shape to apply with a projector. Sneak+right-click to save.
 item.mffs.custom_mode.mode=Mode: %s
 item.mffs.custom_mode.mode.additive=Additive
 item.mffs.custom_mode.mode.subtractive=Substraction
