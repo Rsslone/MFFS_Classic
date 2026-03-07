@@ -13,8 +13,17 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ForceFieldBlockEntity extends BaseBlockEntity {
+
+    /**
+     * Client-side queue of positions that need world.checkLight() called.
+     * Populated in handleCustomUpdateTag; drained N-per-tick by the client
+     * tick handler in ModClientSetup to avoid synchronous BFS spikes.
+     */
+    public static final Queue<BlockPos> PENDING_LIGHT_CHECKS = new ConcurrentLinkedQueue<>();
 
     private BlockPos projector;
     private IBlockState camouflage;
@@ -94,7 +103,9 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
             this.camouflage = null;
         }
 
-        this.world.checkLight(this.pos);
+        // Defer world.checkLight to a rate-limited client tick drain instead of
+        // calling it immediately — avoids synchronous BFS spikes on chunk load.
+        PENDING_LIGHT_CHECKS.add(this.pos);
         updateRenderClient();
     }
 
