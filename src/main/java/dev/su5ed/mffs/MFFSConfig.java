@@ -74,6 +74,8 @@ public final class MFFSConfig {
     public static boolean enableProjectorModeGlitch = true;
     /** Spacing used for force field light sources: 1 = every block, 3 = ~1/3 of blocks emit light. */
     public static int forceFieldLightSpacing = 3;
+    /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
+    public static int glowLightChecksPerTick = 50;
 
     // =========================================================================
     // Load / Save
@@ -139,6 +141,8 @@ public final class MFFSConfig {
         // -- Performance --
         forceFieldLightSpacing = configuration.getInt("forceFieldLightSpacing", "performance", forceFieldLightSpacing, 1, Integer.MAX_VALUE,
             "Controls spacing for force field light sources. 1 = every block emits, 3 = ~1/3 of blocks.");
+        glowLightChecksPerTick = configuration.getInt("glowLightChecksPerTick", "performance", glowLightChecksPerTick, 1, Integer.MAX_VALUE,
+            "How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. Lower = less lighting stutter on chunk load, however too low may cause lighting issues and artifacts.");
 
         if (configuration.hasChanged()) {
             configuration.save();

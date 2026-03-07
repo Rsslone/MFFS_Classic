@@ -19,6 +19,7 @@ package dev.su5ed.mffs.setup;
 //   GuiGraphics                       -> GlStateManager / Gui
 // =============================================================================
 
+import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
@@ -36,12 +37,14 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 @Mod.EventBusSubscriber(modid = MFFSMod.MODID, value = Side.CLIENT)
@@ -133,6 +136,24 @@ public final class ModClientSetup {
             },
             ModBlocks.FORCE_FIELD
         );
+    }
+
+    /**
+     * Drain the deferred checkLight queue at a rate of {@link MFFSConfig#glowLightChecksPerTick}
+     * positions per tick. This spreads the BFS cost of relighting Glow Module force fields over
+     * multiple frames instead of spiking all at once when a chunk loads.
+     */
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null || ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.isEmpty()) return;
+        int limit = Math.max(1, MFFSConfig.glowLightChecksPerTick);
+        for (int i = 0; i < limit; i++) {
+            net.minecraft.util.math.BlockPos pos = ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.poll();
+            if (pos == null) break;
+            mc.world.checkLight(pos);
+        }
     }
 
     private static void registerItemModel(Item item) {
