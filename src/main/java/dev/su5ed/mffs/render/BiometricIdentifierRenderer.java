@@ -21,6 +21,11 @@ import org.lwjgl.opengl.GL11;
 @SideOnly(Side.CLIENT)
 public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<BiometricIdentifierBlockEntity> {
     private static final ResourceLocation HOLO_SCREEN_TEXTURE = new ResourceLocation("mffs", "textures/model/holo_screen.png");
+    // holo_screen.png is a 32x288 spritesheet (9 frames of 32x32).
+    // frametime=2 matches the .mcmeta. Direct-bound textures don't go through the atlas
+    // animation system, so we drive the frame manually from world time.
+    private static final int HOLO_FRAME_COUNT = 9;
+    private static final int HOLO_FRAME_TIME  = 2; // ticks per frame
 
     @Override
     public void render(BiometricIdentifierBlockEntity te, double x, double y, double z,
@@ -49,24 +54,29 @@ public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<Biome
         GlStateManager.scale(0.85F, 0.85F, 0.85F);
         GlStateManager.translate(-0.5, -0.5, -0.5);
 
-        // Set up additive blending + no depth write for holographic look
+        // Set up standard alpha blending (matches 1.21 HOLO_QUAD pipeline: TRANSLUCENT)
         GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         GlStateManager.depthMask(false);
         GlStateManager.disableLighting();
 
         // Bind the holographic screen texture
         Minecraft.getMinecraft().getTextureManager().bindTexture(HOLO_SCREEN_TEXTURE);
 
+        // Select current animation frame from the spritesheet
+        int currentFrame = (int)((te.getWorld().getTotalWorldTime() / HOLO_FRAME_TIME) % HOLO_FRAME_COUNT);
+        float vMin = (float) currentFrame / HOLO_FRAME_COUNT;
+        float vMax = (float)(currentFrame + 1) / HOLO_FRAME_COUNT;
+
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
 
         // Draw a single quad at y=1 plane facing upward (tilted by the rotation above)
         buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-        buffer.pos(0.0, 1.0, 1.0).tex(0, 1).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
-        buffer.pos(1.0, 1.0, 1.0).tex(1, 1).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
-        buffer.pos(1.0, 1.0, 0.0).tex(1, 0).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
-        buffer.pos(0.0, 1.0, 0.0).tex(0, 0).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
+        buffer.pos(0.0, 1.0, 1.0).tex(0, vMax).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
+        buffer.pos(1.0, 1.0, 1.0).tex(1, vMax).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
+        buffer.pos(1.0, 1.0, 0.0).tex(1, vMin).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
+        buffer.pos(0.0, 1.0, 0.0).tex(0, vMin).color(1.0F, 1.0F, 1.0F, screenAlpha).endVertex();
         tessellator.draw();
 
         // Restore GL state
