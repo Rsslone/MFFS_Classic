@@ -11,6 +11,7 @@ package dev.su5ed.mffs.item;
 // =============================================================================
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -50,7 +51,7 @@ public class BaseItem extends Item {
         super.addInformation(stack, worldIn, tooltip, flagIn);
         addInformationPre(stack, worldIn, tooltip, flagIn);
         if (this.showDescription) {
-            if (Minecraft.getMinecraft().gameSettings.keyBindSneak.isKeyDown()) {
+            if (GuiScreen.isShiftKeyDown()) {
                 // Shift held: show full description
                 String descKey = "item.mffs." + this.getRegistryName().getPath() + ".description";
                 tooltip.add(TextFormatting.GRAY + I18n.format(descKey));
