@@ -7,9 +7,9 @@ import dev.su5ed.mffs.network.StructureDataRequestPacket;
 import dev.su5ed.mffs.setup.ModItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -111,16 +111,28 @@ public final class CustomProjectorModeClientHandler {
                 // Both points selected: show both highlights + area outline
                 BlockHighlighter.highlightBlock(partialTick, coords.secondary, BlockHighlighter.LIGHT_RED);
                 BlockHighlighter.highlightArea(partialTick, coords.primary, coords.secondary);
-            } else if (mc.objectMouseOver != null
-                    && mc.objectMouseOver.typeOfHit == RayTraceResult.Type.BLOCK) {
-                // Primary selected, hovering over a potential secondary: pulsing red + area preview
-                BlockPos hovered = mc.objectMouseOver.getBlockPos();
+            } else {
+                // Primary selected, preview a potential secondary.
+                // Prefer current block hit, otherwise preview a point in air along look direction.
+                BlockPos hovered = null;
+                if (mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    hovered = mc.objectMouseOver.getBlockPos();
+                } else {
+                    Vec3d eyePos = mc.player.getPositionEyes(partialTick);
+                    Vec3d lookVec = mc.player.getLook(partialTick);
+                    double range = 5.0;
+                    Vec3d endPos = new Vec3d(eyePos.x + lookVec.x * range, eyePos.y + lookVec.y * range, eyePos.z + lookVec.z * range);
+                    hovered = new BlockPos(endPos);
+                }
+
+                if (hovered != null) {
                 float tick  = mc.world.getTotalWorldTime() % PERIOD_TICKS;
                 float alpha = MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA)
                     * 0.5F * (float) Math.abs(Math.sin(2 * Math.PI * tick / PERIOD_TICKS) + 1.0);
                 BlockHighlighter.highlightBlock(partialTick, hovered,
                     BlockHighlighter.LIGHT_RED.withAlpha(alpha));
                 BlockHighlighter.highlightArea(partialTick, coords.primary, hovered);
+                }
             }
         }
 
@@ -130,15 +142,7 @@ public final class CustomProjectorModeClientHandler {
             int dimensionId = mc.world.provider.getDimension();
             Set<BlockPos> shape = getOrRequestShape(stack, dimensionId);
             if (shape != null && !shape.isEmpty()) {
-                // Compute the axis-aligned bounding box of all structure blocks
-                int minX = shape.stream().mapToInt(BlockPos::getX).min().getAsInt();
-                int minY = shape.stream().mapToInt(BlockPos::getY).min().getAsInt();
-                int minZ = shape.stream().mapToInt(BlockPos::getZ).min().getAsInt();
-                int maxX = shape.stream().mapToInt(BlockPos::getX).max().getAsInt() + 1;
-                int maxY = shape.stream().mapToInt(BlockPos::getY).max().getAsInt() + 1;
-                int maxZ = shape.stream().mapToInt(BlockPos::getZ).max().getAsInt() + 1;
-                BlockHighlighter.highlightArea(partialTick,
-                    new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ), null);
+                BlockHighlighter.highlightBlocks(partialTick, shape, null);
             }
         }
     }

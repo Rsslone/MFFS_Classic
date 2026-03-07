@@ -182,6 +182,10 @@ public class CustomStructureSavedData extends WorldSavedData {
         final Set<BlockPos> shape = new HashSet<>();
         final Map<BlockPos, IBlockState> blocks = new HashMap<>();
         @Nullable
+        private Set<BlockPos> relativeShape;
+        @Nullable
+        private Set<Vec3d> realShape;
+        @Nullable
         private Map<BlockPos, IBlockState> relativeBlocks;
         @Nullable
         private Map<Vec3d, IBlockState> realBlocks;
@@ -201,6 +205,24 @@ public class CustomStructureSavedData extends WorldSavedData {
             return this.realBlocks;
         }
 
+        public Set<Vec3d> getRealShape() {
+            if (this.realShape == null) {
+                Set<Vec3d> set = new HashSet<>();
+                for (BlockPos pos : getRelativeShape()) {
+                    set.add(new Vec3d(pos.getX(), pos.getY(), pos.getZ()));
+                }
+                this.realShape = set;
+            }
+            return this.realShape;
+        }
+
+        public Set<BlockPos> getRelativeShape() {
+            if (this.relativeShape == null) {
+                this.relativeShape = computeRelativeShape();
+            }
+            return this.relativeShape;
+        }
+
         public Map<BlockPos, IBlockState> getRelativeBlocks() {
             if (this.relativeBlocks == null) {
                 this.relativeBlocks = computeRelativeBlocks();
@@ -209,32 +231,59 @@ public class CustomStructureSavedData extends WorldSavedData {
         }
 
         void invalidateCache() {
+            this.relativeShape = null;
+            this.realShape = null;
             this.relativeBlocks = null;
             this.realBlocks = null;
+        }
+
+        private Set<BlockPos> computeRelativeShape() {
+            if (this.shape.isEmpty()) return Collections.emptySet();
+
+            BlockPos center = computeCenter();
+            Set<BlockPos> set = new HashSet<>();
+            for (BlockPos pos : this.shape) {
+                set.add(pos.subtract(center));
+            }
+            return set;
         }
 
         private Map<BlockPos, IBlockState> computeRelativeBlocks() {
             if (this.shape.isEmpty()) return Collections.emptyMap();
 
-            // Find median of shape positions
-            double sumX = 0, sumY = 0, sumZ = 0;
-            for (BlockPos pos : this.shape) {
-                sumX += pos.getX();
-                sumY += pos.getY();
-                sumZ += pos.getZ();
-            }
-            int size = this.shape.size();
-            BlockPos median = new BlockPos(
-                Math.round(sumX / size),
-                Math.round(sumY / size),
-                Math.round(sumZ / size)
-            );
+            BlockPos center = computeCenter();
 
             Map<BlockPos, IBlockState> map = new HashMap<>();
             for (Map.Entry<BlockPos, IBlockState> entry : this.blocks.entrySet()) {
-                map.put(entry.getKey().subtract(median), entry.getValue());
+                map.put(entry.getKey().subtract(center), entry.getValue());
             }
             return map;
+        }
+
+        private BlockPos computeCenter() {
+            // Use bounding-box center matching 1.21's VoxelShape bounds.
+            // In 1.21, AABB.encapsulatingFullBlocks extends max by +1, so
+            // VoxelShape.max(axis) = blockMax + 1. We add +1 here to match.
+            int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+            for (BlockPos pos : this.shape) {
+                if (pos.getX() < minX) minX = pos.getX();
+                if (pos.getY() < minY) minY = pos.getY();
+                if (pos.getZ() < minZ) minZ = pos.getZ();
+                if (pos.getX() > maxX) maxX = pos.getX();
+                if (pos.getY() > maxY) maxY = pos.getY();
+                if (pos.getZ() > maxZ) maxZ = pos.getZ();
+            }
+            // Match 1.21's normalizeAxis: expand single-block-thick dimensions
+            // so the center computation doesn't sit exactly on the flat plane.
+            if (minX == maxX) maxX++;
+            if (minY == maxY) maxY++;
+            if (minZ == maxZ) maxZ++;
+            return new BlockPos(
+                (int) Math.floor((minX + maxX + 1) / 2.0),
+                (int) Math.floor((minY + maxY + 1) / 2.0),
+                (int) Math.floor((minZ + maxZ + 1) / 2.0)
+            );
         }
     }
 }

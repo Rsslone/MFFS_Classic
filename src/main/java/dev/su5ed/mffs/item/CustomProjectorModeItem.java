@@ -6,7 +6,8 @@ package dev.su5ed.mffs.item;
 //   - StructureCoords: plain class + NBT (blockPos.toLong/fromLong), no Codec/StreamCodec
 //   - Mode enum: plain enum, no Codec/StreamCodec; stored as name string in NBT
 //   - InteractionResult use() → ActionResult<ItemStack> onItemRightClick()
-//   - InteractionResult onItemUseFirst() → EnumActionResult onItemUse()
+//   - InteractionResult onItemUseFirst() → EnumActionResult onItemUseFirst()
+//     (Forge 1.12.2 signature: player, world, pos, side, hitX, hitY, hitZ, hand)
 //   - ServerLevel → WorldServer; ServerPlayer → EntityPlayerMP
 //   - PlayerBlockInteractionRange → player.blockInteractionRange() not available;
 //     use fixed value of 5.0 (same as vanilla 1.12.2 default)
@@ -37,6 +38,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -49,10 +51,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 
 public class CustomProjectorModeItem extends BaseItem {
-
-    private CustomStructureSavedData structureManager;
 
     public CustomProjectorModeItem() {
         super(true); // show description
@@ -216,13 +217,25 @@ public class CustomProjectorModeItem extends BaseItem {
                     }
                 }
             } else if (coords != null && coords.selectSecondary()) {
-                // Pick a block to set as secondary via ray trace
-                RayTraceResult result = playerIn.rayTrace(5.0, 0);
+                // Match 1.21's player.pick(): find the block the player is aiming at,
+                // including air positions. Use solid-block raytrace first; fall back to
+                // the position at end of look vector when no solid block is within range.
+                Vec3d eyePos = playerIn.getPositionEyes(0);
+                Vec3d lookVec = playerIn.getLook(0);
+                double range = 5.0;
+                Vec3d endPos = new Vec3d(eyePos.x + lookVec.x * range, eyePos.y + lookVec.y * range, eyePos.z + lookVec.z * range);
+                RayTraceResult result = worldIn.rayTraceBlocks(eyePos, endPos, false, true, true);
+                BlockPos targetPos;
                 if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
-                    StructureCoords.toStack(stack, new StructureCoords(coords.primary, result.getBlockPos()));
-                    selectBlock(playerIn, "secondary_point", TextFormatting.GOLD);
-                    return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+                    targetPos = result.getBlockPos();
+                } else if (result != null && result.typeOfHit == RayTraceResult.Type.MISS && result.getBlockPos() != null) {
+                    targetPos = result.getBlockPos();
+                } else {
+                    targetPos = new BlockPos(endPos);
                 }
+                StructureCoords.toStack(stack, new StructureCoords(coords.primary, targetPos));
+                selectBlock(playerIn, "secondary_point", TextFormatting.GOLD);
+                return new ActionResult<>(EnumActionResult.SUCCESS, stack);
             } else {
                 Mode mode = setMode(stack, getMode(stack).next());
                 playerIn.sendStatusMessage(
@@ -231,25 +244,27 @@ public class CustomProjectorModeItem extends BaseItem {
                 return new ActionResult<>(EnumActionResult.SUCCESS, stack);
             }
         }
-        return new ActionResult<>(EnumActionResult.PASS, stack);
+        return new ActionResult<>(EnumActionResult.SUCCESS, stack);
     }
 
     // -----------------------------------------------------------------------
     // Right-click on block: set primary/secondary position
+    // Uses onItemUseFirst (Forge 1.12.2) to fire BEFORE block activation,
+    // matching 1.21's onItemUseFirst. Returns SUCCESS to prevent block GUIs.
     // -----------------------------------------------------------------------
 
     @Override
-    public EnumActionResult onItemUse(EntityPlayer playerIn, World worldIn, BlockPos pos,
-                                      EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        if (!worldIn.isRemote) {
-            ItemStack stack = playerIn.getHeldItem(hand);
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos,
+                                           EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand) {
+        if (!world.isRemote) {
+            ItemStack stack = player.getHeldItem(hand);
             StructureCoords coords = StructureCoords.fromStack(stack);
             if (coords == null || coords.selectPrimary()) {
                 StructureCoords.toStack(stack, new StructureCoords(pos, null));
-                selectBlock(playerIn, "primary_point", TextFormatting.GREEN);
+                selectBlock(player, "primary_point", TextFormatting.GREEN);
             } else {
                 StructureCoords.toStack(stack, new StructureCoords(coords.primary, pos));
-                selectBlock(playerIn, "secondary_point", TextFormatting.GOLD);
+                selectBlock(player, "secondary_point", TextFormatting.GOLD);
             }
         }
         return EnumActionResult.SUCCESS;
@@ -304,9 +319,8 @@ public class CustomProjectorModeItem extends BaseItem {
 
     public Map<net.minecraft.util.math.Vec3d, net.minecraft.block.state.IBlockState> getFieldBlocks(
             Projector projector, ItemStack stack) {
-        // TODO Phase 16: adapt when CustomStructureSavedData is backported to use WorldSavedData
-        if (getOrCreateData(projector.be().getWorld()) != null) {
-            CustomStructureSavedData data = getOrCreateData(projector.be().getWorld());
+        CustomStructureSavedData data = getOrCreateData(projector.be().getWorld());
+        if (data != null) {
             String id = getId(stack);
             if (id != null) {
                 CustomStructureSavedData.Structure structure = data.get(id);
@@ -315,22 +329,36 @@ public class CustomProjectorModeItem extends BaseItem {
                 }
             }
         }
-        return java.util.Collections.emptyMap();
+        return Collections.emptyMap();
+    }
+
+    public Set<net.minecraft.util.math.Vec3d> getFieldPoints(Projector projector, ItemStack stack) {
+        CustomStructureSavedData data = getOrCreateData(projector.be().getWorld());
+        if (data != null) {
+            String id = getId(stack);
+            if (id != null) {
+                CustomStructureSavedData.Structure structure = data.get(id);
+                if (structure != null) {
+                    return structure.getRealShape();
+                }
+            }
+        }
+        return Collections.emptySet();
     }
 
     @Nullable
     public CustomStructureSavedData getOrCreateData(World world) {
         if (world.isRemote) return null;
-        if (this.structureManager == null) {
-            net.minecraft.world.WorldServer serverWorld = (net.minecraft.world.WorldServer) world;
-            this.structureManager = (CustomStructureSavedData)
-                serverWorld.getMapStorage().getOrLoadData(CustomStructureSavedData.class, CustomStructureSavedData.NAME);
-            if (this.structureManager == null) {
-                this.structureManager = new CustomStructureSavedData();
-                serverWorld.getMapStorage().setData(CustomStructureSavedData.NAME, this.structureManager);
-            }
+        // Always use overworld MapStorage, matching 1.21's level.getServer().overworld()
+        // Don't cache on the Item singleton — MapStorage caches internally
+        net.minecraft.world.WorldServer overworld = world.getMinecraftServer().getWorld(0);
+        CustomStructureSavedData data = (CustomStructureSavedData)
+            overworld.getMapStorage().getOrLoadData(CustomStructureSavedData.class, CustomStructureSavedData.NAME);
+        if (data == null) {
+            data = new CustomStructureSavedData();
+            overworld.getMapStorage().setData(CustomStructureSavedData.NAME, data);
         }
-        return this.structureManager;
+        return data;
     }
 
     // -----------------------------------------------------------------------
@@ -346,7 +374,7 @@ public class CustomProjectorModeItem extends BaseItem {
 
         @Override
         public Set<net.minecraft.util.math.Vec3d> getExteriorPoints(Projector projector) {
-            return getFieldBlocks(projector, this.stack).keySet();
+            return getFieldPoints(projector, this.stack);
         }
 
         @Override
