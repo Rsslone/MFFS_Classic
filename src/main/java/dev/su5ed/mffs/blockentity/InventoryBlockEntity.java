@@ -121,6 +121,8 @@ public abstract class InventoryBlockEntity extends BaseBlockEntity {
         super.loadCommonTag(compound);
         if (compound.hasKey("items")) {
             this.items.deserializeNBT(compound.getCompoundTag("items"));
+            // Ensure derived state is recalculated after NBT load (modules, upgrades, etc.)
+            this.onInventoryChanged();
         }
     }
 }
