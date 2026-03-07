@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "RSR",
+        "SDS",
+        "RSR"
+    ],
+    "key": {
+        "D": {
+            "item": "minecraft:diamond"
+        },
+        "R": {
+            "item": "minecraft:redstone"
+        },
+        "S": {
+            "item": "mffs:steel_ingot"
+        }
+    },
+    "result": {
+        "item": "mffs:focus_matrix",
+        "count": 9
+    }
+}

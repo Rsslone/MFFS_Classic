@@ -1,0 +1,27 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " C ",
+        "CIC",
+        " C "
+    ],
+    "key": {
+        "C": [
+            {
+                "item": "minecraft:coal",
+                "data": 0
+            },
+            {
+                "item": "minecraft:coal",
+                "data": 1
+            }
+        ],
+        "I": {
+            "item": "minecraft:iron_ingot"
+        }
+    },
+    "result": {
+        "item": "mffs:steel_compound",
+        "count": 1
+    }
+}

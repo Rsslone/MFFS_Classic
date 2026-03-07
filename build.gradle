@@ -4,7 +4,6 @@
 import com.gtnewhorizons.retrofuturagradle.mcp.InjectTagsTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.gradle.ext.Gradle
-
 plugins {
     id 'java'
     id 'java-library'
@@ -164,7 +163,6 @@ if (propertyBool('use_access_transformer')) {
 }
 
 processResources {
-
     // Exclude NeoForge / 1.21.x artifacts that must not be in a 1.12.2 JAR
     exclude 'mffs.mixins.json'               // NeoForge mixin config (JAVA_17 compat level)
     exclude 'mixins.modid.json'              // empty template mixin config

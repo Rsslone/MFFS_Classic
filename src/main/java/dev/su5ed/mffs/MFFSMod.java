@@ -11,6 +11,7 @@ package dev.su5ed.mffs;
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import dev.su5ed.mffs.setup.ModFluids;
+import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModObjects;
 import dev.su5ed.mffs.setup.ModTags;
 import dev.su5ed.mffs.util.FrequencyGrid;
@@ -26,6 +27,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,6 +86,12 @@ public final class MFFSMod {
         // 1.21.x: registered via item tags in datagen (lapis_lazuli, quartz)
         OreDictionary.registerOre(ModTags.FORTRON_FUEL, new ItemStack(Items.DYE, 1, 4)); // Lapis Lazuli (meta 4)
         OreDictionary.registerOre(ModTags.FORTRON_FUEL, Items.QUARTZ);
+
+        // 1.12 crafting recipes use OreDictionary for steel ingots.
+        OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);
+
+        // 1.12 furnace recipes are registered in code.
+        GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
     }
 
     @EventHandler
