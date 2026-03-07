@@ -37,6 +37,10 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
         return this.clientBlockLight;
     }
 
+    public BlockPos getProjectorPos() {
+        return this.projector;
+    }
+
     public void setProjector(BlockPos position) {
         this.projector = position;
         markDirty();

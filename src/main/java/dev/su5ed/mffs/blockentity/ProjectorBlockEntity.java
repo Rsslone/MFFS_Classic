@@ -14,7 +14,9 @@ import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.module.ModuleType;
 import dev.su5ed.mffs.api.module.ProjectorMode;
 import dev.su5ed.mffs.item.CustomProjectorModeItem;
+import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.network.UpdateAnimationSpeed;
+import dev.su5ed.mffs.network.UpdateBlockEntityPacket;
 import dev.su5ed.mffs.setup.*;
 import dev.su5ed.mffs.util.ModUtil;
 import dev.su5ed.mffs.util.ObjectCache;
@@ -25,6 +27,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
@@ -85,6 +88,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     private final Semaphore semaphore = new Semaphore();
     private final Set<BlockPos> projectedBlocks = Collections.synchronizedSet(new HashSet<>());
+    // Orphan positions left over from a soft-destroy (resize/module change). Drained gradually;
+    // a hard destroyField() removes them immediately instead.
+    private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new HashSet<>());
     // 1.21.x: Pair<BlockState, Boolean> (com.mojang.datafixers.util.Pair) — not in 1.12.2
     // Use AbstractMap.SimpleEntry<IBlockState, Boolean> as key=blockState, value=canProject
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
@@ -105,9 +111,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // 1.21.x: StreamEx.of(Direction.values()) → StreamEx.of(EnumFacing.values())
         this.fieldModuleSlots = StreamEx.of(EnumFacing.values())
             .flatMap(side -> IntStreamEx.range(2)
-                .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> destroyField())))
+                .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> onFieldModuleChanged())))
             .toListAndThen(ImmutableListMultimap::copyOf);
-        this.upgradeSlots = createUpgradeSlots(6, this::isMatrixModuleOrPass, stack -> destroyField());
+        this.upgradeSlots = createUpgradeSlots(6, this::isMatrixModuleOrPass, stack -> softDestroyField());
     }
 
     @Override
@@ -224,6 +230,24 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)) {
                     projectField();
+                }
+
+                // Drain orphan blocks left over from a soft destroy (resize / module change)
+                if (!this.pendingRemoval.isEmpty()) {
+                    int speed = Math.min(getProjectionSpeed(), MFFSConfig.maxFFGenPerTick);
+                    int drained = 0;
+                    Iterator<BlockPos> orphanIt = this.pendingRemoval.iterator();
+                    while (orphanIt.hasNext() && drained < speed) {
+                        BlockPos orphan = orphanIt.next();
+                        orphanIt.remove();
+                        if (this.world.getBlockState(orphan).getBlock() == ModBlocks.FORCE_FIELD) {
+                            net.minecraft.tileentity.TileEntity ote = this.world.getTileEntity(orphan);
+                            if (ote instanceof ForceFieldBlockEntity offe && this.pos.equals(offe.getProjectorPos())) {
+                                this.world.setBlockToAir(orphan);
+                            }
+                        }
+                        drained++;
+                    }
                 }
             }
 
@@ -443,25 +467,43 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 }
             }
 
-            // 1.21.x: level.setBlock(pos, state, Block.UPDATE_NONE) → world.setBlockState(pos, state, 0)
-            this.world.setBlockState(pos, state, 0);
-            // Set the controlling projector of the force field block to this one
-            // 1.21.x: this.level.getBlockEntity(pos, ModObjects.FORCE_FIELD_BLOCK_ENTITY.get()).ifPresent(...)
-            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
-            if (te instanceof ForceFieldBlockEntity be) {
-                be.setProjector(this.pos);
-                // 1.21.x: BlockState camouflage = getCamoBlock(pair.original())
-                IBlockState camouflage = getCamoBlock(pair.original());
-                if (camouflage != null) {
-                    be.setCamouflage(camouflage);
+            // Check if this position is already occupied by our own FF block (soft-destroy transition).
+            // If so, reclaim it without re-placing or spending Fortron.
+            net.minecraft.tileentity.TileEntity existingTe = this.world.getTileEntity(pos);
+            boolean isOwnField = existingTe instanceof ForceFieldBlockEntity ffe && this.pos.equals(ffe.getProjectorPos());
+
+            if (!isOwnField) {
+                // 1.21.x: level.setBlock(pos, state, Block.UPDATE_NONE) → world.setBlockState(pos, state, 0)
+                this.world.setBlockState(pos, state, 0);
+                // Set the controlling projector of the force field block to this one
+                // 1.21.x: this.level.getBlockEntity(pos, ModObjects.FORCE_FIELD_BLOCK_ENTITY.get()).ifPresent(...)
+                net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+                if (te instanceof ForceFieldBlockEntity be) {
+                    be.setProjector(this.pos);
+                    // 1.21.x: BlockState camouflage = getCamoBlock(pair.original())
+                    IBlockState camouflage = getCamoBlock(pair.original());
+                    if (camouflage != null) {
+                        be.setCamouflage(camouflage);
+                    }
+                }
+                // Only update after the projector has been set
+                // 1.21.x: level.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL) → world.notifyBlockUpdate
+                this.world.notifyBlockUpdate(pos, state, state, 3);
+                // 1.21.x: try (Transaction tx = ...) { extractFortron(1, tx); tx.commit(); }
+                this.fortronStorage.extractFortron(1, false);
+            } else {
+                // Reclaim existing block: update camouflage and push fresh clientBlockLight to clients
+                if (existingTe instanceof ForceFieldBlockEntity be) {
+                    IBlockState camouflage = getCamoBlock(pair.original());
+                    if (camouflage != null) {
+                        be.setCamouflage(camouflage);
+                    }
+                    // Send fresh update tag so clientBlockLight reflects current glow module count
+                    Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
                 }
             }
-            // Only update after the projector has been set
-            // 1.21.x: level.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL) → world.notifyBlockUpdate
-            this.world.notifyBlockUpdate(pos, state, state, 3);
-
-            // 1.21.x: try (Transaction tx = ...) { extractFortron(1, tx); tx.commit(); }
-            this.fortronStorage.extractFortron(1, false);
+            // Mark as part of the new field; remove from pending-removal so it isn't deleted.
+            this.pendingRemoval.remove(pos);
             this.projectedBlocks.add(pos);
             this.projectionCache.invalidate(pos);
         }
@@ -477,18 +519,54 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // 1.21.x: canProjectPos returns Pair<BlockState, Boolean>, now AbstractMap.SimpleEntry<IBlockState, Boolean>
     private AbstractMap.SimpleEntry<IBlockState, Boolean> canProjectPos(BlockPos pos) {
         IBlockState state = this.world.getBlockState(pos);
+        // Allow projecting over our own FF blocks that remain from a previous soft-destroy —
+        // they will be "reclaimed" in projectField() without being re-placed or costing Fortron.
+        // Only treat the block as reclaimable while it is still in pendingRemoval; once reclaimed
+        // (removed from the set) this position must evaluate as non-projectable so SELECTING won't
+        // keep cycling over it endlessly.
+        boolean isOwnField = false;
+        if (state.getBlock() == ModBlocks.FORCE_FIELD && this.pendingRemoval.contains(pos)) {
+            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+            isOwnField = te instanceof ForceFieldBlockEntity ffe && this.pos.equals(ffe.getProjectorPos());
+        }
         // 1.21.x: state.isAir() → state.getBlock().isAir(state, world, pos)
         // 1.21.x: state.liquid() → state.getMaterial().isLiquid()
         // 1.21.x: state.is(ModTags.FORCEFIELD_REPLACEABLE) → TODO (1.12.2 tag/oredictionary check)
         // 1.21.x: state.getDestroySpeed(level, pos) != -1 → state.getBlockHardness(world, pos) != -1
         // 1.21.x: state.is(ModBlocks.FORCE_FIELD.get()) → state.getBlock() == ModBlocks.FORCE_FIELD
-        boolean canProject = (state.getBlock().isAir(state, this.world, pos)
+        boolean canProject = ((state.getBlock().isAir(state, this.world, pos)
             || state.getMaterial().isLiquid()
             || ModTags.getForceFieldReplaceable().contains(state.getBlock())
             || (hasModule(ModModules.DISINTEGRATION) && state.getBlockHardness(this.world, pos) != -1))
             && state.getBlock() != ModBlocks.FORCE_FIELD
+            || isOwnField)
             && !pos.equals(this.pos);
         return new AbstractMap.SimpleEntry<>(state, canProject);
+    }
+
+    /**
+     * Called when a face-slot field module changes (glow, camouflage, shock, etc.).
+     * These modules never affect field geometry, so we push a fresh update to all
+     * currently-projected blocks immediately — providing instant visual feedback —
+     * before triggering the soft rebuild that re-evaluates behavioral modules.
+     */
+    private void onFieldModuleChanged() {
+        refreshFieldVisuals();
+        softDestroyField();
+    }
+
+    /**
+     * Pushes a fresh {@link UpdateBlockEntityPacket} (clientBlockLight + camouflage)
+     * to every currently projected block without rebuilding the field.
+     */
+    private void refreshFieldVisuals() {
+        if (this.world == null || this.world.isRemote) return;
+        for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
+            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+            if (te instanceof ForceFieldBlockEntity be) {
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
+            }
+        }
     }
 
     private void onModeChanged(ItemStack stack) {
@@ -496,11 +574,33 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         if (this.world != null) {
             this.world.checkLight(this.pos);
         }
-        destroyField();
+        softDestroyField();
+    }
+
+    /**
+     * Soft destroy: keeps existing force field blocks in the world and queues them for
+     * gradual removal. Blocks that are still valid in the newly-calculated field will be
+     * reclaimed during the next projectField() pass, so only genuine orphans are removed.
+     * Use this when the field shape is changing (module/mode change) to avoid flicker.
+     */
+    private void softDestroyField() {
+        if (this.world != null && !this.world.isRemote) {
+            StreamEx.of(getCalculatedFieldPositions())
+                .map(TargetPosPair::pos)
+                .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
+                .forEach(this.pendingRemoval::add);
+        }
+        this.projectedBlocks.clear();
+        this.projectionCache.invalidateAll();
+        this.semaphore.reset();
     }
 
     @Override
     public void destroyField() {
+        // Hard destroy: immediately remove everything (Fortron loss, block break, etc.).
+        // Also flush any blocks pending from a prior soft destroy.
+        Set<BlockPos> alsoRemove = new HashSet<>(this.pendingRemoval);
+        this.pendingRemoval.clear();
         Collection<TargetPosPair> fieldPositions = getCalculatedFieldPositions();
         this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
@@ -513,6 +613,36 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
                 // 1.21.x: this.level.removeBlock(pos, false) → this.world.setBlockToAir(pos)
                 .forEach(pos -> this.world.setBlockToAir(pos));
+            alsoRemove.stream()
+                .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
+                .forEach(pos -> this.world.setBlockToAir(pos));
+        }
+    }
+
+    @Override
+    protected void saveTag(NBTTagCompound compound) {
+        super.saveTag(compound);
+        NBTTagList removalList = new NBTTagList();
+        for (BlockPos pos : this.pendingRemoval) {
+            NBTTagCompound entry = new NBTTagCompound();
+            entry.setInteger("x", pos.getX());
+            entry.setInteger("y", pos.getY());
+            entry.setInteger("z", pos.getZ());
+            removalList.appendTag(entry);
+        }
+        compound.setTag("pendingRemoval", removalList);
+    }
+
+    @Override
+    protected void loadTag(NBTTagCompound compound) {
+        super.loadTag(compound);
+        this.pendingRemoval.clear();
+        if (compound.hasKey("pendingRemoval")) {
+            NBTTagList removalList = compound.getTagList("pendingRemoval", 10);
+            for (int i = 0; i < removalList.tagCount(); i++) {
+                NBTTagCompound entry = removalList.getCompoundTagAt(i);
+                this.pendingRemoval.add(new BlockPos(entry.getInteger("x"), entry.getInteger("y"), entry.getInteger("z")));
+            }
         }
     }
 
