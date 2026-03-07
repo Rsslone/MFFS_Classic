@@ -22,13 +22,14 @@ public class CylinderProjectorMode implements ProjectorMode {
         BlockPos negScale = projector.getNegativeScale();
 
         int radius = (posScale.getX() + negScale.getX() + posScale.getZ() + negScale.getZ()) / 2;
-        int height = posScale.getY() + negScale.getY();
+        int negY = negScale.getY();
+        int posY = posScale.getY();
 
         for (float x = -radius; x <= radius; x += 1) {
             for (float z = -radius; z <= radius; z += 1) {
-                for (float y = 0; y < height; y += 1) {
+                for (float y = -negY; y <= posY; y += 1) {
                     float area = x * x + z * z + RADIUS_EXPANSION;
-                    if (area <= radius * radius && (y == 0 || y == height - 1 || area >= (radius - 1) * (radius - 1))) {
+                    if (area <= radius * radius && (y == -negY || y == posY || area >= (radius - 1) * (radius - 1))) {
                         fieldBlocks.add(new Vec3d(x, y, z));
                     }
                 }
@@ -47,11 +48,12 @@ public class CylinderProjectorMode implements ProjectorMode {
         BlockPos projectorPos = projector.be().getPos().add(projector.getTranslation());
 
         int radius = (posScale.getX() + negScale.getX() + posScale.getZ() + negScale.getZ()) / 2;
-        int height = posScale.getY() + negScale.getY();
+        int negY = negScale.getY();
+        int posY = posScale.getY();
 
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
-                for (int y = 0; y < height; y++) {
+                for (int y = -negY; y <= posY; y++) {
                     Vec3d position = new Vec3d(x, y, z);
                     if (isInField(projector, position.add(new Vec3d(projectorPos.getX(), projectorPos.getY(), projectorPos.getZ())))) {
                         fieldBlocks.add(position);
