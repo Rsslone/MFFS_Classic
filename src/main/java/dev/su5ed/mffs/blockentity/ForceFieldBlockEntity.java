@@ -1,9 +1,9 @@
 package dev.su5ed.mffs.blockentity;
 
 import dev.su5ed.mffs.api.Projector;
-import dev.su5ed.mffs.block.ForceFieldBlockImpl;
 import dev.su5ed.mffs.network.InitialDataRequestPacket;
 import dev.su5ed.mffs.network.Network;
+import dev.su5ed.mffs.render.BlockEntityRenderDelegate;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import dev.su5ed.mffs.setup.ModModules;
 import net.minecraft.block.Block;
@@ -52,14 +52,7 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
 
     public void setCamouflage(IBlockState camouflage) {
         this.camouflage = camouflage;
-        // Update ForceFieldBlock state properties to match camouflage block
-        IBlockState current = this.world.getBlockState(this.pos);
-        boolean propagatesSkylight = !camouflage.isFullCube();
-        boolean solid = camouflage.isFullBlock();
-        IBlockState updated = current
-            .withProperty(ForceFieldBlockImpl.PROPAGATES_SKYLIGHT, propagatesSkylight)
-            .withProperty(ForceFieldBlockImpl.SOLID, solid);
-        this.world.setBlockState(this.pos, updated, 3);
+        markDirty();
     }
 
     @Override
@@ -69,11 +62,17 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
         if (this.world.isRemote) {
             InitialDataRequestPacket packet = new InitialDataRequestPacket(this.pos);
             Network.sendToServer(packet);
+            if (this.camouflage != null) {
+                BlockEntityRenderDelegate.INSTANCE.putDelegateFor(this, this.camouflage);
+            }
         }
     }
 
     @Override
     public void invalidate() {
+        if (this.world != null && this.world.isRemote) {
+            BlockEntityRenderDelegate.INSTANCE.removeDelegateOf(this);
+        }
         super.invalidate();
     }
 
@@ -111,6 +110,12 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
         // calling it immediately — avoids synchronous BFS spikes on chunk load.
         PENDING_LIGHT_CHECKS.add(this.pos);
         updateRenderClient();
+
+        if (this.camouflage != null) {
+            BlockEntityRenderDelegate.INSTANCE.putDelegateFor(this, this.camouflage);
+        } else {
+            BlockEntityRenderDelegate.INSTANCE.removeDelegateOf(this);
+        }
     }
 
     /**
@@ -174,5 +179,6 @@ public class ForceFieldBlockEntity extends BaseBlockEntity {
     public void updateRenderClient() {
         IBlockState state = this.world.getBlockState(this.pos);
         this.world.notifyBlockUpdate(this.pos, state, state, 3);
+        this.world.markBlockRangeForRenderUpdate(this.pos, this.pos);
     }
 }

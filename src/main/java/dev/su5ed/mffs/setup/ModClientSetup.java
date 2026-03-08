@@ -30,15 +30,18 @@ import dev.su5ed.mffs.render.BiometricIdentifierRenderer;
 import dev.su5ed.mffs.render.CoercionDeriverRenderer;
 import dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer;
 import dev.su5ed.mffs.render.ProjectorRenderer;
+import dev.su5ed.mffs.render.model.ForceFieldBlockModel;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.setup.ModItems;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ColorHandlerEvent;
+import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -136,6 +139,19 @@ public final class ModClientSetup {
             },
             ModBlocks.FORCE_FIELD
         );
+    }
+
+    /**
+     * Wrap the force field block's baked model with {@link ForceFieldBlockModel}
+     * to enable camouflage quad swapping during chunk meshing.
+     */
+    @SubscribeEvent
+    public static void onModelBake(ModelBakeEvent event) {
+        ModelResourceLocation loc = new ModelResourceLocation(ModBlocks.FORCE_FIELD.getRegistryName(), "normal");
+        IBakedModel original = event.getModelRegistry().getObject(loc);
+        if (original != null) {
+            event.getModelRegistry().putObject(loc, new ForceFieldBlockModel(original));
+        }
     }
 
     /**

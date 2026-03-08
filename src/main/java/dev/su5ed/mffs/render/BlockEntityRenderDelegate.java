@@ -1,77 +1,46 @@
 package dev.su5ed.mffs.render;
 
-/**
- * 1.12.2 backport of BlockEntityRenderDelegate.
- *
- * Reference (1.20.1 / SecurityCraft): delegates the rendering of a
- * {@code ForceFieldBlockEntity} to another block's
- * {@code BlockEntityRenderer}, used to display the camouflage block model
- * (including any animated TESR effects). Maintains a cache of delegate
- * {@code BlockEntity} instances and their renderers.
- *
- * In 1.12.2, this delegation is not needed because
- * {@link ForceFieldBlockEntityRenderer} directly uses
- * {@code BlockRendererDispatcher.renderBlock()} to draw the camouflage
- * block's baked model in immediate mode. There is no TESR-to-TESR
- * delegation mechanism in 1.12.2.
- *
- * This class is retained as an empty structural placeholder.
- */
-public final class BlockEntityRenderDelegate {
-    private BlockEntityRenderDelegate() {}
-}
-
-/* class_NeoForge_1_21_x (BlockEntityRenderDelegate):
-package dev.su5ed.mffs.render;
-
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.su5ed.mffs.MFFSMod;
-import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
-import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.state.CameraRenderState;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * SOURCE: Geforce132/SecurityCraft <a href="https://github.com/Geforce132/SecurityCraft/blob/1.19.3/src/main/java/net/geforcemods/securitycraft/util/BlockEntityRenderDelegate.java">BlockEntityRenderDelegate</a>
- * /
+ * SOURCE: Geforce132/SecurityCraft
+ * Delegates rendering to another block entity's TESR when the camouflage block
+ * has its own TileEntitySpecialRenderer (e.g. chests, ender chests).
+ * For plain blocks like stone, no delegation is needed — the baked model handles it.
+ */
 public final class BlockEntityRenderDelegate {
     public static final BlockEntityRenderDelegate INSTANCE = new BlockEntityRenderDelegate();
 
-    private final Map<BlockEntity, DelegateRendererInfo> renderDelegates = new HashMap<>();
-    private final Map<BlockEntity, BlockEntityRenderState> renderStateDelegates = new HashMap<>();
+    private final Map<TileEntity, DelegateRendererInfo> renderDelegates = new HashMap<>();
 
-    private BlockEntityRenderDelegate() {
-    }
+    private BlockEntityRenderDelegate() {}
 
-    public void putDelegateFor(BlockEntity originalBlockEntity, BlockState delegateState) {
+    public void putDelegateFor(TileEntity originalBlockEntity, IBlockState delegateState) {
         if (this.renderDelegates.containsKey(originalBlockEntity)) {
             DelegateRendererInfo delegateInfo = this.renderDelegates.get(originalBlockEntity);
-
-            //the original be already has a delegate block entity of the same holoType, just update the state instead of creating a whole new be and renderer
-            if (delegateInfo.delegateBlockEntity.getBlockState().is(delegateState.getBlock())) {
-                delegateInfo.delegateBlockEntity.setBlockState(delegateState);
+            if (delegateInfo.delegateBlockEntity.getBlockType() == delegateState.getBlock()) {
                 return;
             }
         }
 
-        if (delegateState != null && delegateState.getBlock() instanceof EntityBlock entityBlock) {
-            Minecraft mc = Minecraft.getInstance();
-            BlockEntity delegateBe = entityBlock.newBlockEntity(BlockPos.ZERO, delegateState);
+        if (delegateState != null) {
+            Minecraft mc = Minecraft.getMinecraft();
+            TileEntity delegateBe = delegateState.getBlock().createTileEntity(mc.world, delegateState);
             if (delegateBe != null) {
-                delegateBe.setLevel(mc.level);
-                BlockEntityRenderer<? super BlockEntity, ?> delegateBeRenderer = mc.getBlockEntityRenderDispatcher().getRenderer(delegateBe);
+                delegateBe.setPos(BlockPos.ORIGIN);
+                delegateBe.setWorld(mc.world);
+                @SuppressWarnings("unchecked")
+                TileEntitySpecialRenderer<TileEntity> delegateBeRenderer =
+                    (TileEntitySpecialRenderer<TileEntity>) TileEntityRendererDispatcher.instance.getRenderer(delegateBe);
                 if (delegateBeRenderer != null) {
                     this.renderDelegates.put(originalBlockEntity, new DelegateRendererInfo(delegateBe, delegateBeRenderer));
                 }
@@ -79,46 +48,30 @@ public final class BlockEntityRenderDelegate {
         }
     }
 
-    public void removeDelegateOf(BlockEntity originalBlockEntity) {
+    public void removeDelegateOf(TileEntity originalBlockEntity) {
         this.renderDelegates.remove(originalBlockEntity);
     }
 
-    @SuppressWarnings({"unchecked"})
-    public void prepareRenderState(ForceFieldBlockEntity originalBlockEntity, float partialTick, Vec3 cameraPosition, @Nullable ModelFeatureRenderer.CrumblingOverlay breakProgress) {
-        DelegateRendererInfo delegate = this.renderDelegates.get(originalBlockEntity);
-        if (delegate != null) {
-            BlockEntityRenderState state = delegate.delegateRenderer().createRenderState();
-            delegate.delegateRenderer().extractRenderState(delegate.delegateBlockEntity(), state, partialTick, cameraPosition, breakProgress);
-            this.renderStateDelegates.put(originalBlockEntity, state);
-        }
-    }
-
-    @SuppressWarnings({"unchecked"})
-    public void tryRenderDelegate(BlockEntity originalBlockEntity, PoseStack poseStack, SubmitNodeCollector nodeCollector, CameraRenderState cameraRenderState) {
+    public void tryRenderDelegate(TileEntity originalBlockEntity, double x, double y, double z, float partialTicks, int destroyStage) {
         DelegateRendererInfo delegateRendererInfo = this.renderDelegates.get(originalBlockEntity);
-        if (delegateRendererInfo == null) return;
-
-        BlockEntityRenderState delegateState = this.renderStateDelegates.get(originalBlockEntity);
-        if (delegateState == null) return;
-
-        try {
-            PoseStack copyPose = new PoseStack();
-            copyPose.pushPose();
-            copyPose.last().pose().mul(poseStack.last().pose());
-            copyPose.last().normal().mul(poseStack.last().normal());
-
-            delegateRendererInfo.delegateRenderer().submit(delegateState, copyPose, nodeCollector, cameraRenderState);
-
-            copyPose.popPose();
-        } catch (Exception e) {
-            MFFSMod.LOGGER.warn("Error rendering delegate BlockEntity {}: {}", delegateRendererInfo.delegateBlockEntity(), e);
-            removeDelegateOf(originalBlockEntity);
+        if (delegateRendererInfo != null && delegateRendererInfo.renderer != null) {
+            try {
+                delegateRendererInfo.renderer.render(delegateRendererInfo.delegateBlockEntity, x, y, z, partialTicks, destroyStage, 1.0f);
+            } catch (Exception e) {
+                MFFSMod.LOGGER.warn("Error rendering delegate TileEntity {}: {}", delegateRendererInfo.delegateBlockEntity, e);
+                removeDelegateOf(originalBlockEntity);
+            }
         }
     }
 
-    @SuppressWarnings("rawtypes")
-    private record DelegateRendererInfo(BlockEntity delegateBlockEntity, BlockEntityRenderer delegateRenderer) {
+    private static class DelegateRendererInfo {
+        final TileEntity delegateBlockEntity;
+        final TileEntitySpecialRenderer<TileEntity> renderer;
+
+        DelegateRendererInfo(TileEntity delegateBlockEntity, TileEntitySpecialRenderer<TileEntity> renderer) {
+            this.delegateBlockEntity = delegateBlockEntity;
+            this.renderer = renderer;
+        }
     }
 }
 
-*/
