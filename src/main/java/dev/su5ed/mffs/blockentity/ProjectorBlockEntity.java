@@ -482,9 +482,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     be.setProjector(this.pos);
                     // 1.21.x: BlockState camouflage = getCamoBlock(pair.original())
                     IBlockState camouflage = getCamoBlock(pair.original());
-                    if (camouflage != null) {
-                        be.setCamouflage(camouflage);
-                    }
+                    be.setCamouflage(camouflage);
                 }
                 // Only update after the projector has been set
                 // 1.21.x: level.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL) → world.notifyBlockUpdate
@@ -495,9 +493,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 // Reclaim existing block: update camouflage and push fresh clientBlockLight to clients
                 if (existingTe instanceof ForceFieldBlockEntity be) {
                     IBlockState camouflage = getCamoBlock(pair.original());
-                    if (camouflage != null) {
-                        be.setCamouflage(camouflage);
-                    }
+                    be.setCamouflage(camouflage);
                     // Send fresh update tag so clientBlockLight reflects current glow module count
                     Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
                 }
@@ -558,12 +554,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     /**
      * Pushes a fresh {@link UpdateBlockEntityPacket} (clientBlockLight + camouflage)
      * to every currently projected block without rebuilding the field.
+     * Updates camouflage on each block entity first so the packet reflects the
+     * current state (e.g. null when the camo module was just removed).
      */
     private void refreshFieldVisuals() {
         if (this.world == null || this.world.isRemote) return;
         for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
             net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
             if (te instanceof ForceFieldBlockEntity be) {
+                // Recompute camouflage — returns null when camo module is absent
+                IBlockState newCamo = getCamoBlock(new net.minecraft.util.math.Vec3d(pos.getX(), pos.getY(), pos.getZ()));
+                be.setCamouflage(newCamo);
                 Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
             }
         }
