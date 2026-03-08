@@ -8,7 +8,6 @@ import dev.su5ed.mffs.network.DrawBeamPacket;
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.render.particle.ParticleColor;
 import dev.su5ed.mffs.setup.ModCapabilities;
-import dev.su5ed.mffs.setup.ModFluids;
 import dev.su5ed.mffs.setup.ModModules;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -16,7 +15,6 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.FluidStack;
 import one.util.streamex.StreamEx;
 
 import java.util.Collection;
@@ -28,13 +26,6 @@ import java.util.Optional;
  * @author Calclavia
  */
 public final class Fortron {
-
-    /**
-     * Creates a FluidStack of Fortron with the given amount.
-     */
-    public static FluidStack getFortron(int amount) {
-        return new FluidStack(ModFluids.FORTRON, amount);
-    }
 
     public static void transferFortron(FortronStorage transmitter, Collection<? extends FortronStorage> receivers, TransferMode transferMode, int limit) {
         if (transmitter != null && receivers.size() > 1) {
