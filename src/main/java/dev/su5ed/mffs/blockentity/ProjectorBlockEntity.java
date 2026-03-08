@@ -91,6 +91,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // Orphan positions left over from a soft-destroy (resize/module change). Drained gradually;
     // a hard destroyField() removes them immediately instead.
     private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new HashSet<>());
+    // Positions projected in the previous session, loaded from NBT. Used once per load to diff
+    // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
+    // Never synced/threaded — only accessed on the server tick thread.
+    private final Set<BlockPos> savedProjectedBlocks = new HashSet<>();
     // 1.21.x: Pair<BlockState, Boolean> (com.mojang.datafixers.util.Pair) — not in 1.12.2
     // Use AbstractMap.SimpleEntry<IBlockState, Boolean> as key=blockState, value=canProject
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
@@ -226,6 +230,21 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             consumeCost();
 
             if (getTicks() % 10 == 0) {
+                // One-shot orphan detection: runs once per load after the async calculation first
+                // completes. Diffs previously-projected positions against the new field to enqueue
+                // only genuine orphans (e.g. after a field-size change between sessions).
+                if (!this.savedProjectedBlocks.isEmpty() && this.semaphore.isComplete(ProjectionStage.CALCULATING)) {
+                    Set<BlockPos> newField = StreamEx.of(getCalculatedFieldPositions())
+                        .map(TargetPosPair::pos)
+                        .toSet();
+                    for (BlockPos old : this.savedProjectedBlocks) {
+                        if (!newField.contains(old)) {
+                            this.pendingRemoval.add(old);
+                        }
+                    }
+                    this.savedProjectedBlocks.clear();
+                }
+
                 if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)) {
@@ -520,11 +539,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // Only treat the block as reclaimable while it is still in pendingRemoval; once reclaimed
         // (removed from the set) this position must evaluate as non-projectable so SELECTING won't
         // keep cycling over it endlessly.
-        boolean isOwnField = false;
-        if (state.getBlock() == ModBlocks.FORCE_FIELD && this.pendingRemoval.contains(pos)) {
-            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
-            isOwnField = te instanceof ForceFieldBlockEntity ffe && this.pos.equals(ffe.getProjectorPos());
-        }
+        // This method is called from the background projection-cache loader thread via
+        // selectProjectablePositions(). Only test set membership here (synchronized set,
+        // thread-safe). The real ownership check (getProjectorPos) happens in projectField()
+        // on the server thread before any block is actually reclaimed or replaced.
+        boolean isOwnField = state.getBlock() == ModBlocks.FORCE_FIELD && this.pendingRemoval.contains(pos);
         // 1.21.x: state.isAir() → state.getBlock().isAir(state, world, pos)
         // 1.21.x: state.liquid() → state.getMaterial().isLiquid()
         // 1.21.x: state.is(ModTags.FORCEFIELD_REPLACEABLE) → TODO (1.12.2 tag/oredictionary check)
@@ -632,6 +651,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             removalList.appendTag(entry);
         }
         compound.setTag("pendingRemoval", removalList);
+        NBTTagList projectedList = new NBTTagList();
+        for (BlockPos pos : this.projectedBlocks) {
+            NBTTagCompound entry = new NBTTagCompound();
+            entry.setInteger("x", pos.getX());
+            entry.setInteger("y", pos.getY());
+            entry.setInteger("z", pos.getZ());
+            projectedList.appendTag(entry);
+        }
+        compound.setTag("projectedBlocks", projectedList);
     }
 
     @Override
@@ -643,6 +671,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             for (int i = 0; i < removalList.tagCount(); i++) {
                 NBTTagCompound entry = removalList.getCompoundTagAt(i);
                 this.pendingRemoval.add(new BlockPos(entry.getInteger("x"), entry.getInteger("y"), entry.getInteger("z")));
+            }
+        }
+        // Restore previously-projected positions for the one-shot orphan diff in tickServer.
+        // These are NOT put into pendingRemoval here — tickServer diffs them against the
+        // freshly-calculated field and only enqueues genuine orphans.
+        this.savedProjectedBlocks.clear();
+        if (compound.hasKey("projectedBlocks")) {
+            NBTTagList projectedList = compound.getTagList("projectedBlocks", 10);
+            for (int i = 0; i < projectedList.tagCount(); i++) {
+                NBTTagCompound entry = projectedList.getCompoundTagAt(i);
+                this.savedProjectedBlocks.add(new BlockPos(entry.getInteger("x"), entry.getInteger("y"), entry.getInteger("z")));
             }
         }
     }
