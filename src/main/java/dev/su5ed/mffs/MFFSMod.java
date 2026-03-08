@@ -10,7 +10,6 @@ package dev.su5ed.mffs;
 
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.setup.ModCapabilities;
-import dev.su5ed.mffs.setup.ModFluids;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModObjects;
 import dev.su5ed.mffs.setup.ModTags;
@@ -60,9 +59,6 @@ public final class MFFSMod {
     public void preInit(FMLPreInitializationEvent event) {
         // Load config from disk
         MFFSConfig.load(event.getSuggestedConfigurationFile());
-
-        // Register fluids (must be before block/item registration)
-        ModFluids.register();
 
         // Register capabilities
         ModCapabilities.register();
