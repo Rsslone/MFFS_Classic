@@ -15,8 +15,10 @@ public class SphereProjectorMode implements ProjectorMode {
     private static int getRadius(Projector projector) {
         Vec3i posScale = projector.getPositiveScale();
         Vec3i negScale = projector.getNegativeScale();
-        return (posScale.getX() + posScale.getY() + posScale.getZ()
-            + negScale.getX() + negScale.getY() + negScale.getZ()) / 6;
+        int axisX = posScale.getX() + negScale.getX();
+        int axisY = posScale.getY() + negScale.getY();
+        int axisZ = posScale.getZ() + negScale.getZ();
+        return Math.max(Math.max(axisX, axisY), axisZ) / 2;
     }
 
     @Override
