@@ -13,7 +13,8 @@
             "item": "minecraft:redstone"
         },
         "S": {
-            "item": "mffs:steel_ingot"
+            "type": "forge:ore_dict",
+            "ore": "ingotSteel"
         }
     },
     "result": {

@@ -81,8 +81,13 @@ public final class ModClientSetup {
         registerItemModel(ModItems.BLANK_CARD);
         registerItemModel(ModItems.INFINITE_POWER_CARD);
         registerItemModel(ModItems.FOCUS_MATRIX);
-        registerItemModel(ModItems.STEEL_COMPOUND);
-        registerItemModel(ModItems.STEEL_INGOT);
+        
+        // Steel items - only register if not disabled
+        if (!MFFSConfig.disableSteelItems) {
+            registerItemModel(ModItems.STEEL_COMPOUND);
+            registerItemModel(ModItems.STEEL_INGOT);
+        }
+        
         registerItemModel(ModItems.BATTERY);
 
         // Projector modes

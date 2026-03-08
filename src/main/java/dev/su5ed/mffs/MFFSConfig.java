@@ -34,6 +34,8 @@ public final class MFFSConfig {
     public static int     maxCustomModeScale           = 200;
     /** Give players a copy of the MFFS guidebook when they first join a world. */
     public static boolean giveGuidebookOnFirstJoin     = true;
+    /** Disable Steel Ingot and Steel Compound item registration (other mods likely provide these). */
+    public static boolean disableSteelItems            = true;
 
     // -------------------------------------------------------------------------
     // Coercion Deriver
@@ -104,6 +106,8 @@ public final class MFFSConfig {
             "Max custom mode field scale");
         giveGuidebookOnFirstJoin = configuration.getBoolean("giveGuidebookOnFirstJoin", "general", giveGuidebookOnFirstJoin,
             "Give players a copy of the MFFS guidebook when they first join a world");
+        disableSteelItems = configuration.getBoolean("disableSteelItems", "general", disableSteelItems,
+            "Disable Steel Ingot and Steel Compound item registration. Other mods likely provide these items, causing conflicts.");
 
         // -- Coercion Deriver --
         coercionDriverFePerFortron = configuration.getInt("feCostPerFortron", "coercion_deriver", coercionDriverFePerFortron, 1, Integer.MAX_VALUE,

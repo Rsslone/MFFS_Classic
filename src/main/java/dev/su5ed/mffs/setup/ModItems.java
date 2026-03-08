@@ -11,6 +11,7 @@ package dev.su5ed.mffs.setup;
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSMod;
+import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.module.InterdictionMatrixModule;
 import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.module.ModuleType;
@@ -100,8 +101,13 @@ public final class ModItems {
         BLANK_CARD             = register(registry, new Item(), "blank_card");
         INFINITE_POWER_CARD    = register(registry, singleItem(true), "infinite_power_card");
         FOCUS_MATRIX           = register(registry, new Item(), "focus_matrix");
-        STEEL_COMPOUND         = register(registry, new Item(), "steel_compound");
-        STEEL_INGOT            = register(registry, new Item(), "steel_ingot");
+        
+        // Steel items — disabled by default as other mods provide them
+        if (!MFFSConfig.disableSteelItems) {
+            STEEL_COMPOUND         = register(registry, new Item(), "steel_compound");
+            STEEL_INGOT            = register(registry, new Item(), "steel_ingot");
+        }
+        
         BATTERY                = register(registry, new BatteryItem(), "battery");
 
         // Projector modes

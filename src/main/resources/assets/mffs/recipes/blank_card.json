@@ -10,7 +10,8 @@
             "item": "minecraft:paper"
         },
         "S": {
-            "item": "mffs:steel_ingot"
+            "type": "forge:ore_dict",
+            "ore": "ingotSteel"
         }
     },
     "result": {

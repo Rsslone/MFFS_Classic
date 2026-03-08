@@ -83,11 +83,12 @@ public final class MFFSMod {
         OreDictionary.registerOre(ModTags.FORTRON_FUEL, new ItemStack(Items.DYE, 1, 4)); // Lapis Lazuli (meta 4)
         OreDictionary.registerOre(ModTags.FORTRON_FUEL, Items.QUARTZ);
 
-        // 1.12 crafting recipes use OreDictionary for steel ingots.
-        OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);
-
-        // 1.12 furnace recipes are registered in code.
-        GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
+        // 1.12 crafting recipes use OreDictionary for steel ingots (only if not disabled).
+        if (!MFFSConfig.disableSteelItems) {
+            OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);
+            // 1.12 furnace recipes are registered in code.
+            GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
+        }
     }
 
     @EventHandler
