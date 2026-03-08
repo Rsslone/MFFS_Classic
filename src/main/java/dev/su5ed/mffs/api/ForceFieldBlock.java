@@ -1,14 +1,9 @@
 package dev.su5ed.mffs.api;
 
-// 1.12.2 Backport: ForceFieldBlock interface
-// 1.21.x used NeoForge ModelProperty<BlockState> for camouflage.
-// In 1.12.2: IExtendedBlockState / IUnlistedProperty from net.minecraftforge.common.property
-// is the rough equivalent, but the usage is very different.
-// ModelProperty is removed; camouflage state is stored in tile entity NBT instead.
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.common.property.IUnlistedProperty;
 
 import java.util.Optional;
 
@@ -16,10 +11,16 @@ import java.util.Optional;
  * Force Field Block that is projected as part of a force field.
  */
 public interface ForceFieldBlock {
-    // TODO (1.12.2): Camouflage block state is stored in the TileEntity's NBT
-    //   ("camouflageBlock" string key: registry name of the block to mimic).
-    //   Use IExtendedBlockState + IUnlistedProperty<IBlockState> if baked model
-    //   access is needed at render time.
+    /**
+     * Unlisted property holding the camouflage block state for model quad swapping.
+     * Set in {@code getExtendedState()}, read in {@code ForceFieldBlockModel.getQuads()}.
+     */
+    IUnlistedProperty<IBlockState> CAMOUFLAGE_PROPERTY = new IUnlistedProperty<IBlockState>() {
+        @Override public String getName() { return "camouflage"; }
+        @Override public boolean isValid(IBlockState value) { return true; }
+        @Override public Class<IBlockState> getType() { return IBlockState.class; }
+        @Override public String valueToString(IBlockState value) { return value.toString(); }
+    };
 
     /**
      * Get the projector that created this force field block.

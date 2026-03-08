@@ -12,7 +12,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -29,6 +28,9 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.property.ExtendedBlockState;
+import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.common.property.IUnlistedProperty;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -39,39 +41,32 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
 
     private static final AxisAlignedBB COLLIDABLE_BOX = new AxisAlignedBB(0.01, 0.01, 0.01, 0.99, 0.99, 0.99);
 
-    public static final PropertyBool PROPAGATES_SKYLIGHT = PropertyBool.create("propagates_skylight");
-    public static final PropertyBool SOLID = PropertyBool.create("solid");
-
     public ForceFieldBlockImpl() {
         super(Material.GLASS);
         setSoundType(SoundType.GLASS);
         setHardness(-1.0F);
         setResistance(720000000.0F);
-        setDefaultState(this.blockState.getBaseState()
-            .withProperty(PROPAGATES_SKYLIGHT, true)
-            .withProperty(SOLID, true));
+        setLightOpacity(0);
     }
 
     @Override
     protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this, PROPAGATES_SKYLIGHT, SOLID);
+        return new ExtendedBlockState(this, new net.minecraft.block.properties.IProperty[0],
+            new IUnlistedProperty[]{ForceFieldBlock.CAMOUFLAGE_PROPERTY});
     }
 
     @Override
-    public IBlockState getStateFromMeta(int meta) {
-        return this.getDefaultState()
-            .withProperty(PROPAGATES_SKYLIGHT, (meta & 1) == 0)
-            .withProperty(SOLID, (meta & 2) != 0);
-    }
-
-    @Override
-    public int getMetaFromState(IBlockState state) {
-        return (state.getValue(PROPAGATES_SKYLIGHT) ? 0 : 1) | (state.getValue(SOLID) ? 2 : 0);
+    public IBlockState getExtendedState(IBlockState state, IBlockAccess world, BlockPos pos) {
+        IExtendedBlockState extState = (IExtendedBlockState) state;
+        IBlockState camo = getCamouflageBlock(world, pos).orElse(null);
+        return extState.withProperty(ForceFieldBlock.CAMOUFLAGE_PROPERTY, camo);
     }
 
     @Override
     public int getLightOpacity(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return state.getValue(PROPAGATES_SKYLIGHT) ? 0 : 15;
+        return getCamouflageBlock(world, pos)
+            .map(camo -> camo.getLightOpacity(world, pos))
+            .orElse(0);
     }
 
     @Override
@@ -83,6 +78,13 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
     @Override
     public BlockRenderLayer getRenderLayer() {
         return BlockRenderLayer.TRANSLUCENT;
+    }
+
+    @Override
+    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+        // Must return true for all layers so the model can render camo quads
+        // in whatever layer the camo block uses (SOLID, CUTOUT, etc.)
+        return true;
     }
 
     @Override
