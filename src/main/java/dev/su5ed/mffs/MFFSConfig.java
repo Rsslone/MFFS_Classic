@@ -126,7 +126,7 @@ public final class MFFSConfig {
         catalystBurnTime = configuration.getInt("catalystBurnTime", "balance", catalystBurnTime, 1, 10_000,
             "The amount of ticks a single catalyst item lasts for");
         interdictionMatrixKillEnergy = configuration.getInt("interdictionMatrixKillEnergy", "balance", interdictionMatrixKillEnergy, 0, Integer.MAX_VALUE,
-            "Energy to consume when the Interdiction Matrix kills a player");
+            "Fortron to consume when the Interdiction Matrix kills a player");
 
         // -- Force Field --
         disableForceFieldDamageForAuthorizedPlayers = configuration.getBoolean("disableForceFieldDamageForAuthorizedPlayers", "force_field",
