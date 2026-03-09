@@ -68,15 +68,17 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
     @Override
     public void onLoad() {
         super.onLoad();
+        clearCache();
         updateFortronTankCapacity();
     }
 
     @Override
     protected void onInventoryChanged() {
         super.onInventoryChanged();
-        updateFortronTankCapacity();
-        // Clears the cache.
+        // Module counts are cached and may have been read during tick logic.
+        // Clear first so capacity recalculation uses the latest slot contents.
         clearCache();
+        updateFortronTankCapacity();
     }
 
     @Override
