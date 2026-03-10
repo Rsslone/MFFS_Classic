@@ -77,7 +77,9 @@ public final class MFFSConfig {
     /** Spacing used for force field light sources: 1 = every block, 3 = ~1/3 of blocks emit light. */
     public static int forceFieldLightSpacing = 3;
     /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
-    public static int glowLightChecksPerTick = 50;
+    public static int glowLightChecksPerTick = 30;
+    /** When enabled, only place real lights on force fields touching physical blocks (with spacing applied). */
+    public static boolean smartLighting = true;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
      *  Default 10 (500 ms at 20 TPS). */
     public static int projectionCycleTicks = 10;
@@ -125,7 +127,7 @@ public final class MFFSConfig {
         coercionDriverFortronToFeLoss = configuration.getInt("fortronToFeLoss", "coercion_deriver", coercionDriverFortronToFeLoss, 0, Integer.MAX_VALUE,
             "FE to subtract when converting Fortron to FE");
         coercionDriverFortronPerTick = configuration.getInt("fortronPerTick", "coercion_deriver", coercionDriverFortronPerTick, 1, Integer.MAX_VALUE,
-            "Base limit of fortron produced per tick (20 per second). Scales with speed modules and catalyst.");
+            "Base limit of fortron produced per tick (Multiply this number by 20 to get L/second of fortron). Scales with speed modules and catalyst.");
         coercionDriverFortronPerTickSpeedModule = configuration.getInt("fortronPerTickSpeedModule", "coercion_deriver",
             coercionDriverFortronPerTickSpeedModule, 1, Integer.MAX_VALUE,
             "Production bonus per speed module.");
@@ -157,6 +159,8 @@ public final class MFFSConfig {
             "Controls spacing for force field light sources. 1 = every block emits, 3 = ~1/3 of blocks.");
         glowLightChecksPerTick = configuration.getInt("glowLightChecksPerTick", "performance", glowLightChecksPerTick, 1, Integer.MAX_VALUE,
             "How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. Lower = less lighting stutter on chunk load, however too low may cause lighting issues and artifacts.");
+        smartLighting = configuration.getBoolean("smartLighting", "performance", smartLighting,
+            "When enabled, instead of placing actual lights on all force fields, only place where touching physical blocks and use lumosity with the rest of the force field for an illusion of light");
         projectionCycleTicks = configuration.getInt("projectionCycleTicks", "performance", projectionCycleTicks, 1, 100,
             "How often (in ticks) the main async projection cycle runs (calculate + select + project). Default 10 (500 ms at 20 TPS).");
         enableFastFill = configuration.getBoolean("enableFastFill", "performance", enableFastFill,
