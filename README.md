@@ -26,7 +26,6 @@ protect tiles.
 
 ## Differences
 - Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 this system does not exist, so we had to reduce the load by more smartly placing lights
-- 
 
 ### Contributing
 

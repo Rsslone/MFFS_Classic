@@ -79,7 +79,7 @@ public final class MFFSConfig {
     /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
     public static int glowLightChecksPerTick = 30;
     /** When enabled, only place real lights on force fields touching physical blocks (with spacing applied). */
-    public static boolean simpleLighting = true;
+    public static boolean smartLighting = true;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
      *  Default 10 (500 ms at 20 TPS). */
     public static int projectionCycleTicks = 10;
@@ -159,7 +159,7 @@ public final class MFFSConfig {
             "Controls spacing for force field light sources. 1 = every block emits, 3 = ~1/3 of blocks.");
         glowLightChecksPerTick = configuration.getInt("glowLightChecksPerTick", "performance", glowLightChecksPerTick, 1, Integer.MAX_VALUE,
             "How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. Lower = less lighting stutter on chunk load, however too low may cause lighting issues and artifacts.");
-        simpleLighting = configuration.getBoolean("simpleLighting", "performance", simpleLighting,
+        smartLighting = configuration.getBoolean("smartLighting", "performance", smartLighting,
             "When enabled, instead of placing actual lights on all force fields, only place where touching physical blocks and use lumosity with the rest of the force field for an illusion of light");
         projectionCycleTicks = configuration.getInt("projectionCycleTicks", "performance", projectionCycleTicks, 1, 100,
             "How often (in ticks) the main async projection cycle runs (calculate + select + project). Default 10 (500 ms at 20 TPS).");
