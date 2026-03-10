@@ -24,9 +24,6 @@ field shapes, size scaling,
 position offset, and utility modules. For example, the upgrade to shock attacks, kill monsters, remove blocks, and
 protect tiles.
 
-## Differences
-- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 this system does not exist, so we had to reduce the load by more smartly placing lights
-
 ### Contributing
 
 Contributions are welcome, feel free to submit a pull request.

@@ -93,26 +93,10 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
         // With spacing 3, roughly 1/3 of blocks emit light — reduces lighting BFS cost.
         int spacing = Math.max(1, MFFSConfig.forceFieldLightSpacing);
         if ((pos.getX() + pos.getY() + pos.getZ()) % spacing != 0) return 0;
-        if (MFFSConfig.smartLighting && !isTouchingPhysicalBlock(world, pos)) return 0;
 
         return Optional.ofNullable(world.getTileEntity(pos))
             .map(te -> te instanceof ForceFieldBlockEntity f ? f.getClientBlockLight() : null)
             .orElseGet(() -> super.getLightValue(state, world, pos));
-    }
-
-    private boolean isTouchingPhysicalBlock(IBlockAccess world, BlockPos pos) {
-        for (EnumFacing face : EnumFacing.values()) {
-            IBlockState neighbor = world.getBlockState(pos.offset(face));
-            Block block = neighbor.getBlock();
-            if (block instanceof ForceFieldBlock) continue;
-            if (block.isAir(neighbor, world, pos.offset(face))) continue;
-
-            // Treat "physical" as solid/opaque world geometry (not fluid-like).
-            if (!neighbor.getMaterial().isLiquid() && (neighbor.isOpaqueCube() || neighbor.getMaterial().blocksMovement())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
