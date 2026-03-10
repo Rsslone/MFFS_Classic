@@ -95,9 +95,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
     // Never synced/threaded — only accessed on the server tick thread.
     private final Set<BlockPos> savedProjectedBlocks = new HashSet<>();
-    // Shadow set of currently-calculated field positions for O(1) lookup in the gap-fill sweep.
-    // Rebuilt asynchronously in runCalculationTask; published via volatile for safe visibility.
-    private volatile Set<BlockPos> calculatedFieldSet = Collections.emptySet();
     // 1.21.x: Pair<BlockState, Boolean> (com.mojang.datafixers.util.Pair) — not in 1.12.2
     // Use AbstractMap.SimpleEntry<IBlockState, Boolean> as key=blockState, value=canProject
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
@@ -139,10 +136,8 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // 1.21.x: @SubscribeEvent + NeoForge.EVENT_BUS → @SubscribeEvent + MinecraftForge.EVENT_BUS
     @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
     public void onSetBlock(SetBlockEvent event) {
-        // Invalidate the projection cache for the changed position so the next gap-fill sweep
-        // sees the current world state rather than a stale cached value.
         // 1.21.x: event.getLevel() == this.level
-        if (event.getWorld() == this.world && event.getState().getBlock() != ModBlocks.FORCE_FIELD) {
+        if (event.getWorld() == this.world && !this.semaphore.isInStage(ProjectionStage.STANDBY) && event.getState().getBlock() != ModBlocks.FORCE_FIELD) {
             this.projectionCache.invalidate(event.getPos());
         }
     }
@@ -234,7 +229,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         if (isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost)) {
             consumeCost();
 
-            if (getTicks() % MFFSConfig.projectionCycleTicks == 0) {
+            if (getTicks() % 10 == 0) {
                 // One-shot orphan detection: runs once per load after the async calculation first
                 // completes. Diffs previously-projected positions against the new field to enqueue
                 // only genuine orphans (e.g. after a field-size change between sessions).
@@ -254,16 +249,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)) {
                     projectField();
-                }
-
-                // Gap-fill sweep: walk every position in the calculated field geometry and fill
-                // any that are now projectable (air/liquid/replaceable) but missing a force field
-                // block. This handles positions that were blocked on initial projection (e.g. the
-                // field formed half-submerged in terrain) and were later exposed by digging.
-                // Gated behind MFFSConfig.enableFastFill (default false) — disabled by default
-                // as it scans the full field list every cycle and is only beneficial in PvP.
-                if (MFFSConfig.enableFastFill && !this.calculatedFieldSet.isEmpty()) {
-                    fillGaps();
                 }
 
                 // Drain orphan blocks left over from a soft destroy (resize / module change)
@@ -637,7 +622,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         Set<BlockPos> alsoRemove = new HashSet<>(this.pendingRemoval);
         this.pendingRemoval.clear();
         Collection<TargetPosPair> fieldPositions = getCalculatedFieldPositions();
-        this.calculatedFieldSet = Collections.emptySet();
         this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
         this.semaphore.reset();
@@ -786,76 +770,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                         module.onCalculate(this, list);
                     }
                     Collections.shuffle(list);
-                    // Rebuild the fast-lookup set and publish atomically so onSetBlock can do
-                    // O(1) membership checks without touching the full TargetPosPair list.
-                    HashSet<BlockPos> newSet = new HashSet<>(list.size() * 2, 0.5f);
-                    for (TargetPosPair pair : list) newSet.add(pair.pos());
-                    this.calculatedFieldSet = Collections.unmodifiableSet(newSet);
                 }
             })
             .exceptionally(throwable -> {
                 MFFSMod.LOGGER.error("Error calculating force field", throwable);
                 return Collections.emptyList();
             });
-    }
-
-    /**
-     * Gap-fill sweep: iterates the full calculated field geometry and projects any position
-     * that is currently projectable (air / liquid / replaceable) but not yet occupied by our
-     * force field. This is the counterpart to the initial construction pass — it catches
-     * positions that were blocked when the field first formed (e.g. terrain half-submerged)
-     * and fills them as soon as they are dug out.
-     *
-     * Unlike the async selection path this runs entirely on the main thread, so it reads
-     * current world state directly rather than going through the projection cache. The cache
-     * is still invalidated for each placed block so the async selection stays coherent.
-     *
-     * Respects the projector speed limit so speed upgrade modules remain meaningful.
-     */
-    private void fillGaps() {
-        IBlockState ffState = ModBlocks.FORCE_FIELD.getDefaultState();
-        Set<Module> modules = getModuleInstances();
-        for (Module module : modules) {
-            module.beforeProject(this);
-        }
-        int speed = Math.min(getProjectionSpeed(), MFFSConfig.maxFFGenPerTick);
-        int placed = 0;
-        fieldLoop:
-        for (TargetPosPair pair : getCalculatedFieldPositions()) {
-            if (placed >= speed) break;
-            BlockPos pos = pair.pos();
-            if (!this.world.isBlockLoaded(pos)) continue;
-            // Read current world state directly — always current, no cache race.
-            IBlockState current = this.world.getBlockState(pos);
-            // Skip positions already holding our force field.
-            if (current.getBlock() == ModBlocks.FORCE_FIELD) continue;
-            // Also skip positions tracked as projected (prevents re-placing during soft destroy).
-            if (this.projectedBlocks.contains(pos)) continue;
-            boolean projectable = (current.getBlock().isAir(current, this.world, pos)
-                || current.getMaterial().isLiquid()
-                || ModTags.getForceFieldReplaceable().contains(current.getBlock())
-                || (hasModule(ModModules.DISINTEGRATION) && current.getBlockHardness(this.world, pos) != -1))
-                && !pos.equals(this.pos);
-            if (!projectable) continue;
-            for (Module m : modules) {
-                Module.ProjectAction action = m.onProject(this, pos);
-                if (action == Module.ProjectAction.SKIP) continue fieldLoop;
-                if (action == Module.ProjectAction.INTERRUPT) return;
-            }
-            if (!canConsumeFieldCost(1)) return;
-            this.world.setBlockState(pos, ffState, 0);
-            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
-            if (te instanceof ForceFieldBlockEntity be) {
-                be.setProjector(this.pos);
-                be.setCamouflage(getCamoBlock(pair.original()));
-            }
-            this.world.notifyBlockUpdate(pos, ffState, ffState, 3);
-            this.fortronStorage.extractFortron(1, false);
-            this.pendingRemoval.remove(pos);
-            this.projectedBlocks.add(pos);
-            this.projectionCache.invalidate(pos);
-            placed++;
-        }
     }
 
     private List<TargetPosPair> calculateFieldPositions() {

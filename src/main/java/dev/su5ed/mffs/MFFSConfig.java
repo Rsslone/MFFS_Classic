@@ -78,16 +78,6 @@ public final class MFFSConfig {
     public static int forceFieldLightSpacing = 3;
     /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
     public static int glowLightChecksPerTick = 50;
-    /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
-     *  Default 10 (500 ms at 20 TPS). */
-    public static int projectionCycleTicks = 10;
-    /**
-     * When true, the projector sweeps its entire calculated field every projection cycle and
-     * immediately fills any position that became projectable (e.g. terrain dug out under the
-     * field). Gaps fill within one projectionCycleTicks interval instead of 10-20 seconds.
-     * Disable on servers where the extra per-tick iteration over large fields is undesirable.
-     */
-    public static boolean enableFastFill = false;
 
     // =========================================================================
     // Load / Save
@@ -157,11 +147,6 @@ public final class MFFSConfig {
             "Controls spacing for force field light sources. 1 = every block emits, 3 = ~1/3 of blocks.");
         glowLightChecksPerTick = configuration.getInt("glowLightChecksPerTick", "performance", glowLightChecksPerTick, 1, Integer.MAX_VALUE,
             "How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. Lower = less lighting stutter on chunk load, however too low may cause lighting issues and artifacts.");
-        projectionCycleTicks = configuration.getInt("projectionCycleTicks", "performance", projectionCycleTicks, 1, 100,
-            "How often (in ticks) the main async projection cycle runs (calculate + select + project). Default 10 (500 ms at 20 TPS).");
-        enableFastFill = configuration.getBoolean("enableFastFill", "performance", enableFastFill,
-            "When true, the projector sweeps its full calculated field each projection cycle and fills gaps immediately (e.g. terrain dug out under the field). "
-            + "Useful in PvP scenarios. Disable on servers with large fields to reduce per-tick overhead.");
 
         if (configuration.hasChanged()) {
             configuration.save();
