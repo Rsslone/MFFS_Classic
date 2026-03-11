@@ -68,6 +68,8 @@ public final class MFFSConfig {
     public static boolean disableForceFieldEffectsForAuthorizedPlayers = false;
     /** Allow authorized players to walk through force fields without sneaking. */
     public static boolean allowWalkThroughForceFields                  = false;
+    /** If enabled and CodeChickenLib is installed, render an emissive effect on force field blocks. */
+    public static boolean enableCodeChickenLibEmissiveForceFields     = true;
 
     // -------------------------------------------------------------------------
     // Client
@@ -149,6 +151,9 @@ public final class MFFSConfig {
             "Remove confusion and slowness effects for authorized players passing through force fields");
         allowWalkThroughForceFields = configuration.getBoolean("allowWalkThroughForceFields", "force_field", allowWalkThroughForceFields,
             "Allow authorized players to walk through force fields without sneaking. WARNING: May cause occasional clipping issues on horizontal platforms.");
+        enableCodeChickenLibEmissiveForceFields = configuration.getBoolean("enableCodeChickenLibEmissiveForceFields", "force_field",
+            enableCodeChickenLibEmissiveForceFields,
+            "If enabled and CodeChickenLib is installed, render an emissive effect on force field blocks.");
 
         // -- Client (best-effort; Configuration does not distinguish client/common in 1.12.2) --
         enableProjectorModeGlitch = configuration.getBoolean("enableProjectorModeGlitch", "client", enableProjectorModeGlitch,

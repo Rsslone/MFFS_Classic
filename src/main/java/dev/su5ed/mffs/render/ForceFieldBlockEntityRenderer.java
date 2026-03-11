@@ -1,5 +1,6 @@
 package dev.su5ed.mffs.render;
 
+import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
@@ -18,6 +19,8 @@ public class ForceFieldBlockEntityRenderer extends TileEntitySpecialRenderer<For
     @Override
     public void render(ForceFieldBlockEntity te, double x, double y, double z,
                        float partialTicks, int destroyStage, float alpha) {
+        CodeChickenLibEmissiveCompat.render(te, x, y, z);
+
         IBlockState camouflage = te.getCamouflage();
         if (camouflage != null) {
             BlockEntityRenderDelegate.INSTANCE.tryRenderDelegate(te, x, y, z, partialTicks, destroyStage);
