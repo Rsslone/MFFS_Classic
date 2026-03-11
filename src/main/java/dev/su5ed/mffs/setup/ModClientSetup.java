@@ -40,6 +40,7 @@ import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -52,6 +53,14 @@ import net.minecraftforge.fml.relauncher.Side;
 
 @Mod.EventBusSubscriber(modid = MFFSMod.MODID, value = Side.CLIENT)
 public final class ModClientSetup {
+
+    /**
+     * Tracks the last world instance seen by {@link #onClientTick}.  When the reference
+     * changes (world load, unload, dimension change, disconnect/reconnect) any positions
+     * queued in {@link ForceFieldBlockEntity#PENDING_LIGHT_CHECKS} from the previous
+     * session are discarded so they cannot corrupt lighting in the new world.
+     */
+    private static WorldClient lastClientWorld = null;
 
     /**
      * Register item model/texture mappings for all MFFS items.
@@ -163,11 +172,21 @@ public final class ModClientSetup {
      * Drain the deferred checkLight queue at a rate of {@link MFFSConfig#glowLightChecksPerTick}
      * positions per tick. This spreads the BFS cost of relighting Glow Module force fields over
      * multiple frames instead of spiking all at once when a chunk loads.
+     *
+     * <p>Also clears the queue whenever the active world changes (join/leave/dimension switch)
+     * so that positions queued for a previous session do not corrupt lighting in the new world.
      */
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
+
+        // Discard stale light-check positions when the world changes.
+        if (mc.world != lastClientWorld) {
+            ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.clear();
+            lastClientWorld = mc.world;
+        }
+
         if (mc.world == null || ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.isEmpty()) return;
         int limit = Math.max(1, MFFSConfig.glowLightChecksPerTick);
         for (int i = 0; i < limit; i++) {

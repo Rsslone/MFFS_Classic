@@ -83,10 +83,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Upgrade-slot modules that do NOT affect field geometry and therefore should not
      * trigger a force-field regeneration when inserted or removed.
      *
-     * <p>Excluded intentionally (pending future rework):
-     * <ul>
-     *   <li>Glow Module – lighting behaviour is being revised; keep regeneration for now.
-     * </ul>
+     * <p>Note: Glow Module is intentionally absent from this set.  Glow changes are
+     * handled separately: they call {@link #refreshFieldLights()} to push updated
+     * {@code clientBlockLight} values in-place without a field rebuild.
+     *
+     * @see #isGlowOrEmpty(ItemStack)
      */
     private static final Set<ModuleType<?>> REGEN_EXEMPT_MODULES;
     static {
@@ -142,14 +143,22 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> onFieldModuleChanged())))
             .toListAndThen(ImmutableListMultimap::copyOf);
         // Each upgrade slot gets its own closure so we can compare old vs new content.
-        // Slots that change only between exempt modules (Speed, Capacity, Shock, Sponge,
-        // Collection, Silence) never alter field geometry and skip the soft rebuild.
+        // Three-way decision per slot change:
+        //   1. Both old and new are regen-exempt (Speed/Capacity/etc.)  → no action
+        //   2. Both old and new are glow-or-empty                        → refreshFieldLights()
+        //   3. Either side is a geometry-affecting module                → softDestroyField()
         this.upgradeSlots = IntStreamEx.range(6)
             .mapToObj(i -> {
                 InventorySlot[] ref = new InventorySlot[1];
                 ref[0] = addSlot("upgrade_" + i, InventorySlot.Mode.BOTH, this::isMatrixModuleOrPass,
                     current -> {
-                        if (!isExemptFromRegen(ref[0].getPreviousItem()) || !isExemptFromRegen(current)) {
+                        ItemStack prev = ref[0].getPreviousItem();
+                        if (isExemptFromRegen(prev) && isExemptFromRegen(current)) {
+                            // purely exempt modules (speed/capacity/etc.) — nothing changes
+                        } else if (isGlowOrEmpty(prev) && isGlowOrEmpty(current)) {
+                            // glow-only change: update light in-place, no field rebuild needed
+                            refreshFieldLights();
+                        } else {
                             softDestroyField();
                         }
                     });
@@ -199,6 +208,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         if (stack.isEmpty()) return true;
         ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
         return type != null && REGEN_EXEMPT_MODULES.contains(type);
+    }
+
+    /**
+     * Returns {@code true} if {@code stack} is empty or is a Glow Module.
+     * Used to detect upgrade-slot changes that only affect light level, allowing
+     * an in-place {@link #refreshFieldLights()} instead of a full field rebuild.
+     */
+    private static boolean isGlowOrEmpty(ItemStack stack) {
+        if (stack.isEmpty()) return true;
+        ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
+        return type == ModModules.GLOW;
     }
 
     public int computeAnimationSpeed() {
@@ -379,9 +399,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     protected void onInventoryChanged() {
         super.onInventoryChanged();
-        // Update mode light (matches 1.20.1 reference behaviour: only re-check projector's own
-        // light level; glow changes on already-projected field blocks take effect on next field
-        // regeneration or chunk reload rather than spamming O(N) packets per inventory change).
+        // Re-check the projector block's own light level (e.g. projector emits level 10 when
+        // active with a mode present).  Glow Module changes on already-projected field blocks are
+        // handled in-place via refreshFieldLights() triggered from the upgrade-slot callback.
         if (this.world != null && !this.world.isRemote) {
             this.world.checkLight(this.pos);
         }
@@ -621,10 +641,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     /**
-     * Called when a face-slot field module changes (glow, camouflage, shock, etc.).
-     * These modules never affect field geometry, so we push a fresh update to all
-     * currently-projected blocks immediately — providing instant visual feedback —
-     * before triggering the soft rebuild that re-evaluates behavioral modules.
+     * Called when a face-slot field module changes (translation, rotation, scale, etc.).
+     * Face slots only accept {@link dev.su5ed.mffs.api.module.Module.Category#FIELD} modules,
+     * all of which affect field geometry.  We push a visual refresh immediately for instant
+     * feedback then trigger the soft rebuild that re-evaluates the new geometry.
      */
     private void onFieldModuleChanged() {
         refreshFieldVisuals();
@@ -633,7 +653,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     /**
      * Pushes a fresh {@link UpdateBlockEntityPacket} (clientBlockLight + camouflage)
-     * to every currently projected block without rebuilding the field.
+     * to every currently-projected block without rebuilding the field.
      * Updates camouflage on each block entity first so the packet reflects the
      * current state (e.g. null when the camo module was just removed).
      */
@@ -645,6 +665,25 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 // Recompute camouflage — returns null when camo module is absent
                 IBlockState newCamo = getCamoBlock(new net.minecraft.util.math.Vec3d(pos.getX(), pos.getY(), pos.getZ()));
                 be.setCamouflage(newCamo);
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
+            }
+        }
+    }
+
+    /**
+     * Pushes a fresh {@link UpdateBlockEntityPacket} containing the current
+     * {@code clientBlockLight} value to every currently-projected block without
+     * touching camouflage or rebuilding the field.  Called when only the Glow
+     * Module count has changed (Case 2: in-place light update).
+     *
+     * <p>If the projector is off ({@code projectedBlocks} is empty) this is a no-op;
+     * correct light values will be sent during the next {@code projectField()} pass.
+     */
+    private void refreshFieldLights() {
+        if (this.world == null || this.world.isRemote) return;
+        for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
+            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+            if (te instanceof ForceFieldBlockEntity be) {
                 Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
             }
         }
@@ -663,9 +702,18 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * gradual removal. Blocks that are still valid in the newly-calculated field will be
      * reclaimed during the next projectField() pass, so only genuine orphans are removed.
      * Use this when the field shape is changing (module/mode change) to avoid flicker.
+     *
+     * <p>If the Glow Module is active, {@code clientBlockLight=0} is pushed to all
+     * currently-projected blocks before they enter the pending-removal queue (Case 3).
+     * Reclaimed blocks receive a fresh correct light value during {@code projectField()};
+     * orphan blocks lose their light naturally when air'd out.
      */
     private void softDestroyField() {
         if (this.world != null && !this.world.isRemote) {
+            // Zero out lights immediately so blocks in pendingRemoval stop glowing during rebuild.
+            if (getModuleCount(ModModules.GLOW) > 0) {
+                zeroFieldBlockLights(this.projectedBlocks);
+            }
             StreamEx.of(getCalculatedFieldPositions())
                 .map(TargetPosPair::pos)
                 .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
@@ -674,6 +722,24 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
         this.semaphore.reset();
+    }
+
+    /**
+     * Sends {@code clientBlockLight=0} to every force field block in {@code positions}.
+     * Called before a soft-destroy to prevent orphan glow on blocks sitting in the
+     * pending-removal queue.  Reclaimed blocks receive a corrected value during the
+     * next {@code projectField()} pass.
+     */
+    private void zeroFieldBlockLights(Set<BlockPos> positions) {
+        if (this.world == null || this.world.isRemote || positions.isEmpty()) return;
+        for (BlockPos pos : new HashSet<>(positions)) {
+            net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+            if (te instanceof ForceFieldBlockEntity be) {
+                NBTTagCompound zeroTag = be.getCustomUpdateTag();
+                zeroTag.setInteger("clientBlockLight", 0);
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, zeroTag), this.world, pos, 64);
+            }
+        }
     }
 
     @Override
