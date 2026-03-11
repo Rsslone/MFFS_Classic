@@ -79,6 +79,27 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private static final String ROTATION_ROLL_CACHE_KEY = "getRotationRoll";
     private static final String INTERIOR_POINTS_CACHE_KEY = "getInteriorPoints";
 
+    /**
+     * Upgrade-slot modules that do NOT affect field geometry and therefore should not
+     * trigger a force-field regeneration when inserted or removed.
+     *
+     * <p>Excluded intentionally (pending future rework):
+     * <ul>
+     *   <li>Glow Module – lighting behaviour is being revised; keep regeneration for now.
+     * </ul>
+     */
+    private static final Set<ModuleType<?>> REGEN_EXEMPT_MODULES;
+    static {
+        Set<ModuleType<?>> s = new HashSet<>();
+        s.add(ModModules.SPEED);
+        s.add(ModModules.CAPACITY);
+        s.add(ModModules.SHOCK);
+        s.add(ModModules.SPONGE);
+        s.add(ModModules.COLLECTION);
+        s.add(ModModules.SILENCE);
+        REGEN_EXEMPT_MODULES = Collections.unmodifiableSet(s);
+    }
+
     private final List<ScheduledEvent> scheduledEvents = new ArrayList<>();
     public final InventorySlot secondaryCard;
     public final InventorySlot projectorModeSlot;
@@ -120,7 +141,21 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             .flatMap(side -> IntStreamEx.range(2)
                 .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> onFieldModuleChanged())))
             .toListAndThen(ImmutableListMultimap::copyOf);
-        this.upgradeSlots = createUpgradeSlots(6, this::isMatrixModuleOrPass, stack -> softDestroyField());
+        // Each upgrade slot gets its own closure so we can compare old vs new content.
+        // Slots that change only between exempt modules (Speed, Capacity, Shock, Sponge,
+        // Collection, Silence) never alter field geometry and skip the soft rebuild.
+        this.upgradeSlots = IntStreamEx.range(6)
+            .mapToObj(i -> {
+                InventorySlot[] ref = new InventorySlot[1];
+                ref[0] = addSlot("upgrade_" + i, InventorySlot.Mode.BOTH, this::isMatrixModuleOrPass,
+                    current -> {
+                        if (!isExemptFromRegen(ref[0].getPreviousItem()) || !isExemptFromRegen(current)) {
+                            softDestroyField();
+                        }
+                    });
+                return ref[0];
+            })
+            .toList();
     }
 
     @Override
@@ -153,6 +188,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             .map(ModuleType::getCategories)
             .map(categories -> categories.isEmpty() || categories.contains(Module.Category.MATRIX))
             .orElse(true);
+    }
+
+    /**
+     * Returns {@code true} if {@code stack} is empty or holds a module that is exempt from
+     * triggering a force-field regeneration (i.e. it does not affect field geometry or makeup).
+     * See {@link #REGEN_EXEMPT_MODULES} for the full list.
+     */
+    private static boolean isExemptFromRegen(ItemStack stack) {
+        if (stack.isEmpty()) return true;
+        ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
+        return type != null && REGEN_EXEMPT_MODULES.contains(type);
     }
 
     public int computeAnimationSpeed() {

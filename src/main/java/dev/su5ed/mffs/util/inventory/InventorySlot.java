@@ -20,6 +20,10 @@ public class InventorySlot {
 
     private ItemStack content = ItemStack.EMPTY;
     private ItemStack lastNotifiedContent = ItemStack.EMPTY;
+    // Snapshot of lastNotifiedContent immediately before the most-recent onChange notification.
+    // Accessible from the onChange callback (via getPreviousItem()) so callers can compare
+    // old vs new content without requiring a BiConsumer callback signature.
+    private ItemStack previousContent = ItemStack.EMPTY;
 
     public InventorySlot(InventorySlotItemHandler parent, String name, Mode mode, Predicate<ItemStack> filter, Consumer<ItemStack> onChanged, boolean virtual) {
         this.parent = parent;
@@ -48,6 +52,15 @@ public class InventorySlot {
 
     public ItemStack getItem() {
         return this.content;
+    }
+
+    /**
+     * Returns the slot's content as it was immediately <em>before</em> the most-recent
+     * {@link #onChanged} notification was fired.  Only valid to call from inside an
+     * {@code onChanged} callback; outside of a callback it may reflect stale state.
+     */
+    public ItemStack getPreviousItem() {
+        return this.previousContent;
     }
 
     public boolean isVirtual() {
@@ -121,6 +134,7 @@ public class InventorySlot {
                     && ItemStack.areItemStackTagsEqual(this.lastNotifiedContent, current)
                     && this.lastNotifiedContent.getCount() == current.getCount());
             if (!same) {
+                this.previousContent = this.lastNotifiedContent;
                 this.lastNotifiedContent = current.isEmpty() ? ItemStack.EMPTY : current.copy();
                 this.parent.onChanged();
                 this.onChanged.accept(current);
