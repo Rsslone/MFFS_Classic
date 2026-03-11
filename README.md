@@ -34,11 +34,12 @@ Contributions are welcome, however if you use AI to code your changes, we expect
 
 ### Credits
 
+**1.12.2 Port** - Rsslone
+
 Block highlighting render code - [DarkKronicle's BetterBlockOutline renderer](https://github.com/DarkKronicle/BetterBlockOutline)
 
 #### Past Developers
 
-**1.12.2 Port** - Rsslone
 **Project Lead Developer** - Calclavia  
 **Code** - Thutmose, Briman  
 **Art** - Comply_cat_Ed, Sweet Walrus, mousecop, mr_hazard  
