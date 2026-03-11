@@ -14,8 +14,3 @@ public interface CoordLink {
     @Nullable
     BlockPos getLink(ItemStack stack);
 }
-
-// =============================================================================
-// 1.21.x reference:
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.world.item.ItemStack;
