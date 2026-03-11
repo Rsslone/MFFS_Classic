@@ -1,15 +1,29 @@
 ## TODO/IDEAS
 Add glow to the biometric block when active.
+    Maybe include all blocks? CodeChickenLib emissives?
 Add scaling to the custom shape mode.
+    Investigate the maxCustomModeScale var.
 Interdiction Matrix mode to use in-field instead of its own scale.
     Scale modules could add to blocks outside of field
-Expand on the lighting optimizations by dividing the light spacing between is touching block vs force fields touching air
-    1 in 3 touching the ground is hard to tell, air might be different, although obvious patterns emerge.
-    The lighting updates depend on the blocks fully refreshing, we should find a performant way to improve this.
-    Related to how the force field handles updates, we currently have two types, the instant break down, such as when you power down the projector, or the queued update such as when you change the configuration while it remains on. I believe both modes should be supported, however they should have settings when each is invoked.
+Implement updated patchulli book, or entirely remove.
+Implement advancments, or entirely remove.
+Expose useful values for balance.
+    Include module enable settings, so server owners can disable modules they don't like.
+Move the balance section from config to their respective zones.
+
+
+## Optimization
+The lighting not making contact with a physical block should have its own independent max value (~3-7).
+    Lighting updates higher than this cause cascading light updates.
+    Create a variable for this value and place in performance section.
+Remove the projectionCycleTicks from the settings, this is not as useful of a setting.
+    Look at reference files and hardcode it.
+    Could move it to an advanced section.
+Move maxFFGenPerTick to performance section, investigate effectiveness.
+Investigate useCache var.
+    We may have hard coded the cache in my accident... tehe :D
 
 ## Known Bugs
 Fix Catalyst functionality
-    Add redstone as an option.
-Lighting updates slow
-    Sometimes it can take longer than expected for current lights to go away.
+    Add redstone and lapis as an option.
+    Scale with blocks.
