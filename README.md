@@ -25,12 +25,12 @@ position offset, and utility modules. For example, the upgrade to shock attacks,
 protect tiles.
 
 ## Differences
-- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 this system does not exist, so we had to reduce the load by more smartly placing lights
-- 
+- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 this system does not exist, so we had to reduce the load by more smartly placing lights only where they're impactful (Around contact with physical blocks), for the rest we use emissive textures if CodeChickenLibs is installed.
+- We've made extra options for server owners to balance and tweak, such as easily disabling the steel ingot recipe, which other mods do a better job at.
 
 ### Contributing
 
-Contributions are welcome, feel free to submit a pull request.
+Contributions are welcome, however if you use AI to code your changes, we expect you to pay attention to the edits it makes and to test everything it touches before submitting it. AI isn't a magic bullet, it messes stuff up all the time.
 
 ### Credits
 
@@ -38,6 +38,7 @@ Block highlighting render code - [DarkKronicle's BetterBlockOutline renderer](ht
 
 #### Past Developers
 
+**1.12.2 Port** - Rsslone
 **Project Lead Developer** - Calclavia  
 **Code** - Thutmose, Briman  
 **Art** - Comply_cat_Ed, Sweet Walrus, mousecop, mr_hazard  
