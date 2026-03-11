@@ -311,6 +311,13 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     for (BlockPos old : this.savedProjectedBlocks) {
                         if (!newField.contains(old)) {
                             this.pendingRemoval.add(old);
+                        } else if (this.world.getBlockState(old).getBlock() == ModBlocks.FORCE_FIELD) {
+                            // Block is still valid in the new field. Restore it to projectedBlocks
+                            // so in-place operations (e.g. glow module changes via refreshFieldLights)
+                            // can find it without waiting for a full softDestroy/rebuild cycle.
+                            // projectField() won't add these itself because existing FF blocks
+                            // (not in pendingRemoval) return canProject=false and are never selected.
+                            this.projectedBlocks.add(old);
                         }
                     }
                     this.savedProjectedBlocks.clear();
