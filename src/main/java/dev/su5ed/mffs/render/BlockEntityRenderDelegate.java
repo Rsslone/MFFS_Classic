@@ -3,6 +3,7 @@ package dev.su5ed.mffs.render;
 import dev.su5ed.mffs.MFFSMod;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.tileentity.TileEntity;
@@ -62,6 +63,48 @@ public final class BlockEntityRenderDelegate {
                 removeDelegateOf(originalBlockEntity);
             }
         }
+    }
+
+    /**
+     * Renders all active camo-TESR delegates directly in world space.
+     *
+     * <p>Called from {@link RenderTickHandler} via {@code RenderWorldLastEvent}.
+     * The GL matrix must be in camera-relative space when this is called (i.e.
+     * the caller has NOT yet applied a camera translation); this method applies
+     * {@code translate(-camX, -camY, -camZ)} itself so that delegates receive
+     * their block's absolute world coordinates and draw at the correct position.
+     *
+     * <p>This replaces the former class-wide {@code ForceFieldBlockEntityRenderer}
+     * TESR registration.  By only iterating the (typically tiny) {@code renderDelegates}
+     * map instead of every single force-field block entity, we avoid the per-instance
+     * frustum test overhead that was responsible for ~34 % of frame time at scale.
+     */
+    public void renderAllDelegates(double camX, double camY, double camZ, float partialTicks) {
+        if (this.renderDelegates.isEmpty()) return;
+
+        GlStateManager.pushMatrix();
+        // Shift from camera-relative space to world space so that passing absolute
+        // block coordinates to the delegate renderer produces the correct position.
+        GlStateManager.translate(-camX, -camY, -camZ);
+
+        for (Map.Entry<TileEntity, DelegateRendererInfo> entry : this.renderDelegates.entrySet()) {
+            TileEntity te = entry.getKey();
+            if (te.isInvalid()) continue;
+            DelegateRendererInfo info = entry.getValue();
+            if (info.renderer == null) continue;
+            BlockPos pos = te.getPos();
+            try {
+                info.renderer.render(info.delegateBlockEntity,
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    partialTicks, -1, 1.0f);
+            } catch (Exception e) {
+                MFFSMod.LOGGER.warn("Error rendering camo-delegate TileEntity {} at {}: {}", info.delegateBlockEntity, pos, e);
+                this.renderDelegates.remove(te);
+                break; // avoid ConcurrentModificationException; will re-render next frame
+            }
+        }
+
+        GlStateManager.popMatrix();
     }
 
     private static class DelegateRendererInfo {

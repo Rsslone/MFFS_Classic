@@ -25,10 +25,14 @@ import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
+import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
+import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
+import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import dev.su5ed.mffs.render.BiometricIdentifierRenderer;
 import dev.su5ed.mffs.render.CoercionDeriverRenderer;
-import dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer;
+import dev.su5ed.mffs.render.FortronCapacitorRenderer;
+import dev.su5ed.mffs.render.InterdictionMatrixRenderer;
 import dev.su5ed.mffs.render.ProjectorRenderer;
 import dev.su5ed.mffs.render.model.ForceFieldBlockModel;
 import dev.su5ed.mffs.setup.ModBlocks;
@@ -41,9 +45,11 @@ import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
@@ -53,6 +59,13 @@ import net.minecraftforge.fml.relauncher.Side;
 
 @Mod.EventBusSubscriber(modid = MFFSMod.MODID, value = Side.CLIENT)
 public final class ModClientSetup {
+
+    private static final ResourceLocation COERCION_DERIVER_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/model/coercion_deriver_emissive.png");
+    private static final ResourceLocation PROJECTOR_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/model/projector_emissive.png");
+    private static final ResourceLocation FORTRON_CAPACITOR_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/model/fortron_capacitor_emissive.png");
+    private static final ResourceLocation BIOMETRIC_IDENTIFIER_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/model/biometric_identifier_emissive.png");
+    private static final ResourceLocation INTERDICTION_MATRIX_SIDE_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/block/interdiction_matrix_side_active_emissive.png");
+    private static final ResourceLocation INTERDICTION_MATRIX_VERTICAL_EMISSIVE = new ResourceLocation(MFFSMod.MODID, "textures/block/interdiction_matrix_vertical_active_emissive.png");
 
     /**
      * Tracks the last world instance seen by {@link #onClientTick}.  When the reference
@@ -73,7 +86,18 @@ public final class ModClientSetup {
         ClientRegistry.bindTileEntitySpecialRenderer(CoercionDeriverBlockEntity.class, new CoercionDeriverRenderer());
         ClientRegistry.bindTileEntitySpecialRenderer(ProjectorBlockEntity.class, new ProjectorRenderer());
         ClientRegistry.bindTileEntitySpecialRenderer(BiometricIdentifierBlockEntity.class, new BiometricIdentifierRenderer());
-        ClientRegistry.bindTileEntitySpecialRenderer(ForceFieldBlockEntity.class, new ForceFieldBlockEntityRenderer());
+        ClientRegistry.bindTileEntitySpecialRenderer(FortronCapacitorBlockEntity.class, new FortronCapacitorRenderer());
+        ClientRegistry.bindTileEntitySpecialRenderer(InterdictionMatrixBlockEntity.class, new InterdictionMatrixRenderer());
+        // NOTE: ForceFieldBlockEntity is intentionally NOT registered as a class-wide TESR.
+        // A large force field can contain thousands of ForceFieldBlockEntity instances, and
+        // registering a TESR for the class causes meldexun renderlib to run a frustum test
+        // (and allocate a CallbackInfoReturnable via a third-party mixin) for every single one
+        // on every frame — ~34% frame time overhead at scale.
+        // The only work ForceFieldBlockEntityRenderer ever did was delegate TESR rendering for
+        // camouflage blocks that themselves have a TESR (chests, ender chests, etc.).  That is
+        // an extremely rare configuration, so it is handled directly in RenderWorldLastEvent via
+        // BlockEntityRenderDelegate.renderAllDelegates(), which iterates only the small set of
+        // instances that actually need it.
 
         // Block items
         registerBlockItemModel(ModBlocks.PROJECTOR);
@@ -134,6 +158,16 @@ public final class ModClientSetup {
         registerItemModel(ModItems.ANTI_PERSONNEL_MODULE);
         registerItemModel(ModItems.ANTI_SPAWN_MODULE);
         registerItemModel(ModItems.CONFISCATION_MODULE);
+    }
+
+    @SubscribeEvent
+    public static void onTextureStitchPre(TextureStitchEvent.Pre event) {
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(COERCION_DERIVER_EMISSIVE));
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(PROJECTOR_EMISSIVE));
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(FORTRON_CAPACITOR_EMISSIVE));
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(BIOMETRIC_IDENTIFIER_EMISSIVE));
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(INTERDICTION_MATRIX_SIDE_EMISSIVE));
+        event.getMap().registerSprite(CodeChickenLibEmissiveCompat.toAtlasSpriteLocation(INTERDICTION_MATRIX_VERTICAL_EMISSIVE));
     }
 
     @SubscribeEvent

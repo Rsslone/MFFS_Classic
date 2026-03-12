@@ -5,6 +5,7 @@ package dev.su5ed.mffs.render;
 // Ported from 1.7.10 RenderForceFieldProjector + 1.21 ProjectorRenderer.
 
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
+import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import dev.su5ed.mffs.render.model.ProjectorRotorModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -22,13 +23,20 @@ import org.lwjgl.opengl.GL11;
 
 @SideOnly(Side.CLIENT)
 public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockEntity> {
-    private static final ResourceLocation TEXTURE_OFF = new ResourceLocation("mffs", "textures/model/projector_off.png");
-    private static final ResourceLocation TEXTURE_ON  = new ResourceLocation("mffs", "textures/model/projector_on.png");
+    private static final ResourceLocation TEXTURE_OFF      = new ResourceLocation("mffs", "textures/model/projector_off.png");
+    private static final ResourceLocation TEXTURE_ON       = new ResourceLocation("mffs", "textures/model/projector_on.png");
+    private static final ResourceLocation TEXTURE_EMISSIVE = new ResourceLocation("mffs", "textures/model/projector_emissive.png");
     private static final ProjectorRotorModel MODEL = new ProjectorRotorModel();
 
     @Override
     public void render(ProjectorBlockEntity te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {
-        // Phase 1: Render rotating rotor
+        // Phase 1: Emissive block overlay (active state only)
+        if (te.getWorld() != null) {
+            CodeChickenLibEmissiveCompat.renderBlockEmissive(
+                te.getWorld().getBlockState(te.getPos()), x, y, z, TEXTURE_EMISSIVE, te.isActive());
+        }
+
+        // Phase 2: Render rotating rotor
         bindTexture(te.isActive() ? TEXTURE_ON : TEXTURE_OFF);
 
         GlStateManager.pushMatrix();
@@ -46,15 +54,27 @@ public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockE
         float rotAngle = (te.getAnimation() + activePartial) * te.getAnimationSpeed();
         MODEL.render(rotAngle, 0.0625F);
 
+        if (te.isActive() && CodeChickenLibEmissiveCompat.isBlockEmissiveAvailable()) {
+            float previousLightX = OpenGlHelper.lastBrightnessX;
+            float previousLightY = OpenGlHelper.lastBrightnessY;
+
+            bindTexture(TEXTURE_EMISSIVE);
+            RenderHelper.disableStandardItemLighting();
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240F, 240F);
+            MODEL.render(rotAngle, 0.0625F);
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, previousLightX, previousLightY);
+            RenderHelper.enableStandardItemLighting();
+        }
+
         GlStateManager.enableAlpha();
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();
 
-        // Phase 2: Render holographic pyramid + mode shape (when mode is present)
+        // Phase 3: Render holographic pyramid + mode shape (when mode is present)
         if (te.getMode().isPresent()) {
             renderHoloPyramid(te, x, y, z, partialTicks);
 
-            // Phase 3: Render the mode-specific holographic shape (cube/sphere/etc)
+            // Phase 4: Render the mode-specific holographic shape (cube/sphere/etc)
             Item modeItem = te.getModeStack().getItem();
             ProjectorModeRenderer.renderMode(te, modeItem, x, y, z, partialTicks);
         }

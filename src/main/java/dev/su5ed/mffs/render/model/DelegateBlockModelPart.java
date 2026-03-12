@@ -10,8 +10,9 @@ package dev.su5ed.mffs.render.model;
  *
  * In 1.12.2, neither {@code ModelPart} (the layered-model system introduced
  * in 1.17) nor the {@code SubmitNodeCollector} render pipeline exist.
- * TESR chaining is not used; camouflage is drawn directly in
- * {@link dev.su5ed.mffs.render.ForceFieldBlockEntityRenderer}.
+ * TESR chaining is not used; camo-TESR delegation is handled directly by
+ * {@link dev.su5ed.mffs.render.BlockEntityRenderDelegate#renderAllDelegates} via
+ * {@code RenderWorldLastEvent}.
  *
  * This class is retained as an empty structural placeholder.
  */

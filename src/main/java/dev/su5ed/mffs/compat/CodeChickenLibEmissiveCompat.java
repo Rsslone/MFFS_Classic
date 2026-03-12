@@ -1,9 +1,6 @@
 package dev.su5ed.mffs.compat;
 
 import dev.su5ed.mffs.MFFSConfig;
-import dev.su5ed.mffs.api.ForceFieldBlock;
-import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
-import dev.su5ed.mffs.setup.ModModules;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -11,60 +8,94 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 @SideOnly(Side.CLIENT)
 public final class CodeChickenLibEmissiveCompat {
     private static final String CCL_MODID = "codechickenlib";
     private static final boolean AVAILABLE = Loader.isModLoaded(CCL_MODID);
 
-    private static final int MAX_GLOW_MODULES = 64;
-    private static final int MIN_ALPHA = 40;
-    private static final int MAX_ALPHA = 104;
     private static final double FACE_OFFSET = 0.002;
 
     private CodeChickenLibEmissiveCompat() {}
 
-    public static boolean isAvailable() {
-        return AVAILABLE && MFFSConfig.enableCodeChickenLibEmissiveForceFields;
+    public static boolean isBlockEmissiveAvailable() {
+        return AVAILABLE && MFFSConfig.enableCodeChickenLibEmissiveBlocks;
     }
 
-    public static void render(ForceFieldBlockEntity tile, double x, double y, double z) {
-        if (!isAvailable() || tile == null || tile.getWorld() == null || !tile.getWorld().isRemote) {
-            return;
-        }
+    /**
+     * Draws full-bright emissive quads using the baked block model's geometry and UV layout.
+     * This keeps emissive masks aligned to the same unwrap as the base model texture.
+     */
+    public static void renderBlockEmissive(IBlockState state, double x, double y, double z,
+                                           ResourceLocation emissiveTexture, boolean active) {
+        if (!isBlockEmissiveAvailable() || !active || state == null) return;
 
-        if (getGlowModuleCount(tile) <= 0) {
-            return;
-        }
+        TextureAtlasSprite emissiveSprite = getEmissiveAtlasSprite(emissiveTexture);
+        if (emissiveSprite == null) return;
 
-        renderEmissiveFaces(tile, x, y, z);
+        float previousLightX = OpenGlHelper.lastBrightnessX;
+        float previousLightY = OpenGlHelper.lastBrightnessY;
+
+        renderBlockEmissiveInternal(state, x, y, z, s -> emissiveSprite);
     }
 
-    private static void renderEmissiveFaces(ForceFieldBlockEntity forceField, double x, double y, double z) {
-        World world = forceField.getWorld();
-        BlockPos pos = forceField.getPos();
-        TextureAtlasSprite sprite = getForceFieldSprite(world, pos);
-        if (sprite == null) {
-            return;
+    public static ResourceLocation toAtlasSpriteLocation(ResourceLocation textureLocation) {
+        String path = textureLocation.getPath();
+        if (path.startsWith("textures/")) {
+            path = path.substring("textures/".length());
         }
-
-        int glowModules = getGlowModuleCount(forceField);
-        if (glowModules <= 0) {
-            return;
+        if (path.endsWith(".png")) {
+            path = path.substring(0, path.length() - 4);
         }
+        return new ResourceLocation(textureLocation.getNamespace(), path);
+    }
 
-        int alpha = MIN_ALPHA + Math.round((MAX_ALPHA - MIN_ALPHA) * (glowModules / (float) MAX_GLOW_MODULES));
+    private static TextureAtlasSprite getEmissiveAtlasSprite(ResourceLocation emissiveTexture) {
+        ResourceLocation spriteLoc = toAtlasSpriteLocation(emissiveTexture);
+        return Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(spriteLoc.toString());
+    }
+
+    /**
+     * Renders an emissive overlay using per-face emissive sprites.
+     * The map keys are base texture paths (e.g. {@code mffs:textures/block/foo.png})
+     * and values are the corresponding emissive texture paths.
+     * Quads whose base sprite has no entry in the map are skipped.
+     */
+    public static void renderBlockEmissiveMulti(IBlockState state, double x, double y, double z,
+                                                Map<ResourceLocation, ResourceLocation> baseToEmissive, boolean active) {
+        if (!isBlockEmissiveAvailable() || !active || state == null || baseToEmissive.isEmpty()) return;
+
+        Map<String, TextureAtlasSprite> emissiveByBase = new HashMap<>();
+        for (Map.Entry<ResourceLocation, ResourceLocation> entry : baseToEmissive.entrySet()) {
+            String baseKey = toAtlasSpriteLocation(entry.getKey()).toString();
+            TextureAtlasSprite emissiveSprite = getEmissiveAtlasSprite(entry.getValue());
+            if (emissiveSprite != null) {
+                emissiveByBase.put(baseKey, emissiveSprite);
+            }
+        }
+        if (emissiveByBase.isEmpty()) return;
+
+        renderBlockEmissiveInternal(state, x, y, z, s -> emissiveByBase.get(s.getIconName()));
+    }
+
+    private static void renderBlockEmissiveInternal(IBlockState state, double x, double y, double z,
+                                                    Function<TextureAtlasSprite, TextureAtlasSprite> emissiveLookup) {
         float previousLightX = OpenGlHelper.lastBrightnessX;
         float previousLightY = OpenGlHelper.lastBrightnessY;
 
@@ -81,7 +112,7 @@ public final class CodeChickenLibEmissiveCompat {
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
         buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-        addExposedFaces(buffer, world, pos, sprite, alpha);
+        renderModelWithMappedEmissiveUv(buffer, state, emissiveLookup);
         tessellator.draw();
 
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, previousLightX, previousLightY);
@@ -93,136 +124,64 @@ public final class CodeChickenLibEmissiveCompat {
         RenderHelper.enableStandardItemLighting();
     }
 
-    private static void addExposedFaces(BufferBuilder buffer, World world, BlockPos pos, TextureAtlasSprite sprite, int alpha) {
-        double minX = 0.0;
-        double minY = 0.0;
-        double minZ = 0.0;
-        double maxX = minX + 1.0;
-        double maxY = minY + 1.0;
-        double maxZ = minZ + 1.0;
-        double minU = sprite.getMinU();
-        double maxU = sprite.getMaxU();
-        double minV = sprite.getMinV();
-        double maxV = sprite.getMaxV();
-
-        if (isExposed(world, pos, EnumFacing.DOWN)) {
-            double y = minY - FACE_OFFSET;
-            addQuad(buffer,
-                minX, y, maxZ,
-                minX, y, minZ,
-                maxX, y, minZ,
-                maxX, y, maxZ,
-                minU, maxV,
-                minU, minV,
-                maxU, minV,
-                maxU, maxV,
-                alpha);
-        }
-        if (isExposed(world, pos, EnumFacing.UP)) {
-            double y = maxY + FACE_OFFSET;
-            addQuad(buffer,
-                maxX, y, maxZ,
-                maxX, y, minZ,
-                minX, y, minZ,
-                minX, y, maxZ,
-                maxU, maxV,
-                maxU, minV,
-                minU, minV,
-                minU, maxV,
-                alpha);
-        }
-        if (isExposed(world, pos, EnumFacing.NORTH)) {
-            double z = minZ - FACE_OFFSET;
-            addQuad(buffer,
-                minX, minY, z,
-                minX, maxY, z,
-                maxX, maxY, z,
-                maxX, minY, z,
-                minU, maxV,
-                minU, minV,
-                maxU, minV,
-                maxU, maxV,
-                alpha);
-        }
-        if (isExposed(world, pos, EnumFacing.SOUTH)) {
-            double z = maxZ + FACE_OFFSET;
-            addQuad(buffer,
-                maxX, minY, z,
-                maxX, maxY, z,
-                minX, maxY, z,
-                minX, minY, z,
-                minU, maxV,
-                minU, minV,
-                maxU, minV,
-                maxU, maxV,
-                alpha);
-        }
-        if (isExposed(world, pos, EnumFacing.WEST)) {
-            double x = minX - FACE_OFFSET;
-            addQuad(buffer,
-                x, minY, maxZ,
-                x, maxY, maxZ,
-                x, maxY, minZ,
-                x, minY, minZ,
-                minU, maxV,
-                minU, minV,
-                maxU, minV,
-                maxU, maxV,
-                alpha);
-        }
-        if (isExposed(world, pos, EnumFacing.EAST)) {
-            double x = maxX + FACE_OFFSET;
-            addQuad(buffer,
-                x, minY, minZ,
-                x, maxY, minZ,
-                x, maxY, maxZ,
-                x, minY, maxZ,
-                minU, maxV,
-                minU, minV,
-                maxU, minV,
-                maxU, maxV,
-                alpha);
+    private static void renderModelWithMappedEmissiveUv(BufferBuilder buffer, IBlockState state,
+                                                        Function<TextureAtlasSprite, TextureAtlasSprite> emissiveLookup) {
+        IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(state);
+        renderMappedQuadList(buffer, model.getQuads(state, null, 0L), emissiveLookup);
+        for (EnumFacing face : EnumFacing.values()) {
+            renderMappedQuadList(buffer, model.getQuads(state, face, 0L), emissiveLookup);
         }
     }
 
-    private static TextureAtlasSprite getForceFieldSprite(World world, BlockPos pos) {
-        IBlockState state = world.getBlockState(pos);
-        return Minecraft.getMinecraft()
-            .getBlockRendererDispatcher()
-            .getModelForState(state)
-            .getParticleTexture();
-    }
+    private static void renderMappedQuadList(BufferBuilder buffer, List<BakedQuad> quads,
+                                             Function<TextureAtlasSprite, TextureAtlasSprite> emissiveLookup) {
+        for (BakedQuad quad : quads) {
+            int[] vertexData = quad.getVertexData();
+            int stride = vertexData.length / 4;
+            if (stride < 6) {
+                continue;
+            }
 
-    private static boolean isExposed(World world, BlockPos pos, EnumFacing facing) {
-        return !(world.getBlockState(pos.offset(facing)).getBlock() instanceof ForceFieldBlock);
-    }
+            TextureAtlasSprite baseSprite = quad.getSprite();
+            if (baseSprite == null) continue;
+            TextureAtlasSprite emissiveSprite = emissiveLookup.apply(baseSprite);
+            if (emissiveSprite == null) continue;
 
-    private static void addQuad(BufferBuilder buffer,
-                                double x1, double y1, double z1,
-                                double x2, double y2, double z2,
-                                double x3, double y3, double z3,
-                                double x4, double y4, double z4,
-                                double u1, double v1,
-                                double u2, double v2,
-                                double u3, double v3,
-                                double u4, double v4,
-                                int alpha) {
-        buffer.pos(x1, y1, z1).tex(u1, v1).color(255, 255, 255, alpha).endVertex();
-        buffer.pos(x2, y2, z2).tex(u2, v2).color(255, 255, 255, alpha).endVertex();
-        buffer.pos(x3, y3, z3).tex(u3, v3).color(255, 255, 255, alpha).endVertex();
-        buffer.pos(x4, y4, z4).tex(u4, v4).color(255, 255, 255, alpha).endVertex();
-    }
+            float baseSpanU = baseSprite.getMaxU() - baseSprite.getMinU();
+            float baseSpanV = baseSprite.getMaxV() - baseSprite.getMinV();
+            if (Math.abs(baseSpanU) < 1.0E-6F || Math.abs(baseSpanV) < 1.0E-6F) {
+                continue;
+            }
 
-    private static int getGlowModuleCount(ForceFieldBlockEntity tile) {
-        return tile.getProjector()
-            .map(projector -> Math.min(projector.getModuleCount(ModModules.GLOW), MAX_GLOW_MODULES))
-            .orElseGet(() -> approximateModuleCount(tile.getClientBlockLight()));
-    }
+            float emissiveSpanU = emissiveSprite.getMaxU() - emissiveSprite.getMinU();
+            float emissiveSpanV = emissiveSprite.getMaxV() - emissiveSprite.getMinV();
+            EnumFacing face = quad.getFace();
 
-    private static int approximateModuleCount(int clientBlockLight) {
-        if (clientBlockLight <= 0) {
-            return 0;
+            float ox = 0.0F;
+            float oy = 0.0F;
+            float oz = 0.0F;
+            if (face != null) {
+                ox = face.getXOffset() * (float) FACE_OFFSET;
+                oy = face.getYOffset() * (float) FACE_OFFSET;
+                oz = face.getZOffset() * (float) FACE_OFFSET;
+            }
+
+            for (int i = 0; i < 4; i++) {
+                int baseIndex = i * stride;
+                float px = Float.intBitsToFloat(vertexData[baseIndex]) + ox;
+                float py = Float.intBitsToFloat(vertexData[baseIndex + 1]) + oy;
+                float pz = Float.intBitsToFloat(vertexData[baseIndex + 2]) + oz;
+                float u = Float.intBitsToFloat(vertexData[baseIndex + 4]);
+                float v = Float.intBitsToFloat(vertexData[baseIndex + 5]);
+
+                float uNorm = (u - baseSprite.getMinU()) / baseSpanU;
+                float vNorm = (v - baseSprite.getMinV()) / baseSpanV;
+                float mappedU = emissiveSprite.getMinU() + (uNorm * emissiveSpanU);
+                float mappedV = emissiveSprite.getMinV() + (vNorm * emissiveSpanV);
+
+                buffer.pos(px, py, pz).tex(mappedU, mappedV).color(255, 255, 255, 255).endVertex();
+            }
         }
-        return Math.max(1, Math.min(MAX_GLOW_MODULES, Math.round(clientBlockLight / 15.0F * MAX_GLOW_MODULES)));
     }
+
 }
