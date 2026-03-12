@@ -1,6 +1,5 @@
 ## TODO/IDEAS
 Add glow to the biometric block when active.
-    Maybe include all blocks? CodeChickenLib emissives?
 Add scaling to the custom shape mode.
     Investigate the maxCustomModeScale var.
 Interdiction Matrix mode to use in-field instead of its own scale.

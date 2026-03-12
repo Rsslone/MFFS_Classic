@@ -76,10 +76,10 @@ public final class MFFSConfig {
     public static boolean enableProjectorModeGlitch = true;
     /** If enabled and CodeChickenLib is installed, render an emissive accent overlay on machine blocks (deriver, projector, capacitor, biometric identifier). */
     public static boolean enableCodeChickenLibEmissiveBlocks          = true;
-    /** Spacing used for force field light sources: 1 = every block, 3 = ~1/3 of blocks emit light. */
-    public static int forceFieldLightSpacing = 3;
+    /** Spacing used for force field light sources: 1 = every block, 4 = ~1/4 of blocks emit light. */
+    public static int forceFieldLightSpacing = 4;
     /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
-    public static int glowLightChecksPerTick = 30;
+    public static int glowLightChecksPerTick = 60;
     /** When enabled, only place real lights on force fields touching physical blocks (with spacing applied). */
     public static boolean simpleLighting = true;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
