@@ -112,7 +112,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private final Set<BlockPos> projectedBlocks = Collections.synchronizedSet(new HashSet<>());
     // Orphan positions left over from a soft-destroy (resize/module change). Drained gradually;
     // a hard destroyField() removes them immediately instead.
-    private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new HashSet<>());
+    // LinkedHashSet so the drain iterator walks positions in insertion order; applyFieldDiff
+    // shuffles the toRemove list before inserting, matching the random order used during build.
+    private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new LinkedHashSet<>());
     // Positions projected in the previous session, loaded from NBT. Used once per load to diff
     // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
     // Never synced/threaded — only accessed on the server tick thread.
@@ -120,6 +122,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // Shadow set of currently-calculated field positions for O(1) lookup in the gap-fill sweep.
     // Rebuilt asynchronously in runCalculationTask; published via volatile for safe visibility.
     private volatile Set<BlockPos> calculatedFieldSet = Collections.emptySet();
+    // Non-null when a diff-based field transition is in progress.  Holds a snapshot of the old
+    // projectedBlocks taken at the moment softDestroyField() was called.  The field stays visible
+    // while the async recalculation runs; once CALCULATING completes, applyFieldDiff() diffs the
+    // snapshot against the new geometry and only touches blocks that actually changed.
+    private Set<BlockPos> pendingDiffSnapshot = null;
     // 1.21.x: Pair<BlockState, Boolean> (com.mojang.datafixers.util.Pair) — not in 1.12.2
     // Use AbstractMap.SimpleEntry<IBlockState, Boolean> as key=blockState, value=canProject
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
@@ -308,9 +315,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     Set<BlockPos> newField = StreamEx.of(getCalculatedFieldPositions())
                         .map(TargetPosPair::pos)
                         .toSet();
+                    // Collect orphans into a list and shuffle before queuing so the drain order
+                    // is scattered rather than following the hash-bucket order of the saved set.
+                    List<BlockPos> orphansToQueue = new ArrayList<>();
                     for (BlockPos old : this.savedProjectedBlocks) {
                         if (!newField.contains(old)) {
-                            this.pendingRemoval.add(old);
+                            orphansToQueue.add(old);
                         } else if (this.world.getBlockState(old).getBlock() == ModBlocks.FORCE_FIELD) {
                             // Block is still valid in the new field. Restore it to projectedBlocks
                             // so in-place operations (e.g. glow module changes via refreshFieldLights)
@@ -320,10 +330,21 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                             this.projectedBlocks.add(old);
                         }
                     }
+                    Collections.shuffle(orphansToQueue);
+                    this.pendingRemoval.addAll(orphansToQueue);
                     this.savedProjectedBlocks.clear();
                 }
 
-                if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
+                // Diff-based transition: the async CALCULATING stage has completed while a
+                // soft-destroy snapshot is pending.  Apply the diff (on the server thread),
+                // then chain into SELECTING so only genuinely-new positions are evaluated.
+                if (this.pendingDiffSnapshot != null && this.semaphore.isComplete(ProjectionStage.CALCULATING)) {
+                    applyFieldDiff();
+                    runSelectionTask().exceptionally(throwable -> {
+                        MFFSMod.LOGGER.error("Error selecting force field blocks after diff", throwable);
+                        return null;
+                    });
+                } else if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)) {
                     projectField();
@@ -652,11 +673,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     /**
      * Called when a face-slot field module changes (translation, rotation, scale, etc.).
      * Face slots only accept {@link dev.su5ed.mffs.api.module.Module.Category#FIELD} modules,
-     * all of which affect field geometry.  We push a visual refresh immediately for instant
-     * feedback then trigger the soft rebuild that re-evaluates the new geometry.
+     * all of which affect field geometry.  The diff-based rebuild handles camouflage and
+     * light updates for unchanged blocks, so no immediate visual refresh is needed.
      */
     private void onFieldModuleChanged() {
-        refreshFieldVisuals();
         softDestroyField();
     }
 
@@ -729,30 +749,115 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     /**
-     * Soft destroy: keeps existing force field blocks in the world and queues them for
-     * gradual removal. Blocks that are still valid in the newly-calculated field will be
-     * reclaimed during the next projectField() pass, so only genuine orphans are removed.
-     * Use this when the field shape is changing (module/mode change) to avoid flicker.
-     *
-     * <p>If the Glow Module is active, {@code clientBlockLight=0} is pushed to all
-     * currently-projected blocks before they enter the pending-removal queue (Case 3).
-     * Reclaimed blocks receive a fresh correct light value during {@code projectField()};
-     * orphan blocks lose their light naturally when air'd out.
+     * Soft destroy: starts a diff-based field transition.  The current projected field stays
+     * visible while a new field geometry is calculated asynchronously.  When the calculation
+     * completes, {@link #applyFieldDiff()} compares old vs new positions and only touches
+     * blocks that actually changed:
+     * <ul>
+     *   <li><b>toRemove</b> (old − new): queued to {@code pendingRemoval} for gradual drain</li>
+     *   <li><b>unchanged</b> (old ∩ new): kept in place; camouflage refreshed if needed</li>
+     *   <li><b>toAdd</b> (new − old): handled by the normal SELECTING → PROJECTING pipeline</li>
+     * </ul>
      */
     private void softDestroyField() {
         if (this.world != null && !this.world.isRemote) {
-            // Zero out lights immediately so blocks in pendingRemoval stop glowing during rebuild.
-            if (getModuleCount(ModModules.GLOW) > 0) {
-                zeroFieldBlockLights(this.projectedBlocks);
+            // Snapshot the current field for diffing after the async recalculation.  Include any
+            // savedProjectedBlocks that haven't been diffed yet (e.g. a module change right after
+            // load before the one-shot orphan detection ran).
+            Set<BlockPos> snapshot = new HashSet<>(this.projectedBlocks);
+            if (!this.savedProjectedBlocks.isEmpty()) {
+                snapshot.addAll(this.savedProjectedBlocks);
+                this.savedProjectedBlocks.clear();
             }
-            StreamEx.of(getCalculatedFieldPositions())
-                .map(TargetPosPair::pos)
-                .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
-                .forEach(this.pendingRemoval::add);
+            this.pendingDiffSnapshot = snapshot.isEmpty() ? null : snapshot;
         }
-        this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
         this.semaphore.reset();
+        // Start async calculation of the new field geometry.  Do NOT clear projectedBlocks —
+        // the field stays visible while we wait.  applyFieldDiff() will reconcile later.
+        if (getMode().isPresent()) {
+            if (getModeStack().getItem() instanceof ObjectCache cache) {
+                cache.clearCache();
+            }
+            runCalculationTask().exceptionally(throwable -> {
+                MFFSMod.LOGGER.error("Error calculating force field during soft destroy", throwable);
+                return null;
+            });
+        }
+    }
+
+    /**
+     * Applies the diff between the old projected field (snapshot) and the newly-calculated
+     * field geometry.  Called on the server thread once the async CALCULATING stage completes
+     * and {@link #pendingDiffSnapshot} is non-null.
+     *
+     * <ul>
+     *   <li><b>toRemove</b>: lights zeroed (if glow active), queued to {@code pendingRemoval},
+     *       removed from {@code projectedBlocks}.</li>
+     *   <li><b>unchanged</b>: camouflage updated if it differs from what {@link #getCamoBlock}
+     *       now returns; otherwise left completely untouched.</li>
+     *   <li><b>toAdd</b>: handled by the subsequent SELECTING → PROJECTING pipeline.</li>
+     * </ul>
+     */
+    private void applyFieldDiff() {
+        Set<BlockPos> oldField = this.pendingDiffSnapshot;
+        this.pendingDiffSnapshot = null;
+
+        // Build lookup from the new calculated field: pos → original Vec3d (for camo lookups).
+        Collection<TargetPosPair> newFieldPairs = getCalculatedFieldPositions();
+        Map<BlockPos, Vec3d> newFieldMap = new HashMap<>(newFieldPairs.size() * 2, 0.5f);
+        for (TargetPosPair pair : newFieldPairs) {
+            newFieldMap.put(pair.pos(), pair.original());
+        }
+
+        // Partition the old field into toRemove and unchanged.
+        Set<BlockPos> toRemove = new HashSet<>();
+        Set<BlockPos> unchanged = new HashSet<>();
+        for (BlockPos pos : oldField) {
+            if (newFieldMap.containsKey(pos)) {
+                unchanged.add(pos);
+            } else {
+                toRemove.add(pos);
+            }
+        }
+
+        // Shuffle toRemove before queuing so the drain order is scattered, matching the
+        // random placement order used during the build phase (runCalculationTask shuffles).
+        List<BlockPos> toRemoveList = new ArrayList<>(toRemove);
+        Collections.shuffle(toRemoveList);
+
+        // Zero lights only on blocks being removed.
+        if (!toRemoveList.isEmpty() && getModuleCount(ModModules.GLOW) > 0) {
+            zeroFieldBlockLights(toRemove);
+        }
+
+        // Queue removals and update projectedBlocks.
+        this.pendingRemoval.addAll(toRemoveList);
+        this.projectedBlocks.removeAll(toRemove);
+
+        // Invalidate cache for removed positions so gap-fill doesn't see stale state.
+        for (BlockPos pos : toRemove) {
+            this.projectionCache.invalidate(pos);
+        }
+
+        // Refresh camouflage on unchanged blocks (handles camo slot changes, custom mode
+        // position-dependent camo, and glow module changes that accompany geometry changes).
+        if (!unchanged.isEmpty()) {
+            double radius = computeFieldSendRadius();
+            for (BlockPos pos : unchanged) {
+                net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
+                if (te instanceof ForceFieldBlockEntity be) {
+                    Vec3d original = newFieldMap.get(pos);
+                    IBlockState newCamo = getCamoBlock(original);
+                    IBlockState oldCamo = be.getCamouflage();
+                    if (!Objects.equals(oldCamo, newCamo)) {
+                        be.setCamouflage(newCamo);
+                        Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
+                            this.world, this.pos, radius);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -777,7 +882,8 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     public void destroyField() {
         // Hard destroy: immediately remove everything (Fortron loss, block break, etc.).
-        // Also flush any blocks pending from a prior soft destroy.
+        // Also flush any blocks pending from a prior soft destroy and cancel any in-flight diff.
+        this.pendingDiffSnapshot = null;
         Set<BlockPos> alsoRemove = new HashSet<>(this.pendingRemoval);
         this.pendingRemoval.clear();
         Collection<TargetPosPair> fieldPositions = getCalculatedFieldPositions();

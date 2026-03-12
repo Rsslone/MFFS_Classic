@@ -25,8 +25,9 @@ position offset, and utility modules. For example, the upgrade to shock attacks,
 protect tiles.
 
 ## Differences
-- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 this system does not exist, so we had to reduce the load by more smartly placing lights only where they're impactful (Around contact with physical blocks), for the rest we use emissive textures if CodeChickenLibs is installed.
+- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 the lighting has always been known as being heavy and laggy, to address this we slimmed down the scope for the glow module to only light force fields making contact with physical blocks and process these updates client side. Its still very flawed, but may recieve changes in the future.
 - We've made extra options for server owners to balance and tweak, such as easily disabling the steel ingot recipe, which other mods do a better job at.
+- Block translation difference checks. We avoid block costly block updates which do not need to be updated by comparing a difference between old and updated projections.
 
 ### Contributing
 
