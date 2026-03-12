@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class InventoryBlockEntity extends BaseBlockEntity {
@@ -50,6 +51,11 @@ public abstract class InventoryBlockEntity extends BaseBlockEntity {
 
     protected InventorySlot addSlot(String name, InventorySlot.Mode mode, Predicate<ItemStack> filter, Consumer<ItemStack> onChanged) {
         return this.items.addSlot(name, mode, filter, onChanged);
+    }
+
+    protected InventorySlot addSlot(String name, InventorySlot.Mode mode, Predicate<ItemStack> filter,
+                                     Consumer<ItemStack> onChanged, Function<ItemStack, Integer> capacityProvider) {
+        return this.items.addSlot(name, mode, filter, onChanged, false, capacityProvider);
     }
 
     protected InventorySlot addVirtualSlot(String name) {

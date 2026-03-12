@@ -24,14 +24,19 @@ public final class MFFSConfig {
     public static boolean enableElectricity            = true;
     /** Cache allows temporary data saving to decrease calculations required. */
     public static boolean useCache                     = true;
-    /** How many force field blocks can be generated per tick? Less reduces lag. */
-    public static int     maxFFGenPerTick              = 1_000;
+    /** Blocks placed per speed module per projection tick (base is always 28). Default 14 = half the original 28. */
+    public static int     speedModuleFactor            = 14;
+    /** Divides the speed-module count when computing the removal drain rate.
+     *  Formula: 28 + speedModuleFactor * (speedModules / drainSpeedFactor). Higher = slower removal per speed module. */
+    public static int     drainSpeedFactor             = 2;
     /** Allow server operators to bypass Force Field biometry. */
     public static boolean allowOpBiometryOverride      = true;
     /** Should the interdiction matrix interact with creative players? */
     public static boolean interactCreative             = true;
     /** Max custom mode field scale. */
     public static int     maxCustomModeScale           = 200;
+    /** Maximum total number of Speed Modules that can be inserted into a Force Field Projector's upgrade slots. Default 64 (one stack). */
+    public static int     maxSpeedModulesProjector     = 64;
     /** Give players a copy of the MFFS guidebook when they first join a world. */
     public static boolean giveGuidebookOnFirstJoin     = true;
     /** Disable Steel Ingot and Steel Compound item registration (other mods likely provide these). */
@@ -84,7 +89,7 @@ public final class MFFSConfig {
     public static boolean simpleLighting = true;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
      *  Default 10 (500 ms at 20 TPS). */
-    public static int projectionCycleTicks = 10;
+    public static int projectionCycleTicks = 5;
     /**
      * When true, the projector sweeps its entire calculated field every projection cycle and
      * immediately fills any position that became projectable (e.g. terrain dug out under the
@@ -110,14 +115,18 @@ public final class MFFSConfig {
             "Turning this to false will make MFFS run without electricity or energy systems required. Great for vanilla!");
         useCache = configuration.getBoolean("useCache", "general", useCache,
             "Cache allows temporary data saving to decrease calculations required");
-        maxFFGenPerTick = configuration.getInt("maxFFGenPerTick", "performance", maxFFGenPerTick, 0, Integer.MAX_VALUE,
-            "How many force field blocks can be generated per tick? Less reduces lag.");
+        speedModuleFactor = configuration.getInt("speedModuleFactor", "performance", speedModuleFactor, 1, Integer.MAX_VALUE,
+            "Blocks added to projection speed per speed module per tick. Formula: 28 + speedModuleFactor * speedModules. Default 14 (half the original 28).");
+        drainSpeedFactor = configuration.getInt("drainSpeedFactor", "performance", drainSpeedFactor, 1, Integer.MAX_VALUE,
+            "Divides the speed-module count when computing the removal drain rate. Formula: 28 + speedModuleFactor * (speedModules / drainSpeedFactor). Higher values slow down removal per speed module.");
         allowOpBiometryOverride = configuration.getBoolean("allowOpBiometryOverride", "general", allowOpBiometryOverride,
             "Allow server operators to bypass Force Field biometry");
         interactCreative = configuration.getBoolean("interactCreative", "general", interactCreative,
             "Should the interdiction matrix interact with creative players?");
         maxCustomModeScale = configuration.getInt("maxCustomModeScale", "general", maxCustomModeScale, 0, Integer.MAX_VALUE,
             "Max custom mode field scale");
+        maxSpeedModulesProjector = configuration.getInt("maxSpeedModulesProjector", "general", maxSpeedModulesProjector, 0, Integer.MAX_VALUE,
+            "Maximum total number of Speed Modules that can be inserted into a Force Field Projector's upgrade slots. Default 64 (one stack).");
         giveGuidebookOnFirstJoin = configuration.getBoolean("giveGuidebookOnFirstJoin", "general", giveGuidebookOnFirstJoin,
             "Give players a copy of the MFFS guidebook when they first join a world");
         disableSteelItems = configuration.getBoolean("disableSteelItems", "general", disableSteelItems,

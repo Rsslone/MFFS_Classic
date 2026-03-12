@@ -65,6 +65,7 @@ import org.jetbrains.annotations.Nullable;
 // import dev.su5ed.mffs.setup.ModObjects;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -154,6 +155,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         //   1. Both old and new are regen-exempt (Speed/Capacity/etc.)  → no action
         //   2. Both old and new are glow-or-empty                        → refreshFieldLights()
         //   3. Either side is a geometry-affecting module                → softDestroyField()
+        //
+        // upgradeSlotListRef is populated after the stream completes so the capacity-provider
+        // lambdas can safely reference all upgrade slots at insert time (not at construction time).
+        AtomicReference<List<InventorySlot>> upgradeSlotListRef = new AtomicReference<>();
         this.upgradeSlots = IntStreamEx.range(6)
             .mapToObj(i -> {
                 InventorySlot[] ref = new InventorySlot[1];
@@ -168,10 +173,29 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                         } else {
                             softDestroyField();
                         }
+                    },
+                    stack -> {
+                        // Limit speed modules across all upgrade slots to the configured maximum.
+                        ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
+                        if (type != ModModules.SPEED) return stack.getMaxStackSize();
+                        List<InventorySlot> allUpgradeSlots = upgradeSlotListRef.get();
+                        if (allUpgradeSlots == null) return stack.getMaxStackSize();
+                        // Count speed modules already present in every OTHER upgrade slot.
+                        int totalInOthers = allUpgradeSlots.stream()
+                            .filter(slot -> slot != ref[0])
+                            .mapToInt(slot -> {
+                                ItemStack content = slot.getItem();
+                                if (content.isEmpty()) return 0;
+                                ModuleType<?> slotType = content.getCapability(ModCapabilities.MODULE_TYPE, null);
+                                return slotType == ModModules.SPEED ? content.getCount() : 0;
+                            })
+                            .sum();
+                        return Math.max(0, Math.min(MFFSConfig.maxSpeedModulesProjector - totalInOthers, stack.getMaxStackSize()));
                     });
                 return ref[0];
             })
             .toList();
+        upgradeSlotListRef.set(this.upgradeSlots);
     }
 
     @Override
@@ -362,7 +386,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
                 // Drain orphan blocks left over from a soft destroy (resize / module change)
                 if (!this.pendingRemoval.isEmpty()) {
-                    int speed = Math.min(getProjectionSpeed(), MFFSConfig.maxFFGenPerTick);
+                    int speed = 28 + MFFSConfig.speedModuleFactor * (getModuleCount(ModModules.SPEED, getUpgradeSlots()) / MFFSConfig.drainSpeedFactor);
                     int drained = 0;
                     Iterator<BlockPos> orphanIt = this.pendingRemoval.iterator();
                     while (orphanIt.hasNext() && drained < speed) {
@@ -954,7 +978,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     @Override
     public int getProjectionSpeed() {
-        return 28 + 28 * getModuleCount(ModModules.SPEED, getUpgradeSlots());
+        return 28 + MFFSConfig.speedModuleFactor * getModuleCount(ModModules.SPEED, getUpgradeSlots());
     }
 
     @Override
@@ -1068,7 +1092,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         for (Module module : modules) {
             module.beforeProject(this);
         }
-        int speed = Math.min(getProjectionSpeed(), MFFSConfig.maxFFGenPerTick);
+        int speed = getProjectionSpeed();
         int placed = 0;
         fieldLoop:
         for (TargetPosPair pair : getCalculatedFieldPositions()) {
@@ -1149,7 +1173,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         for (Module module : modules) {
             module.beforeSelect(this, fieldToBeProjected);
         }
-        int constructionSpeed = Math.min(getProjectionSpeed(), MFFSConfig.maxFFGenPerTick);
+        int constructionSpeed = getProjectionSpeed();
         List<TargetPosPair> projectable = new ArrayList<>();
         fieldLoop:
         for (int i = 0, constructionCount = 0; i < fieldToBeProjected.size() && constructionCount < constructionSpeed && !isInvalid() && this.semaphore.isInStage(ProjectionStage.SELECTING); i++) {

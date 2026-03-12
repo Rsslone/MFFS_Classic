@@ -6,8 +6,10 @@ package dev.su5ed.mffs.util.inventory;
 // stack.copyWithCount(n) → copy().setCount(n)
 
 import net.minecraft.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class InventorySlot {
@@ -17,6 +19,11 @@ public class InventorySlot {
     private final Predicate<ItemStack> filter;
     private final Consumer<ItemStack> onChanged;
     private final boolean virtual;
+    /** Optional per-slot capacity override.  Given the incoming {@link ItemStack}, returns the
+     *  maximum number of that item this slot may hold in total (across stacking).  When {@code null},
+     *  the item's own {@code getMaxStackSize()} is used as the limit. */
+    @Nullable
+    private final Function<ItemStack, Integer> capacityProvider;
 
     private ItemStack content = ItemStack.EMPTY;
     private ItemStack lastNotifiedContent = ItemStack.EMPTY;
@@ -26,12 +33,17 @@ public class InventorySlot {
     private ItemStack previousContent = ItemStack.EMPTY;
 
     public InventorySlot(InventorySlotItemHandler parent, String name, Mode mode, Predicate<ItemStack> filter, Consumer<ItemStack> onChanged, boolean virtual) {
+        this(parent, name, mode, filter, onChanged, virtual, null);
+    }
+
+    public InventorySlot(InventorySlotItemHandler parent, String name, Mode mode, Predicate<ItemStack> filter, Consumer<ItemStack> onChanged, boolean virtual, @Nullable Function<ItemStack, Integer> capacityProvider) {
         this.parent = parent;
         this.name = name;
         this.mode = mode;
         this.filter = filter;
         this.onChanged = onChanged;
         this.virtual = virtual;
+        this.capacityProvider = capacityProvider;
     }
 
     public String getName() {
@@ -83,32 +95,65 @@ public class InventorySlot {
 
     public ItemStack insert(ItemStack stack, boolean simulate) {
         if (!stack.isEmpty() && canAdd(stack)) {
-            if (this.content.isEmpty()) {
-                if (!simulate) {
-                    setItem(stack);
+            if (this.capacityProvider == null) {
+                // --- Default path (unchanged behaviour) ---
+                if (this.content.isEmpty()) {
+                    if (!simulate) {
+                        setItem(stack);
+                    }
+                    return ItemStack.EMPTY;
                 }
-                return ItemStack.EMPTY;
-            }
-            if (!simulate) {
-                int total = Math.min(this.content.getCount() + stack.getCount(), this.content.getMaxStackSize());
-                this.content.setCount(total);
-            }
-            int remainder = this.content.getCount() + stack.getCount() - this.content.getMaxStackSize();
-            ItemStack result;
-            if (remainder > 0) {
-                result = stack.copy();
-                result.setCount(remainder);
+                if (!simulate) {
+                    int total = Math.min(this.content.getCount() + stack.getCount(), this.content.getMaxStackSize());
+                    this.content.setCount(total);
+                }
+                int remainder = this.content.getCount() + stack.getCount() - this.content.getMaxStackSize();
+                ItemStack result;
+                if (remainder > 0) {
+                    result = stack.copy();
+                    result.setCount(remainder);
+                } else {
+                    result = ItemStack.EMPTY;
+                }
+                onChanged(true);
+                return result;
             } else {
-                result = ItemStack.EMPTY;
+                // --- Capacity-limited path ---
+                int limit = Math.max(0, this.capacityProvider.apply(stack));
+                if (limit <= 0) return stack;
+                int currentCount = this.content.isEmpty() ? 0 : this.content.getCount();
+                int canAccept = Math.min(stack.getCount(), Math.max(0, limit - currentCount));
+                if (canAccept <= 0) return stack;
+                if (!simulate) {
+                    if (this.content.isEmpty()) {
+                        ItemStack toSet = stack.copy();
+                        toSet.setCount(canAccept);
+                        setItem(toSet);
+                    } else {
+                        this.content.setCount(currentCount + canAccept);
+                        onChanged(true);
+                    }
+                }
+                if (canAccept >= stack.getCount()) return ItemStack.EMPTY;
+                ItemStack remainder = stack.copy();
+                remainder.setCount(stack.getCount() - canAccept);
+                return remainder;
             }
-            onChanged(true);
-            return result;
         }
         return stack;
     }
 
     public boolean accepts(ItemStack stack) {
         return this.filter.test(stack);
+    }
+
+    /**
+     * Returns the maximum number of {@code stack} that this slot may hold in total.
+     * When no capacity provider is configured this is simply {@code stack.getMaxStackSize()}.
+     */
+    public int getCapacityFor(ItemStack stack) {
+        if (this.capacityProvider == null) return stack.getMaxStackSize();
+        return Math.max(0, this.capacityProvider.apply(stack));
     }
 
     public ItemStack extract(int amount, boolean simulate) {

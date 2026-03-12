@@ -12,11 +12,13 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import one.util.streamex.StreamEx;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class InventorySlotItemHandler implements IItemHandlerModifiable {
@@ -38,7 +40,13 @@ public class InventorySlotItemHandler implements IItemHandlerModifiable {
 
     public InventorySlot addSlot(String name, InventorySlot.Mode mode, Predicate<ItemStack> filter,
                                   Consumer<ItemStack> onChanged, boolean virtual) {
-        InventorySlot slot = new InventorySlot(this, name, mode, filter, onChanged, virtual);
+        return addSlot(name, mode, filter, onChanged, virtual, null);
+    }
+
+    public InventorySlot addSlot(String name, InventorySlot.Mode mode, Predicate<ItemStack> filter,
+                                  Consumer<ItemStack> onChanged, boolean virtual,
+                                  @Nullable Function<ItemStack, Integer> capacityProvider) {
+        InventorySlot slot = new InventorySlot(this, name, mode, filter, onChanged, virtual, capacityProvider);
         this.slots.add(slot);
         return slot;
     }

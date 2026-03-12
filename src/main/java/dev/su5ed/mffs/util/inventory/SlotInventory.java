@@ -52,6 +52,10 @@ public class SlotInventory extends Slot implements TooltipSlot {
     private final InventorySlot inventorySlot;
     @Nullable
     private final ITextComponent tooltip;
+    // Tracks the last item tested by isItemValid so getSlotStackLimit() can return the
+    // correct capacity for empty slots (vanilla mergeItemStack calls the no-arg variant).
+    @Nullable
+    private ItemStack lastValidatedItem;
 
     public SlotInventory(InventorySlot inventorySlot, int x, int y) {
         this(inventorySlot, x, y, null);
@@ -71,7 +75,13 @@ public class SlotInventory extends Slot implements TooltipSlot {
 
     @Override
     public boolean isItemValid(ItemStack stack) {
-        return !stack.isEmpty() && this.inventorySlot.canInsert(stack);
+        if (stack.isEmpty() || !this.inventorySlot.canInsert(stack)) return false;
+        this.lastValidatedItem = stack;
+        // Check that there is at least one unit of remaining capacity for this item.
+        ItemStack current = this.inventorySlot.getItem();
+        int currentCount = (!current.isEmpty() && ItemStack.areItemsEqual(current, stack)
+            && ItemStack.areItemStackTagsEqual(current, stack)) ? current.getCount() : 0;
+        return this.inventorySlot.getCapacityFor(stack) > currentCount;
     }
 
     @Override
@@ -81,6 +91,15 @@ public class SlotInventory extends Slot implements TooltipSlot {
 
     @Override
     public void putStack(ItemStack stack) {
+        if (!stack.isEmpty()) {
+            // Safety cap: vanilla mergeItemStack calls putStack directly without going through
+            // insert(), so enforce the capacity limit here as a last line of defence.
+            int limit = this.inventorySlot.getCapacityFor(stack);
+            if (stack.getCount() > limit) {
+                stack = stack.copy();
+                stack.setCount(limit);
+            }
+        }
         this.inventorySlot.setItem(stack);
         // onSlotChanged() intentionally omitted — setItem() already notifies via onChanged
     }
@@ -89,7 +108,21 @@ public class SlotInventory extends Slot implements TooltipSlot {
     public void onSlotChange(ItemStack oldStack, ItemStack newStack) {}
 
     @Override
+    public int getItemStackLimit(ItemStack stack) {
+        return this.inventorySlot.getCapacityFor(stack);
+    }
+
+    @Override
     public int getSlotStackLimit() {
+        ItemStack current = this.inventorySlot.getItem();
+        if (!current.isEmpty()) {
+            return this.inventorySlot.getCapacityFor(current);
+        }
+        // For empty slots, use the item from the most recent isItemValid call so that
+        // vanilla mergeItemStack (which calls the no-arg form) gets the correct limit.
+        if (this.lastValidatedItem != null && !this.lastValidatedItem.isEmpty()) {
+            return this.inventorySlot.getCapacityFor(this.lastValidatedItem);
+        }
         return 64;
     }
 
