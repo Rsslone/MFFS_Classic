@@ -64,9 +64,14 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
 
     @Override
     public int getLightOpacity(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return getCamouflageBlock(world, pos)
-            .map(camo -> camo.getLightOpacity(world, pos))
-            .orElse(0);
+        // Hot path: called by Chunk.setBlockState for every FF block placed during projection.
+        // Read the cached opacity from the TE (computed once in setCamouflage) rather than
+        // re-entering the getCamouflageBlock → world.getTileEntity → camo.getLightOpacity chain.
+        TileEntity te = world.getTileEntity(pos);
+        if (te instanceof ForceFieldBlockEntity ffe) {
+            return ffe.getCachedLightOpacity();
+        }
+        return 0;
     }
 
     @Override

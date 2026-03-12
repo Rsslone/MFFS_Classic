@@ -28,6 +28,10 @@ public class ForceFieldBlockEntity extends BaseTileEntity {
     private BlockPos projector;
     private IBlockState camouflage;
     private int clientBlockLight;
+    // Cached result of camouflage.getLightOpacity() so getLightOpacity() on the block
+    // can return immediately after the TE lookup without re-entering the camo lookup chain.
+    // 0 when no camouflage is set (force field is transparent).
+    private int cachedLightOpacity;
 
     public ForceFieldBlockEntity() {
         super();
@@ -50,8 +54,15 @@ public class ForceFieldBlockEntity extends BaseTileEntity {
         return this.camouflage;
     }
 
+    public int getCachedLightOpacity() {
+        return this.cachedLightOpacity;
+    }
+
     public void setCamouflage(IBlockState camouflage) {
         this.camouflage = camouflage;
+        this.cachedLightOpacity = (camouflage != null && this.world != null)
+            ? camouflage.getLightOpacity(this.world, this.pos)
+            : 0;
         markDirty();
     }
 
