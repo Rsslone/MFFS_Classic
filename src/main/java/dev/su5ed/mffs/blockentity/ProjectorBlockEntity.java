@@ -601,8 +601,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 if (existingTe instanceof ForceFieldBlockEntity be) {
                     IBlockState camouflage = getCamoBlock(pair.original());
                     be.setCamouflage(camouflage);
-                    // Send fresh update tag so clientBlockLight reflects current glow module count
-                    Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
+                    // Send from projector position so players near the projector receive updates
+                    // for all FF blocks regardless of each block's distance from the player.
+                    Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
+                        this.world, this.pos, computeFieldSendRadius());
                 }
             }
             // Mark as part of the new field; remove from pending-removal so it isn't deleted.
@@ -666,13 +668,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      */
     private void refreshFieldVisuals() {
         if (this.world == null || this.world.isRemote) return;
+        double radius = computeFieldSendRadius();
         for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
             net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
             if (te instanceof ForceFieldBlockEntity be) {
                 // Recompute camouflage — returns null when camo module is absent
                 IBlockState newCamo = getCamoBlock(new net.minecraft.util.math.Vec3d(pos.getX(), pos.getY(), pos.getZ()));
                 be.setCamouflage(newCamo);
-                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
+                    this.world, this.pos, radius);
             }
         }
     }
@@ -688,12 +692,32 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      */
     private void refreshFieldLights() {
         if (this.world == null || this.world.isRemote) return;
+        double radius = computeFieldSendRadius();
         for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
             net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
             if (te instanceof ForceFieldBlockEntity be) {
-                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()), this.world, pos, 64);
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
+                    this.world, this.pos, radius);
             }
         }
+    }
+
+    /**
+     * Returns the radius to use for {@link Network#sendToAllAround} when pushing
+     * per-block TE updates ({@code clientBlockLight}, camouflage).  Uses the
+     * projector's own position as the center so a single radius value covers ALL
+     * projected blocks, regardless of how far they are from the player.
+     *
+     * <p>The radius is: max distance from projector to any currently-projected
+     * block + 64 (a generous player-interaction buffer).  Falls back to 128 when
+     * {@code projectedBlocks} is empty (e.g. called during initial field build).
+     */
+    private double computeFieldSendRadius() {
+        double maxDistSq = this.projectedBlocks.stream()
+            .mapToDouble(this.pos::distanceSq)
+            .max()
+            .orElse(0);
+        return Math.sqrt(maxDistSq) + 64;
     }
 
     private void onModeChanged(ItemStack stack) {
@@ -739,12 +763,13 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      */
     private void zeroFieldBlockLights(Set<BlockPos> positions) {
         if (this.world == null || this.world.isRemote || positions.isEmpty()) return;
+        double radius = computeFieldSendRadius();
         for (BlockPos pos : new HashSet<>(positions)) {
             net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
             if (te instanceof ForceFieldBlockEntity be) {
                 NBTTagCompound zeroTag = be.getCustomUpdateTag();
                 zeroTag.setInteger("clientBlockLight", 0);
-                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, zeroTag), this.world, pos, 64);
+                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, zeroTag), this.world, this.pos, radius);
             }
         }
     }
