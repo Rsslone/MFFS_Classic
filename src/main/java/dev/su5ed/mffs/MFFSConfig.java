@@ -25,7 +25,7 @@ public final class MFFSConfig {
     /** Cache allows temporary data saving to decrease calculations required. */
     public static boolean useCache                     = true;
     /** How many force field blocks can be generated per tick? Less reduces lag. */
-    public static int     maxFFGenPerTick              = 1_000_000;
+    public static int     maxFFGenPerTick              = 1_000;
     /** Allow server operators to bypass Force Field biometry. */
     public static boolean allowOpBiometryOverride      = true;
     /** Should the interdiction matrix interact with creative players? */
@@ -110,7 +110,7 @@ public final class MFFSConfig {
             "Turning this to false will make MFFS run without electricity or energy systems required. Great for vanilla!");
         useCache = configuration.getBoolean("useCache", "general", useCache,
             "Cache allows temporary data saving to decrease calculations required");
-        maxFFGenPerTick = configuration.getInt("maxFFGenPerTick", "general", maxFFGenPerTick, 0, Integer.MAX_VALUE,
+        maxFFGenPerTick = configuration.getInt("maxFFGenPerTick", "performance", maxFFGenPerTick, 0, Integer.MAX_VALUE,
             "How many force field blocks can be generated per tick? Less reduces lag.");
         allowOpBiometryOverride = configuration.getBoolean("allowOpBiometryOverride", "general", allowOpBiometryOverride,
             "Allow server operators to bypass Force Field biometry");
