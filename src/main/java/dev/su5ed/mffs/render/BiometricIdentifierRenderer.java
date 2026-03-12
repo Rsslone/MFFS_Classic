@@ -6,6 +6,7 @@ package dev.su5ed.mffs.render;
 
 import dev.su5ed.mffs.block.BiometricIdentifierBlock;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
+import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
@@ -21,6 +22,7 @@ import org.lwjgl.opengl.GL11;
 @SideOnly(Side.CLIENT)
 public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<BiometricIdentifierBlockEntity> {
     private static final ResourceLocation HOLO_SCREEN_TEXTURE = new ResourceLocation("mffs", "textures/model/holo_screen.png");
+    private static final ResourceLocation EMISSIVE_TEXTURE     = new ResourceLocation("mffs", "textures/model/biometric_identifier_emissive.png");
     // holo_screen.png is a 32x288 spritesheet (9 frames of 32x32).
     // frametime=2 matches the .mcmeta. Direct-bound textures don't go through the atlas
     // animation system, so we drive the frame manually from world time.
@@ -30,6 +32,10 @@ public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<Biome
     @Override
     public void render(BiometricIdentifierBlockEntity te, double x, double y, double z,
                        float partialTicks, int destroyStage, float alpha) {
+        if (te.getWorld() != null) {
+            CodeChickenLibEmissiveCompat.renderBlockEmissive(
+                te.getWorld().getBlockState(te.getPos()), x, y, z, EMISSIVE_TEXTURE, te.isActive());
+        }
         if (!te.hasWorld() || !te.isActive()) return;
 
         EnumFacing facing = te.getWorld().getBlockState(te.getPos())

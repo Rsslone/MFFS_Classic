@@ -79,8 +79,6 @@ public final class RenderTickHandler {
 
     @SubscribeEvent
     public static void renderLevelLate(RenderWorldLastEvent event) {
-        if (transparentRenderers.isEmpty()) return;
-
         Minecraft mc = Minecraft.getMinecraft();
         Entity viewer = mc.getRenderViewEntity();
         if (viewer == null) return;
@@ -89,8 +87,15 @@ public final class RenderTickHandler {
         double camX = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTick;
         double camY = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTick;
         double camZ = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTick;
-        final Vec3d camPos = new Vec3d(camX, camY, camZ);
 
+        // Render camo-TESR delegates (force field blocks camouflaged as chests etc.).
+        // This replaces the old class-wide ForceFieldBlockEntityRenderer TESR registration;
+        // only the small set of instances that actually have a delegate is iterated here.
+        BlockEntityRenderDelegate.INSTANCE.renderAllDelegates(camX, camY, camZ, partialTick);
+
+        if (transparentRenderers.isEmpty()) return;
+
+        final Vec3d camPos = new Vec3d(camX, camY, camZ);
         final int ticks = clientTicks;
 
         // Translate to world-origin (blocks at absolute coords) from camera-relative space

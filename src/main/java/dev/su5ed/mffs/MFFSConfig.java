@@ -68,14 +68,14 @@ public final class MFFSConfig {
     public static boolean disableForceFieldEffectsForAuthorizedPlayers = false;
     /** Allow authorized players to walk through force fields without sneaking. */
     public static boolean allowWalkThroughForceFields                  = false;
-    /** If enabled and CodeChickenLib is installed, render an emissive effect on force field blocks. */
-    public static boolean enableCodeChickenLibEmissiveForceFields     = true;
 
     // -------------------------------------------------------------------------
     // Client
     // -------------------------------------------------------------------------
     /** Apply a fancy glitch effect on projector mode renders. */
     public static boolean enableProjectorModeGlitch = true;
+    /** If enabled and CodeChickenLib is installed, render an emissive accent overlay on machine blocks (deriver, projector, capacitor, biometric identifier). */
+    public static boolean enableCodeChickenLibEmissiveBlocks          = true;
     /** Spacing used for force field light sources: 1 = every block, 3 = ~1/3 of blocks emit light. */
     public static int forceFieldLightSpacing = 3;
     /** How many deferred world.checkLight() calls to process per client tick when the Glow Module is active. */
@@ -151,13 +151,13 @@ public final class MFFSConfig {
             "Remove confusion and slowness effects for authorized players passing through force fields");
         allowWalkThroughForceFields = configuration.getBoolean("allowWalkThroughForceFields", "force_field", allowWalkThroughForceFields,
             "Allow authorized players to walk through force fields without sneaking. WARNING: May cause occasional clipping issues on horizontal platforms.");
-        enableCodeChickenLibEmissiveForceFields = configuration.getBoolean("enableCodeChickenLibEmissiveForceFields", "force_field",
-            enableCodeChickenLibEmissiveForceFields,
-            "If enabled and CodeChickenLib is installed, render an emissive effect on force field blocks.");
 
         // -- Client (best-effort; Configuration does not distinguish client/common in 1.12.2) --
         enableProjectorModeGlitch = configuration.getBoolean("enableProjectorModeGlitch", "client", enableProjectorModeGlitch,
             "Apply a fancy glitch effect on projector mode renders. Reload resources to apply change.");
+        enableCodeChickenLibEmissiveBlocks = configuration.getBoolean("enableCodeChickenLibEmissiveBlocks", "client",
+            enableCodeChickenLibEmissiveBlocks,
+            "If enabled and CodeChickenLib is installed, render an emissive blue-accent overlay on machine blocks when active.");
 
         // -- Performance --
         forceFieldLightSpacing = configuration.getInt("forceFieldLightSpacing", "performance", forceFieldLightSpacing, 1, Integer.MAX_VALUE,
