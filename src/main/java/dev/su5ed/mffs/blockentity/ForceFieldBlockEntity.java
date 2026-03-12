@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ForceFieldBlockEntity extends BaseBlockEntity {
+public class ForceFieldBlockEntity extends BaseTileEntity {
 
     /**
      * Client-side queue of positions that need world.checkLight() called.
