@@ -24,10 +24,12 @@ public final class MFFSConfig {
     public static boolean enableElectricity            = true;
     /** Cache allows temporary data saving to decrease calculations required. */
     public static boolean useCache                     = true;
-    /** Blocks placed per speed module per projection tick (base is always 28). Default 14 = half the original 28. */
+    /** Base number of blocks projected per tick before speed modules are applied. Default 14. */
+    public static int     baseProjectionSpeed          = 14;
+    /** Blocks placed per speed module per projection tick. Default 14 = half the original 28. */
     public static int     speedModuleFactor            = 14;
     /** Divides the speed-module count when computing the removal drain rate.
-     *  Formula: 28 + speedModuleFactor * (speedModules / drainSpeedFactor). Higher = slower removal per speed module. */
+     *  Formula: baseProjectionSpeed + speedModuleFactor * (speedModules / drainSpeedFactor). Higher = slower removal per speed module. */
     public static int     drainSpeedFactor             = 2;
     /** Allow server operators to bypass Force Field biometry. */
     public static boolean allowOpBiometryOverride      = true;
@@ -115,10 +117,12 @@ public final class MFFSConfig {
             "Turning this to false will make MFFS run without electricity or energy systems required. Great for vanilla!");
         useCache = configuration.getBoolean("useCache", "general", useCache,
             "Cache allows temporary data saving to decrease calculations required");
+        baseProjectionSpeed = configuration.getInt("baseProjectionSpeed", "performance", baseProjectionSpeed, 1, Integer.MAX_VALUE,
+            "Base number of blocks the projector places per tick before speed modules are counted. Default 14 (original was 28).");
         speedModuleFactor = configuration.getInt("speedModuleFactor", "performance", speedModuleFactor, 1, Integer.MAX_VALUE,
-            "Blocks added to projection speed per speed module per tick. Formula: 28 + speedModuleFactor * speedModules. Default 14 (half the original 28).");
+            "Blocks added to projection speed per speed module per tick. Formula: baseProjectionSpeed + speedModuleFactor * speedModules. Default 14 (half the original 28).");
         drainSpeedFactor = configuration.getInt("drainSpeedFactor", "performance", drainSpeedFactor, 1, Integer.MAX_VALUE,
-            "Divides the speed-module count when computing the removal drain rate. Formula: 28 + speedModuleFactor * (speedModules / drainSpeedFactor). Higher values slow down removal per speed module.");
+            "Divides the speed-module count when computing the removal drain rate. Formula: baseProjectionSpeed + speedModuleFactor * (speedModules / drainSpeedFactor). Higher values slow down removal per speed module.");
         allowOpBiometryOverride = configuration.getBoolean("allowOpBiometryOverride", "general", allowOpBiometryOverride,
             "Allow server operators to bypass Force Field biometry");
         interactCreative = configuration.getBoolean("interactCreative", "general", interactCreative,

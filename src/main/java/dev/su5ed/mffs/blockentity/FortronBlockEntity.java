@@ -125,6 +125,7 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
      * Called before the tile entity is removed from the world.
      * Transfers remaining Fortron to nearby tiles.
      */
+    @Override
     public void preRemoveSideEffects(BlockPos pos) {
         if (this.markSendFortron) {
             Fortron.transferFortron(this.fortronStorage, FrequencyGrid.instance().get(this.world, this.pos, 100, this.fortronStorage.getFrequency()), TransferMode.DRAIN, Integer.MAX_VALUE);

@@ -14,6 +14,7 @@ package dev.su5ed.mffs.block;
 // =============================================================================
 
 import dev.su5ed.mffs.blockentity.BaseBlockEntity;
+import dev.su5ed.mffs.blockentity.BaseTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
@@ -96,6 +97,20 @@ public abstract class BaseEntityBlock extends Block implements ITileEntityProvid
     @Override
     public TileEntity createNewTileEntity(World worldIn, int meta) {
         return this.provider.get();
+    }
+
+    /**
+     * Called when the block is broken (both survival and creative).
+     * Runs {@link BaseTileEntity#preRemoveSideEffects} before the tile entity is removed,
+     * then delegates to {@code super.breakBlock} which removes the TE from the world.
+     */
+    @Override
+    public void breakBlock(World worldIn, BlockPos pos, IBlockState state) {
+        TileEntity te = worldIn.getTileEntity(pos);
+        if (te instanceof BaseTileEntity base) {
+            base.preRemoveSideEffects(pos);
+        }
+        super.breakBlock(worldIn, pos, state);
     }
 
     /** Meta bit 0 = ACTIVE flag. Subclasses that add extra properties must override both. */

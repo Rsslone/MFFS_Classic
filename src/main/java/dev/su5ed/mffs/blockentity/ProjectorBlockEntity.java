@@ -255,7 +255,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     public int computeAnimationSpeed() {
         int speed = 2;
         int fortronCost = getFortronCost();
-        if (isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost)) {
+        // Speed up the rotor only when:
+        //   1. The projector is active with a mode present.
+        //   2. The field is actually placed (projectedBlocks non-empty) — no speeding up
+        //      while the field is being built or has been destroyed.
+        //   3. The Fortron reserve meets the same clamped-minimum threshold used by the
+        //      placement guards, so the rotor tracks the real sustained state rather than
+        //      flickering whenever projectionCycleTicks is set below the default of 5.
+        if (isActive() && getMode().isPresent() && !this.projectedBlocks.isEmpty()
+                && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
             speed *= fortronCost / 8.0F;
         }
         return Math.min(120, speed);
@@ -370,7 +378,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     });
                 } else if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
                     reCalculateForceField();
-                } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)) {
+                } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)
+                        && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
+                    // Buffer must cover the capacitor transfer interval (10 ticks) PLUS one tick of
+                    // safety margin.  The outer gate fires every tick; if the projector ticks before
+                    // the capacitor on the 10th tick, stored drops to fortronCost rather than 0,
+                    // keeping canConsumeFieldCost true until the burst replenishes the tank.
                     projectField();
                 }
 
@@ -386,7 +399,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
                 // Drain orphan blocks left over from a soft destroy (resize / module change)
                 if (!this.pendingRemoval.isEmpty()) {
-                    int speed = 28 + MFFSConfig.speedModuleFactor * (getModuleCount(ModModules.SPEED, getUpgradeSlots()) / MFFSConfig.drainSpeedFactor);
+                    int speed = MFFSConfig.baseProjectionSpeed + MFFSConfig.speedModuleFactor * (getModuleCount(ModModules.SPEED, getUpgradeSlots()) / MFFSConfig.drainSpeedFactor);
                     int drained = 0;
                     Iterator<BlockPos> orphanIt = this.pendingRemoval.iterator();
                     while (orphanIt.hasNext() && drained < speed) {
@@ -403,7 +416,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 }
             }
 
-            if (getTicks() % (2 * 20) == 0 && !hasModule(ModModules.SILENCE)) {
+            if (getTicks() % (2 * 20) == 0 && !hasModule(ModModules.SILENCE)
+                    && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
+                // Only play the field sound when the projector is in a fully sustainable state
+                // (enough Fortron buffer to cover the next projection cycle). In low-power mode
+                // the projector runs silently so players have an audio cue that power is marginal.
                 // 1.21.x: SoundSource.BLOCKS → SoundCategory.BLOCKS
                 this.world.playSound(null, this.pos, ModSounds.FIELD, SoundCategory.BLOCKS, 0.4F, 1 - this.world.rand.nextFloat() * 0.1F);
             }
@@ -625,6 +642,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             boolean isOwnField = existingTe instanceof ForceFieldBlockEntity ffe && this.pos.equals(ffe.getProjectorPos());
 
             if (!isOwnField) {
+                // Stop placing when Fortron would drop below the full-cycle reserve threshold.
+                // This ensures that after this projection sweep, enough Fortron remains to cover
+                // every maintenance tick until the next projection cycle fires, preventing the
+                // place-then-destroy oscillation seen with marginal power supplies.
+                // Reclaim paths spend no Fortron and are always safe to continue.
+                if (this.fortronStorage.getStoredFortron() <= getFortronCost() * Math.max(MFFSConfig.projectionCycleTicks, 11)) break fieldLoop;
                 // 1.21.x: level.setBlock(pos, state, Block.UPDATE_NONE) → world.setBlockState(pos, state, 0)
                 this.world.setBlockState(pos, state, 0);
                 // Set the controlling projector of the force field block to this one
@@ -909,7 +932,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // Also flush any blocks pending from a prior soft destroy and cancel any in-flight diff.
         this.pendingDiffSnapshot = null;
         Set<BlockPos> alsoRemove = new HashSet<>(this.pendingRemoval);
+        // Include actually-placed blocks so breaking a projector mid-transition doesn't orphan them.
+        alsoRemove.addAll(this.projectedBlocks);
+        // Include NBT-restored blocks that haven't been reconciled with the new field yet.
+        alsoRemove.addAll(this.savedProjectedBlocks);
         this.pendingRemoval.clear();
+        this.savedProjectedBlocks.clear();
         Collection<TargetPosPair> fieldPositions = getCalculatedFieldPositions();
         this.calculatedFieldSet = Collections.emptySet();
         this.projectedBlocks.clear();
@@ -978,7 +1006,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     @Override
     public int getProjectionSpeed() {
-        return 28 + MFFSConfig.speedModuleFactor * getModuleCount(ModModules.SPEED, getUpgradeSlots());
+        return MFFSConfig.baseProjectionSpeed + MFFSConfig.speedModuleFactor * getModuleCount(ModModules.SPEED, getUpgradeSlots());
     }
 
     @Override

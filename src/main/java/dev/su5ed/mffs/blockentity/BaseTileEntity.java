@@ -39,6 +39,13 @@ public abstract class BaseTileEntity extends TileEntity {
     }
 
     /**
+     * Called just before the block and tile entity are removed from the world (both survival
+     * and creative breaks).  Override to perform cleanup — e.g. destroying a force field or
+     * draining stored Fortron to neighbours.  Always call {@code super.preRemoveSideEffects(pos)}.
+     */
+    public void preRemoveSideEffects(BlockPos pos) {}
+
+    /**
      * Called when the block is broken to gather drops. Subclasses should add items to the list.
      */
     public void provideAdditionalDrops(List<? super ItemStack> drops) {}

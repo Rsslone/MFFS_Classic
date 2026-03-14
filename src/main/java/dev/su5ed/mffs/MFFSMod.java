@@ -24,7 +24,9 @@ import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import dev.su5ed.mffs.command.MffsCommand;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
@@ -89,6 +91,11 @@ public final class MFFSMod {
             // 1.12 furnace recipes are registered in code.
             GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
         }
+    }
+
+    @EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new MffsCommand());
     }
 
     @EventHandler
