@@ -70,11 +70,13 @@ public class ProjectorBlock extends BaseEntityBlock {
 
     @Override
     public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
-        TileEntity te = world.getTileEntity(pos);
-        if (te != null && te.hasCapability(ModCapabilities.PROJECTOR, null)) {
-            Projector projector = te.getCapability(ModCapabilities.PROJECTOR, null);
-            if (projector != null && projector.getMode().isPresent()) {
-                return 10;
+        if (state.getValue(BaseEntityBlock.ACTIVE)) {
+            TileEntity te = world.getTileEntity(pos);
+            if (te != null && te.hasCapability(ModCapabilities.PROJECTOR, null)) {
+                Projector projector = te.getCapability(ModCapabilities.PROJECTOR, null);
+                if (projector != null && projector.getMode().isPresent()) {
+                    return 10;
+                }
             }
         }
         return super.getLightValue(state, world, pos);
