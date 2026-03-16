@@ -25,10 +25,11 @@ public class CylinderProjectorMode implements ProjectorMode {
         int negY = negScale.getY();
         int posY = posScale.getY();
 
-        for (float x = -radius; x <= radius; x += 1) {
-            for (float z = -radius; z <= radius; z += 1) {
-                for (float y = -negY; y <= posY; y += 1) {
-                    float area = x * x + z * z + RADIUS_EXPANSION;
+        // Step 0.5 prevents holes in the cylindrical shell after any rotation
+        for (double x = -radius; x <= radius; x += 0.5) {
+            for (double z = -radius; z <= radius; z += 0.5) {
+                for (double y = -negY; y <= posY; y += 0.5) {
+                    double area = x * x + z * z + RADIUS_EXPANSION;
                     if (area <= radius * radius && (y == -negY || y == posY || area >= (radius - 1) * (radius - 1))) {
                         fieldBlocks.add(new Vec3d(x, y, z));
                     }

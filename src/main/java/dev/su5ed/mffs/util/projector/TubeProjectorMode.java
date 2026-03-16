@@ -15,16 +15,16 @@ public class TubeProjectorMode extends CubeProjectorMode {
         Set<Vec3d> fieldBlocks = new HashSet<>();
         BlockPos posScale = projector.getPositiveScale();
         BlockPos negScale = projector.getNegativeScale();
-        // Top and bottom faces (like cube)
-        for (int x = -negScale.getX(); x <= posScale.getX(); x++) {
-            for (int z = -negScale.getZ(); z <= posScale.getZ(); z++) {
+        // Top and bottom faces — step 0.5 prevents holes after any rotation
+        for (double x = -negScale.getX(); x <= posScale.getX(); x += 0.5) {
+            for (double z = -negScale.getZ(); z <= posScale.getZ(); z += 0.5) {
                 fieldBlocks.add(new Vec3d(x, posScale.getY(), z));
                 fieldBlocks.add(new Vec3d(x, -negScale.getY(), z));
             }
         }
         // Left and right faces only (no front/back — that's what makes it a tube)
-        for (int z = -negScale.getZ(); z <= posScale.getZ(); z++) {
-            for (int y = -negScale.getY(); y <= posScale.getY(); y++) {
+        for (double z = -negScale.getZ(); z <= posScale.getZ(); z += 0.5) {
+            for (double y = -negScale.getY(); y <= posScale.getY(); y += 0.5) {
                 fieldBlocks.add(new Vec3d(posScale.getX(), y, z));
                 fieldBlocks.add(new Vec3d(-negScale.getX(), y, z));
             }
