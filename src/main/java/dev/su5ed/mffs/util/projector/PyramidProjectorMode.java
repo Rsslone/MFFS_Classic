@@ -24,33 +24,32 @@ public final class PyramidProjectorMode implements ProjectorMode {
         int zStretch = posScale.getZ() + negScale.getZ();
         Vec3d translation = new Vec3d(0, -negScale.getY(), 0);
 
-        int inverseThickness = 8;
+        // Dense 0.5 sampling prevents holes after rotation, while generating only
+        // the perimeter of each Y slice keeps the shell one block thick.
+        if (xStretch <= 0 || yStretch <= 0 || zStretch <= 0) {
+            fieldBlocks.add(translation);
+            return fieldBlocks;
+        }
 
-        // Step 0.5 prevents holes in the pyramid shell after any rotation
         for (float y = 0; y <= yStretch; y += 0.5f) {
-            for (float x = -xStretch; x <= xStretch; x += 0.5f) {
-                for (float z = -zStretch; z <= zStretch; z += 0.5f) {
-                    double yTest = y / yStretch * inverseThickness;
-                    double xzPositivePlane = (1 - x / xStretch - z / zStretch) * inverseThickness;
-                    double xzNegativePlane = (1 + x / xStretch - z / zStretch) * inverseThickness;
+            double t = 1.0 - (double) y / yStretch;
+            double xLimit = xStretch * t;
+            double zLimit = zStretch * t;
 
-                    // Positive Positive Plane
-                    if (x >= 0 && z >= 0 && Math.round(xzPositivePlane) == Math.round(yTest)) {
-                        fieldBlocks.add(new Vec3d(x, y, z).add(translation));
-                        fieldBlocks.add(new Vec3d(x, y, -z).add(translation));
-                    }
+            for (double z = -zLimit; z <= zLimit; z += 0.5) {
+                fieldBlocks.add(new Vec3d(xLimit, y, z).add(translation));
+                fieldBlocks.add(new Vec3d(-xLimit, y, z).add(translation));
+            }
 
-                    // Negative Positive Plane
-                    if (x <= 0 && z >= 0 && Math.round(xzNegativePlane) == Math.round(yTest)) {
-                        fieldBlocks.add(new Vec3d(x, y, -z).add(translation));
-                        fieldBlocks.add(new Vec3d(x, y, z).add(translation));
-                    }
+            for (double x = -xLimit; x <= xLimit; x += 0.5) {
+                fieldBlocks.add(new Vec3d(x, y, zLimit).add(translation));
+                fieldBlocks.add(new Vec3d(x, y, -zLimit).add(translation));
+            }
+        }
 
-                    // Ground Level Plane
-                    if (y == 0 && Math.abs(x) + Math.abs(z) < (xStretch + yStretch) / 2.0) {
-                        fieldBlocks.add(new Vec3d(x, y, z).add(translation));
-                    }
-                }
+        for (double x = -xStretch; x <= xStretch; x += 0.5) {
+            for (double z = -zStretch; z <= zStretch; z += 0.5) {
+                fieldBlocks.add(new Vec3d(x, 0, z).add(translation));
             }
         }
 
@@ -106,7 +105,7 @@ public final class PyramidProjectorMode implements ProjectorMode {
         Vec3d max = new Vec3d(posScale.getX(), posScale.getY(), posScale.getZ());
 
         return isIn(min, max, relativeRotated) && relativeRotated.y > 0
-            && 1 - Math.abs(relativeRotated.x) / xStretch - Math.abs(relativeRotated.z) / zStretch > relativeRotated.y / yStretch;
+            && Math.max(Math.abs(relativeRotated.x) / xStretch, Math.abs(relativeRotated.z) / zStretch) < 1.0 - relativeRotated.y / yStretch;
     }
 
     private static boolean isIn(Vec3d min, Vec3d max, Vec3d vec) {
