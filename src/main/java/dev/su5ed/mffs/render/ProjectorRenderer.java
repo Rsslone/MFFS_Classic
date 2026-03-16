@@ -70,8 +70,8 @@ public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockE
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();
 
-        // Phase 3: Render holographic pyramid + mode shape (when mode is present)
-        if (te.getMode().isPresent()) {
+        // Phase 3: Render holographic pyramid + mode shape (active + mode present only)
+        if (te.isActive() && te.getMode().isPresent()) {
             renderHoloPyramid(te, x, y, z, partialTicks);
 
             // Phase 4: Render the mode-specific holographic shape (cube/sphere/etc)

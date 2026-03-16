@@ -123,12 +123,15 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
     @Override
     public boolean doesSideBlockRendering(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing face) {
         // Delegate to the camouflage block when present.
-        // Otherwise, return true only when the neighbor on this face is also a force field block so
-        // that the shared internal face is culled (making adjacent force fields appear seamless).
-        // All faces touching non-force-field blocks return false so those faces always render.
+        // Regardless of camo, always cull the shared face when the neighbor is also a force field
+        // so that adjacent force fields appear seamless (no inner seam faces rendered).
+        // For non-force-field neighbors, defer to the camo block's own doesSideBlockRendering.
         return getCamouflageBlock(world, pos)
             .filter(this::preventStackOverflow)
-            .map(s -> s.doesSideBlockRendering(world, pos, face))
+            .map(s -> {
+                if (world.getBlockState(pos.offset(face)).getBlock() instanceof ForceFieldBlock) return true;
+                return s.doesSideBlockRendering(world, pos, face);
+            })
             .orElseGet(() -> world.getBlockState(pos.offset(face)).getBlock() instanceof ForceFieldBlock);
     }
 
