@@ -45,8 +45,7 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
 
     protected FortronBlockEntity() {
         super();
-        // 1000 mB per bucket (replaces NeoForge FluidType.BUCKET_VOLUME)
-        this.fortronStorage = new FortronStorageImpl(this, getBaseFortronTankCapacity() * 1000, this::markDirty);
+        this.fortronStorage = new FortronStorageImpl(this, getBaseFortronTankCapacity(), this::markDirty);
         this.frequencySlot = addSlot("frequency", InventorySlot.Mode.BOTH, ModUtil::isCard, this::onFrequencySlotChanged);
     }
 
@@ -58,9 +57,9 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
         this.markSendFortron = markSendFortron;
     }
 
-    /** @return The initial fortron tank capacity in buckets */
+    /** @return The initial Fortron tank capacity in F */
     public int getBaseFortronTankCapacity() {
-        return 1;
+        return 1000;
     }
 
     protected List<ItemStack> getCards() {

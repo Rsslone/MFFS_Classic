@@ -11,6 +11,7 @@ package dev.su5ed.mffs.blockentity;
 // import net.minecraft.world.level.storage.ValueOutput;
 // import dev.su5ed.mffs.setup.ModObjects;
 
+import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.card.CoordLink;
 import dev.su5ed.mffs.api.fortron.FortronCapacitor;
 import dev.su5ed.mffs.api.fortron.FortronStorage;
@@ -56,7 +57,12 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
 
     @Override
     public int getBaseFortronTankCapacity() {
-        return 700;
+        return MFFSConfig.fortronCapacitorInitialTankCapacity;
+    }
+
+    @Override
+    protected int getCapacityBoostPerModule() {
+        return MFFSConfig.fortronCapacitorTankCapacityPerModule;
     }
 
     @Override
@@ -74,10 +80,14 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
     public void tickServer() {
         super.tickServer();
 
-        consumeCost();
+        // Bill maintenance cost as a burst, aligned with the Fortron distribution window.
+        // Same total drain as per-tick, but in sync with when Fortron actually moves on the network.
+        if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
+            this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
+        }
 
         // Distribute fortron across the network
-        if (isActive() && getTicks() % 10 == 0) {
+        if (isActive() && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
             Set<FortronStorage> machines = new HashSet<>();
 
             for (ItemStack stack : getCards()) {
@@ -121,12 +131,12 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
 
     @Override
     public int getTransmissionRange() {
-        return 15 + getModuleCount(ModModules.SCALE);
+        return MFFSConfig.fortronCapacitorInitialRange + MFFSConfig.fortronCapacitorRangePerModule * getModuleCount(ModModules.SCALE);
     }
 
     @Override
     public int getTransmissionRate() {
-        return 250 + 50 * getModuleCount(ModModules.SPEED);
+        return MFFSConfig.fortronCapacitorInitialTransmissionRate + MFFSConfig.fortronCapacitorTransmissionRatePerModule * getModuleCount(ModModules.SPEED);
     }
 
     @Override

@@ -154,7 +154,7 @@
   "screen.mffs.fortron": "Fortron: %s L / %s L",
   "screen.mffs.fortron.name": "Fortron:",
   "screen.mffs.fortron.value": "%s L / %s L",
-  "screen.mffs.fortron.short": "Fortron: %s L",
+  "screen.mffs.fortron.short": "Fortron: %s F",
   "screen.mffs.fortron.tooltip": "Fortron is the type of force energy used in MFFS machines.",
   "screen.mffs.fortron_cost": "%s%s F/s",
   "screen.mffs.upgrade": "Upgrade",

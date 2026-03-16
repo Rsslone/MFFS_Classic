@@ -97,7 +97,7 @@ public final class ModModules {
     // --- Inner classes ---
 
     public static class BaseModuleType<T extends Module> implements ModuleType<T> {
-        private final float fortronCost;
+        private float fortronCost;
         private final Set<Module.Category> categories;
         private final ModuleFactory<T> factory;
 
@@ -105,6 +105,10 @@ public final class ModModules {
             this.factory = factory;
             this.fortronCost = fortronCost;
             this.categories = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(categories)));
+        }
+
+        public void setFortronCost(float fortronCost) {
+            this.fortronCost = fortronCost;
         }
 
         @Override

@@ -20,14 +20,13 @@ package dev.su5ed.mffs.blockentity;
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.menu.CoercionDeriverMenu;
 import dev.su5ed.mffs.setup.ModModules;
-import dev.su5ed.mffs.setup.ModTags;
 import dev.su5ed.mffs.util.ModUtil;
 import dev.su5ed.mffs.util.inventory.InventorySlot;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -43,7 +42,8 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
     public final List<InventorySlot> upgradeSlots;
 
     // NOTE: Tructated to short when syncing to the client
-    private int processTime;
+    private int    processTime;
+    private double activeCatalystMultiplier = 0.0;
     private EnergyMode energyMode = EnergyMode.DERIVE;
 
     public int fortronProducedLastTick = 0;
@@ -54,7 +54,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         // 1.21.x: stack.getCapability(Capabilities.Energy.ITEM, ItemAccess.forStack(stack)) != null
         this.batterySlot = addSlot("battery", InventorySlot.Mode.BOTH, stack -> stack.getCapability(CapabilityEnergy.ENERGY, null) != null);
         // 1.21.x: stack.is(ModTags.FORTRON_FUEL)
-        this.fuelSlot = addSlot("fuel", InventorySlot.Mode.BOTH, stack -> !OreDictionary.getOres(ModTags.FORTRON_FUEL).isEmpty() && OreDictionary.containsMatch(false, OreDictionary.getOres(ModTags.FORTRON_FUEL), stack));
+        this.fuelSlot = addSlot("fuel", InventorySlot.Mode.BOTH, stack -> MFFSConfig.getCatalystEntry(stack) != null);
         this.upgradeSlots = createUpgradeSlots(3);
         this.energy.setMaxTransfer(getMaxFETransferRate());
         this.energy.setCapacity(getScaledFECapacity());
@@ -90,7 +90,12 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
 
     @Override
     public int getBaseFortronTankCapacity() {
-        return 30; //TODO config
+        return MFFSConfig.coercionDriverInitialTankCapacity;
+    }
+
+    @Override
+    protected int getCapacityBoostPerModule() {
+        return MFFSConfig.coercionDriverTankCapacityPerModule;
     }
 
     @Override
@@ -125,7 +130,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
                 // Check if we can afford the effective cost for at least 1 Fortron.
                 // Speed modules reduce the per-Fortron cost, matching 1.7.10's balanced scaling.
                 if (this.energy.extractEnergy(getEffectiveCostPerFortron(), true) >= getEffectiveCostPerFortron()
-                    || !MFFSConfig.enableElectricity && hasFuel()) {
+                    || !MFFSConfig.enableElectricity && (hasFuel() || hasQueuedFuel())) {
                     produceFortron();
                     consumeFuel();
                 }
@@ -134,13 +139,27 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
     }
 
     private void consumeFuel() {
-        // TODO Fuel display
-        if (this.processTime == 0 && hasFuel()) {
-            this.fuelSlot.getItem().shrink(1);
-            // 1.21.x: MFFSConfig.COMMON.catalystBurnTime.get()
-            this.processTime = MFFSConfig.catalystBurnTime * Math.max(getModuleCount(ModModules.SCALE) / 20, 1);
+        // Start a new catalyst item when the current burn ends and more is queued in the slot.
+        // activeCatalystMultiplier and burnTicks are taken from the item's config entry,
+        // so different items can have different durations and boost strengths.
+        if (this.processTime == 0 && hasQueuedFuel()) {
+            ItemStack fuelItem = this.fuelSlot.getItem();
+            MFFSConfig.CatalystEntry entry = MFFSConfig.getCatalystEntry(fuelItem);
+            if (entry != null) {
+                fuelItem.shrink(1);
+                int scaleFactor = Math.max(getModuleCount(ModModules.SCALE) / 20, 1);
+                this.processTime = entry.burnTicks * scaleFactor;
+                this.activeCatalystMultiplier = entry.multiplier;
+            }
         }
-        this.processTime = Math.max(--this.processTime, 0);
+        // Advance the burn timer. This is only called when the deriver is actually
+        // producing Fortron, so catalyst ticks do NOT drain while the tank is full.
+        if (this.processTime > 0) {
+            this.processTime--;
+            if (this.processTime == 0) {
+                this.activeCatalystMultiplier = 0.0;
+            }
+        }
     }
 
     private void produceFortron() {
@@ -226,18 +245,23 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
      */
     public int getMaxFortronProducedPerTick() {
         if (isActive()) {
-            // 1.21.x: MFFSConfig.COMMON.coercionDriverFortronPerTick.get()
-            final int perTick = MFFSConfig.coercionDriverFortronPerTick;
-            final int speedBonus = MFFSConfig.coercionDriverFortronPerTickSpeedModule * getModuleCount(ModModules.SPEED);
+            final int perTick = MFFSConfig.coercionDriverFortronPerSecond / 20;
+            final int speedBonus = (MFFSConfig.coercionDriverFortronPerSecondSpeedModule / 20) * getModuleCount(ModModules.SPEED);
             final int production = perTick + speedBonus;
-            final double catMultiplier = this.hasFuel() ? Math.max(MFFSConfig.catalystMultiplier, 0) : 0;
+            final double catMultiplier = hasFuel() ? Math.max(this.activeCatalystMultiplier, 0) : 0;
             return production + (int) Math.floor(production * catMultiplier);
         }
         return 0;
     }
 
+    /** Returns true while a catalyst is actively burning (processTime > 0). */
     public boolean hasFuel() {
-        return !this.fuelSlot.isEmpty();
+        return this.processTime > 0;
+    }
+
+    /** Returns true if there is a valid catalyst item queued in the fuel slot ready to be consumed. */
+    private boolean hasQueuedFuel() {
+        return !this.fuelSlot.isEmpty() && MFFSConfig.getCatalystEntry(this.fuelSlot.getItem()) != null;
     }
 
     // 1.21.x: createMenu(int containerId, Inventory inventory, Player player) -> AbstractContainerMenu
@@ -249,6 +273,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         super.saveTag(compound);
 
         compound.setInteger("processTime", this.processTime);
+        compound.setDouble("activeCatalystMultiplier", this.activeCatalystMultiplier);
         compound.setString("energyMode", this.energyMode.name());
     }
 
@@ -257,6 +282,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         super.loadTag(compound);
 
         this.processTime = compound.getInteger("processTime");
+        this.activeCatalystMultiplier = compound.getDouble("activeCatalystMultiplier");
         String energyModeName = compound.getString("energyMode");
         if (!energyModeName.isEmpty()) {
             try { this.energyMode = EnergyMode.valueOf(energyModeName); } catch (IllegalArgumentException ignored) {}

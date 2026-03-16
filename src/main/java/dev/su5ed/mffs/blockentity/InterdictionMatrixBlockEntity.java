@@ -121,18 +121,28 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
     }
 
     @Override
+    public int getBaseFortronTankCapacity() {
+        return MFFSConfig.interdictionMatrixInitialTankCapacity;
+    }
+
+    @Override
+    protected int getCapacityBoostPerModule() {
+        return MFFSConfig.interdictionMatrixTankCapacityPerModule;
+    }
+
+    @Override
     public void tickServer() {
         super.tickServer();
 
-        if (getTicks() % 10 == 0 && (isActive() || this.frequencySlot.getItem().getItem() == ModItems.INFINITE_POWER_CARD)) {
+        if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0 && (isActive() || this.frequencySlot.getItem().getItem() == ModItems.INFINITE_POWER_CARD)) {
             // 1.21.x: try (Transaction tx = Transaction.openRoot()) {
-            //     int extracted = this.fortronStorage.extractFortron(getFortronCost() * 10, tx);
+            //     int extracted = this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, tx);
             //     if (extracted > 0) { tx.commit(); scan(); }
             // }
             // Simulate first, then apply:
-            int extracted = this.fortronStorage.extractFortron(getFortronCost() * 10, true);
+            int extracted = this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, true);
             if (extracted > 0) {
-                this.fortronStorage.extractFortron(getFortronCost() * 10, false);
+                this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
                 scan();
             }
         }
