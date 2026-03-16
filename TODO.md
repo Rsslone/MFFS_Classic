@@ -40,8 +40,8 @@ Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
 When you access the remote, the fortron particle points to the player.
     Increase range limit on remote
-
 Items phase through bottoms of force fields
 Check disentigration module.
     Particle needs to be addressed for culling similar to fortron particle.
     Between adding and removing module, recalculation does not occur.
+Fix patchouli manual
