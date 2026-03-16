@@ -45,9 +45,9 @@ public class SlotActive extends SlotInventory implements ColoredSlot {
         return this.disabledColorSupplier.getAsInt();
     }
 
-    @Override    public boolean isEnabled() {
-        return !isDisabled();
-    }
+    // isEnabled() intentionally NOT overridden: returning false causes vanilla GuiContainer
+    // to skip drawItemStack() entirely, making the held item disappear. The slot is already
+    // made non-interactive via canTakeStack() and isItemValid() when disabled.
 
     @Override    public boolean isItemValid(ItemStack stack) {
         return !isDisabled() && super.isItemValid(stack);
