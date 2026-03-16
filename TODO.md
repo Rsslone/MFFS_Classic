@@ -7,7 +7,6 @@ Interdiction Matrix mode to use in-field instead of its own scale.
     Option could be from center of force field projection.
         Might not apply to custom shapes well.
     Option to disable mob drops from interdiction kills without collection module.
-Implement updated patchulli book, or entirely remove.
 Implement advancments, or entirely remove.
 Expose useful values for balance.
     Implement Shock Module Damage Configuration
@@ -41,9 +40,6 @@ Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
 When you access the remote, the fortron particle points to the player.
     Increase range limit on remote
-Pyramid on smaller sizes contains holes, scale should be increased
-    Probably needs to be rotates by default 45 degrees
-Holes on rotation module, totally broken.
 
 Items phase through bottoms of force fields
 Check disentigration module.

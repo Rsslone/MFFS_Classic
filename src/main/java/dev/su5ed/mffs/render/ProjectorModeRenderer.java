@@ -11,17 +11,13 @@ import dev.su5ed.mffs.setup.ModItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
-import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.lwjgl.opengl.GL11;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,13 +32,7 @@ public final class ProjectorModeRenderer {
     private static final float CYLINDER_RADIUS = 1.5f;
     private static final float CYLINDER_DETAIL = 0.5f;
     private static final float RADIUS_EXPANSION = 0.0f;
-    private static final float PYRAMID_HEIGHT = 0.5f;
-    private static final float PYRAMID_WIDTH = 0.3f;
-
-    // Color for holographic shapes (light blue, used for pyramid)
-    private static final float HOLO_R = 0.4f;
-    private static final float HOLO_G = 0.8f;
-    private static final float HOLO_B = 1.0f;
+    private static final float PYRAMID_SCALE = 0.15f;
 
     private static final List<Item> CYCLE_MODES = Arrays.asList(ModItems.CUBE_MODE, ModItems.SPHERE_MODE, ModItems.TUBE_MODE, ModItems.PYRAMID_MODE);
     private static final int CUSTOM_PERIOD = 40;
@@ -170,70 +160,36 @@ public final class ProjectorModeRenderer {
     // Pyramid Mode
     // ========================================================================
     private static void renderPyramidMode(double x, double y, double z, float ticks) {
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(x + 0.5, y + 0.5, z + 0.5);
+        float alpha = Math.min((float) (Math.sin(ticks / 10.0) / 2.0 + 1.0), 1.0f) / 5f;
+        beginModeRendering(x, y, z);
+        hoverObject(ticks, PYRAMID_SCALE);
 
-        // Pyramid uses the force_cube texture with textured triangles
-        // matching 1.21's HOLO_TEXTURED_TRIANGLE render type
-        Minecraft.getMinecraft().getTextureManager().bindTexture(FORCE_CUBE_TEXTURE);
+        // Render pyramid surface as individual force cubes, same approach as sphere/cylinder.
+        // Surface formula matches PyramidProjectorMode (inverseThickness = 8):
+        //   slant face: (1 - |x|/xS - |z|/zS) * thick == y/yS * thick  (rounded)
+        //   base:        y == 0 && |x| + |z| < (xS + yS) / 2
+        final int xS = 3, yS = 4, zS = 3;
+        final int thick = 8;
+        final float yOff = -(yS / 2f);  // center pyramid vertically around origin
 
-        GlStateManager.enableBlend();
-        // Additive blending for holographic glow, matching other mode shapes
-        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        GlStateManager.disableAlpha();
-        GlStateManager.depthMask(false);
-        GlStateManager.disableCull();
+        for (float py = 0; py <= yS; py += 0.5f) {
+            for (float px = -xS; px <= xS; px += 0.5f) {
+                for (float pz = -zS; pz <= zS; pz += 0.5f) {
+                    double yTest     = (double) py / yS * thick;
+                    double facePlane = (1.0 - Math.abs(px) / xS - Math.abs(pz) / zS) * thick;
+                    boolean onSlant  = Math.round(facePlane) == Math.round(yTest);
+                    boolean onBase   = py == 0 && Math.abs(px) + Math.abs(pz) < (xS + yS) / 2.0;
+                    if (onSlant || onBase) {
+                        GlStateManager.pushMatrix();
+                        GlStateManager.translate(px, py + yOff, pz);
+                        renderForceCube(alpha);
+                        GlStateManager.popMatrix();
+                    }
+                }
+            }
+        }
 
-        // Full brightness (emissive)
-        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
-
-        hoverObject(ticks, 1.0f);
-        GlStateManager.rotate(180, 0, 0, 1);
-
-        Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buf = tess.getBuffer();
-        float w = PYRAMID_WIDTH;
-        float h = PYRAMID_HEIGHT;
-        float ty = -0.4f;
-        int uvMaxX = 2;
-        int uvMaxY = 2;
-
-        buf.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_TEX);
-        // 4 side faces
-        buf.pos(0, ty, 0).tex(0, 0).endVertex();
-        buf.pos(-w, h + ty, -w).tex(-uvMaxX, -uvMaxY).endVertex();
-        buf.pos(-w, h + ty, w).tex(-uvMaxX, uvMaxY).endVertex();
-
-        buf.pos(0, ty, 0).tex(0, 0).endVertex();
-        buf.pos(-w, h + ty, w).tex(-uvMaxX, uvMaxY).endVertex();
-        buf.pos(w, h + ty, w).tex(uvMaxX, uvMaxY).endVertex();
-
-        buf.pos(0, ty, 0).tex(0, 0).endVertex();
-        buf.pos(w, h + ty, w).tex(uvMaxX, uvMaxY).endVertex();
-        buf.pos(w, h + ty, -w).tex(uvMaxX, -uvMaxY).endVertex();
-
-        buf.pos(0, ty, 0).tex(0, 0).endVertex();
-        buf.pos(w, h + ty, -w).tex(uvMaxX, -uvMaxY).endVertex();
-        buf.pos(-w, h + ty, -w).tex(-uvMaxX, -uvMaxY).endVertex();
-
-        // Bottom face (2 triangles)
-        buf.pos(-w, h + ty, -w).tex(-uvMaxX, -uvMaxY).endVertex();
-        buf.pos(-w, h + ty, w).tex(-uvMaxX, uvMaxY).endVertex();
-        buf.pos(w, h + ty, w).tex(uvMaxX, uvMaxY).endVertex();
-
-        buf.pos(w, h + ty, w).tex(uvMaxX, uvMaxY).endVertex();
-        buf.pos(w, h + ty, -w).tex(uvMaxX, -uvMaxY).endVertex();
-        buf.pos(-w, h + ty, -w).tex(-uvMaxX, -uvMaxY).endVertex();
-        tess.draw();
-
-        GlStateManager.enableCull();
-        GlStateManager.depthMask(true);
-        GlStateManager.enableAlpha();
-        GlStateManager.disableBlend();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GlStateManager.popMatrix();
-        RenderHelper.enableStandardItemLighting();
+        endModeRendering();
     }
 
     // ========================================================================
