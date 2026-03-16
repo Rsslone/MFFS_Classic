@@ -116,6 +116,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     // LinkedHashSet so the drain iterator walks positions in insertion order; applyFieldDiff
     // shuffles the toRemove list before inserting, matching the random order used during build.
     private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new LinkedHashSet<>());
+    // Positions whose server-side camouflage was updated in applyFieldDiff() but whose client
+    // notification packet hasn't been sent yet.  Drained N-per-cycle in tickServer() at
+    // projection speed so large fields update gradually rather than all at once.
+    private final Set<BlockPos> pendingCamoRefresh = Collections.synchronizedSet(new LinkedHashSet<>());
     // Positions projected in the previous session, loaded from NBT. Used once per load to diff
     // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
     // Never synced/threaded — only accessed on the server tick thread.
@@ -410,23 +414,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     fillGaps();
                 }
 
-                // Drain orphan blocks left over from a soft destroy (resize / module change)
-                if (!this.pendingRemoval.isEmpty()) {
-                    int speed = MFFSConfig.baseProjectionSpeed + MFFSConfig.speedModuleFactor * (getModuleCount(ModModules.SPEED, getUpgradeSlots()) / MFFSConfig.drainSpeedFactor);
-                    int drained = 0;
-                    Iterator<BlockPos> orphanIt = this.pendingRemoval.iterator();
-                    while (orphanIt.hasNext() && drained < speed) {
-                        BlockPos orphan = orphanIt.next();
-                        orphanIt.remove();
-                        if (this.world.getBlockState(orphan).getBlock() == ModBlocks.FORCE_FIELD) {
-                            net.minecraft.tileentity.TileEntity ote = this.world.getTileEntity(orphan);
-                            if (ote instanceof ForceFieldBlockEntity offe && this.pos.equals(offe.getProjectorPos())) {
-                                this.world.setBlockToAir(orphan);
-                            }
-                        }
-                        drained++;
-                    }
-                }
             }
 
             if (getTicks() % (2 * 20) == 0 && !hasModule(ModModules.SILENCE)
@@ -438,7 +425,58 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 this.world.playSound(null, this.pos, ModSounds.FIELD, SoundCategory.BLOCKS, 0.4F, 1 - this.world.rand.nextFloat() * 0.1F);
             }
         } else {
-            destroyField();
+            // Soft power-off: on the first tick we notice power is gone, queue all projected
+            // blocks for gradual removal via the drain loop below.  Subsequent ticks are no-ops
+            // until all blocks drain.  Hard destroyField() is reserved for block removal only.
+            if (!this.projectedBlocks.isEmpty()) {
+                this.pendingDiffSnapshot = null;
+                this.semaphore.reset();
+                this.projectionCache.invalidateAll();
+                this.calculatedFieldSet = Collections.emptySet();
+                List<BlockPos> powerOffRemoval = new ArrayList<>(this.projectedBlocks);
+                Collections.shuffle(powerOffRemoval);
+                this.pendingRemoval.addAll(powerOffRemoval);
+                this.projectedBlocks.clear();
+                this.pendingCamoRefresh.clear();
+            }
+        }
+
+        // Drain queued block removals regardless of power state — handles both module-change
+        // soft-destroys (while powered) and gradual power-off removals (while unpowered).
+        if (getTicks() % MFFSConfig.projectionCycleTicks == 0 && !this.pendingRemoval.isEmpty()) {
+            int speed = MFFSConfig.baseProjectionSpeed + MFFSConfig.speedModuleFactor * (getModuleCount(ModModules.SPEED, getUpgradeSlots()) / MFFSConfig.drainSpeedFactor);
+            int drained = 0;
+            Iterator<BlockPos> orphanIt = this.pendingRemoval.iterator();
+            while (orphanIt.hasNext() && drained < speed) {
+                BlockPos orphan = orphanIt.next();
+                orphanIt.remove();
+                if (this.world.getBlockState(orphan).getBlock() == ModBlocks.FORCE_FIELD) {
+                    net.minecraft.tileentity.TileEntity ote = this.world.getTileEntity(orphan);
+                    if (ote instanceof ForceFieldBlockEntity offe && this.pos.equals(offe.getProjectorPos())) {
+                        this.world.setBlockToAir(orphan);
+                    }
+                }
+                drained++;
+            }
+        }
+
+        // Drain queued camo visual updates at the same rate as block removals.
+        // Gradual delivery avoids a single-tick packet burst when the field is large.
+        if (getTicks() % MFFSConfig.projectionCycleTicks == 0 && !this.pendingCamoRefresh.isEmpty()) {
+            int camoSpeed = getProjectionSpeed();
+            int sent = 0;
+            double camoRadius = computeFieldSendRadius();
+            Iterator<BlockPos> camoIt = this.pendingCamoRefresh.iterator();
+            while (camoIt.hasNext() && sent < camoSpeed) {
+                BlockPos camoPos = camoIt.next();
+                camoIt.remove();
+                net.minecraft.tileentity.TileEntity camoTe = this.world.getTileEntity(camoPos);
+                if (camoTe instanceof ForceFieldBlockEntity be) {
+                    Network.sendToAllAround(new UpdateBlockEntityPacket(camoPos, be.getCustomUpdateTag()),
+                        this.world, this.pos, camoRadius);
+                }
+                sent++;
+            }
         }
 
         int speed = computeAnimationSpeed();
@@ -824,12 +862,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             // Snapshot the current field for diffing after the async recalculation.  Include any
             // savedProjectedBlocks that haven't been diffed yet (e.g. a module change right after
             // load before the one-shot orphan detection ran).
+            // Always set pendingDiffSnapshot (even when empty) so the tick-loop condition
+            // "pendingDiffSnapshot != null && CALCULATING done" fires correctly when starting
+            // from an empty-field state (e.g. adding a shape module from scratch, or adjusting
+            // scale while the field has not yet been projected).  applyFieldDiff() handles an
+            // empty old-field safely: no removals, no camo refresh, then runSelectionTask().
             Set<BlockPos> snapshot = new HashSet<>(this.projectedBlocks);
             if (!this.savedProjectedBlocks.isEmpty()) {
                 snapshot.addAll(this.savedProjectedBlocks);
                 this.savedProjectedBlocks.clear();
             }
-            this.pendingDiffSnapshot = snapshot.isEmpty() ? null : snapshot;
+            this.pendingDiffSnapshot = snapshot;
         }
         this.projectionCache.invalidateAll();
         this.semaphore.reset();
@@ -902,8 +945,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
         // Refresh camouflage on unchanged blocks (handles camo slot changes, custom mode
         // position-dependent camo, and glow module changes that accompany geometry changes).
+        // Server state is updated immediately; client packets are queued for rate-limited delivery.
+        // Collect into a list and shuffle before queuing so the drain order is scattered,
+        // matching the random placement order used during the build phase — prevents the
+        // visible "slice" artifact that appears when HashSet iteration order is used directly.
         if (!unchanged.isEmpty()) {
-            double radius = computeFieldSendRadius();
+            List<BlockPos> camoToRefresh = new ArrayList<>();
             for (BlockPos pos : unchanged) {
                 net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
                 if (te instanceof ForceFieldBlockEntity be) {
@@ -912,11 +959,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     IBlockState oldCamo = be.getCamouflage();
                     if (!Objects.equals(oldCamo, newCamo)) {
                         be.setCamouflage(newCamo);
-                        Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
-                            this.world, this.pos, radius);
+                        camoToRefresh.add(pos);
                     }
                 }
             }
+            Collections.shuffle(camoToRefresh);
+            this.pendingCamoRefresh.addAll(camoToRefresh);
         }
     }
 
@@ -950,6 +998,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // Include NBT-restored blocks that haven't been reconciled with the new field yet.
         alsoRemove.addAll(this.savedProjectedBlocks);
         this.pendingRemoval.clear();
+        this.pendingCamoRefresh.clear();
         this.savedProjectedBlocks.clear();
         Collection<TargetPosPair> fieldPositions = getCalculatedFieldPositions();
         this.calculatedFieldSet = Collections.emptySet();
@@ -1066,26 +1115,23 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private Optional<IBlockState> getCamoBlockFromOwnInventory() {
         return getAllModuleItemsStream()
             .mapPartial(ProjectorBlockEntity::getFilterBlock)
-            // 1.21.x: Block::defaultBlockState → Block::getDefaultState
-            .findFirst()
-            .map(Block::getDefaultState);
+            .findFirst();
     }
 
     @Nullable
     private IBlockState getWeightedCamoBlockFromNeighbors() {
-        Map<Block, Integer> neighborsInventory = checkNeighbors();
+        Map<IBlockState, Integer> neighborsInventory = checkNeighbors();
         if (neighborsInventory.isEmpty()) {
             return null;
         }
 
-        List<Block> weightedList = neighborsInventory.entrySet()
+        List<IBlockState> weightedList = neighborsInventory.entrySet()
             .stream()
             .flatMap(e -> Collections.nCopies(e.getValue(), e.getKey()).stream())
             .collect(Collectors.toList());
 
         int random = ThreadLocalRandom.current().nextInt(weightedList.size());
-        // 1.21.x: block.defaultBlockState() → block.getDefaultState()
-        return weightedList.get(random).getDefaultState();
+        return weightedList.get(random);
     }
 
     private CompletableFuture<?> runCalculationTask() {
@@ -1238,22 +1284,41 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return projectable;
     }
 
-    // 1.21.x: getFilterBlock(ItemStack) returns Optional<Block>
+    // 1.21.x: getFilterBlock(ItemStack) returns Optional<BlockState> (preserving item metadata)
     // 1.21.x: BlockItem blockItem → ItemBlock blockItem (1.12.2 name)
     // 1.21.x: block.defaultBlockState().getRenderShape() != RenderShape.INVISIBLE
     //   → block.getRenderType(block.getDefaultState()) != EnumBlockRenderType.INVISIBLE
-    public static Optional<Block> getFilterBlock(ItemStack stack) {
+    public static Optional<IBlockState> getFilterBlock(ItemStack stack) {
         if (stack.getItem() instanceof ItemBlock blockItem) {
             Block block = blockItem.getBlock();
-            if (block.getRenderType(block.getDefaultState()) != net.minecraft.util.EnumBlockRenderType.INVISIBLE) {
-                return Optional.of(block);
+            IBlockState defaultState = block.getDefaultState();
+            // Invisible blocks (technical/structural) are never valid camo
+            if (block.getRenderType(defaultState) == net.minecraft.util.EnumBlockRenderType.INVISIBLE) {
+                return Optional.empty();
             }
+            // Tile entity blocks (chests, furnaces, etc.) are rejected — the TESR delegate
+            // only handles a handful of known cases and non-cube models look broken.
+            if (block.hasTileEntity(defaultState)) {
+                return Optional.empty();
+            }
+            // Only allow geometrically full-cube blocks. Non-cube shapes (stairs, slabs, fences)
+            // clip and z-fight badly when rendered as a force field face.
+            try {
+                if (!Block.FULL_BLOCK_AABB.equals(block.getBoundingBox(defaultState, null, BlockPos.ORIGIN))) {
+                    return Optional.empty();
+                }
+            } catch (Exception ignored) {
+                // If bounding box lookup crashes (world-dependent shape), conservatively reject.
+                return Optional.empty();
+            }
+            // Preserve item damage value so colour-carrying meta (e.g. stained glass tint) is kept.
+            return Optional.of(block.getStateFromMeta(stack.getMetadata()));
         }
         return Optional.empty();
     }
 
-    public Map<Block, Integer> checkNeighbors() {
-        Map<Block, Integer> countMap = new HashMap<>();
+    public Map<IBlockState, Integer> checkNeighbors() {
+        Map<IBlockState, Integer> countMap = new HashMap<>();
         // 1.21.x: this.level.isClientSide() → this.world.isRemote
         if (!this.world.isRemote) {
             // 1.21.x: Direction side : Direction.values() → EnumFacing side : EnumFacing.values()
@@ -1269,7 +1334,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                             // 1.21.x: handler.getAmountAsInt(i) → handler.getStackInSlot(i).getCount()
                             ItemStack stack = handler.getStackInSlot(i);
                             int count = stack.getCount();
-                            getFilterBlock(stack).ifPresent(block -> countMap.put(block, countMap.getOrDefault(block, 0) + count));
+                            getFilterBlock(stack).ifPresent(state -> countMap.put(state, countMap.getOrDefault(state, 0) + count));
                         }
                     }
                 }

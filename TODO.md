@@ -28,10 +28,7 @@ The lighting not making contact with a physical block should have its own indepe
     Create a variable for this value and place in performance section.
 
 Remove the projectionCycleTicks from the settings, this is not as useful of a setting.
-    Look at reference files and hardcode it.
-    Could move it to an advanced section.
     **New default of 1 then lower max speeds to smooth FF placements**
-    Add a base FF gen rate config.
 Investigate useCache var.
     We may have hard coded the cache in my accident... tehe :D
 Camo modules probably shouldn't be instant updates. (queue is too fast actually)
