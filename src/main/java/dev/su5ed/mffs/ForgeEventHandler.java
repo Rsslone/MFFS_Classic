@@ -12,7 +12,7 @@ package dev.su5ed.mffs;
 //   ICancellableEvent             -> standard Forge setCanceled
 //   ServerPlayer                  -> EntityPlayerMP
 //   block.get().is(other)         -> block == ModBlocks.FORCE_FIELD (direct ref)
-//   Guidebook criterion trigger   -> removed (no advancement triggers in 1.12.2)
+//   Guidebook criterion trigger   -> EntityJoinWorldEvent + player.getEntityData() NBT flag
 // =============================================================================
 
 import dev.su5ed.mffs.api.EventForceManipulate;
@@ -24,15 +24,22 @@ import dev.su5ed.mffs.setup.ModModules;
 import dev.su5ed.mffs.util.Fortron;
 import dev.su5ed.mffs.util.ModUtil;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class ForgeEventHandler {
 
@@ -75,11 +82,25 @@ public class ForgeEventHandler {
 
     @SubscribeEvent
     public void onEntityJoinWorld(EntityJoinWorldEvent event) {
-        // TODO: Patchouli guidebook on first join (no criterion triggers in 1.12.2)
-        // If Patchouli is present, use its API to give the book.
-        // For now this handler is a no-op until a Patchouli / manual NBT check is implemented.
-        // Original 1.21.x: if (entity instanceof ServerPlayer player && COMMON.giveGuidebookOnFirstJoin.get())
-        //                       ModObjects.GUIDEBOOK_TRIGGER.get().trigger(player);
+        if (!MFFSConfig.giveGuidebookOnFirstJoin) return;
+        if (event.getWorld().isRemote) return;
+        if (!(event.getEntity() instanceof EntityPlayerMP)) return;
+        if (!Loader.isModLoaded("patchouli")) return;
+
+        EntityPlayerMP player = (EntityPlayerMP) event.getEntity();
+        NBTTagCompound data = player.getEntityData();
+        if (data.getBoolean("mffs_receivedHandbook")) return;
+
+        Item bookItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("patchouli", "guide_book"));
+        if (bookItem == null) return;
+
+        data.setBoolean("mffs_receivedHandbook", true);
+
+        ItemStack stack = new ItemStack(bookItem);
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("patchouli:book", MFFSMod.MODID + ":handbook");
+        stack.setTagCompound(tag);
+        player.inventory.addItemStackToInventory(stack);
     }
 
     private void onPlayerInteractInternal(PlayerInteractEvent event, EntityPlayer player, World world, BlockPos pos, Fortron.Action action) {
