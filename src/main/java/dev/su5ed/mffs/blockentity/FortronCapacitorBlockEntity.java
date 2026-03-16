@@ -80,14 +80,11 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
     public void tickServer() {
         super.tickServer();
 
-        // Bill maintenance cost as a burst, aligned with the Fortron distribution window.
-        // Same total drain as per-tick, but in sync with when Fortron actually moves on the network.
-        if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
-            this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
-        }
-
-        // Distribute fortron across the network
+        // Distribute fortron across the network (and bill maintenance) only when active.
         if (isActive() && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
+            // Bill maintenance cost as a burst, aligned with the Fortron distribution window.
+            // Only charged when active so an inactive Capacitor doesn't silently drain the network.
+            this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
             Set<FortronStorage> machines = new HashSet<>();
 
             for (ItemStack stack : getCards()) {
