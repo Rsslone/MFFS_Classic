@@ -137,6 +137,11 @@ public class BiometricIdentifierBlock extends BaseEntityBlock {
     }
 
     @Override
+    public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return state.getValue(ACTIVE) ? 10 : super.getLightValue(state, world, pos);
+    }
+
+    @Override
     public boolean isOpaqueCube(IBlockState state) {
         return false;
     }

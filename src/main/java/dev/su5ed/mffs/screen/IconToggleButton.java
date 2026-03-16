@@ -65,18 +65,15 @@ public class IconToggleButton extends GuiButton {
         if (!this.visible) return;
         this.hovered = mouseX >= this.x && mouseY >= this.y
             && mouseX < this.x + this.width && mouseY < this.y + this.height;
-        float col;
         if (this.value.getAsBoolean()) {
-            col = 0.6F;
+            GlStateManager.color(0.45F, 1.0F, 0.45F, 1.0F); // slight green tint when active
         } else if (this.hovered) {
-            col = 0.85F;
+            GlStateManager.color(0.85F, 0.85F, 0.85F, 1.0F);
         } else {
-            col = 1.0F;
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         }
-        GlStateManager.color(col, col, col, 1.0F);
         mc.getTextureManager().bindTexture(this.image);
-        blitRegion(this.x, this.y, this.imageU, this.imageV, this.width / 2, this.height);
-        blitRegion(this.x + this.width / 2, this.y, 200 - this.width / 2, this.imageV, this.width / 2, this.height);
+        blitRegion(this.x, this.y, this.imageU, this.imageV, this.width, this.height);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

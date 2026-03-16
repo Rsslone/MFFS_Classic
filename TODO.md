@@ -1,6 +1,4 @@
 ## TODO/IDEAS
-Add glow to the biometric block when active.
-Change localized L/s to F/s, we don't use fluids, fortron is a simple int value.
 Add scaling to the custom shape mode.
     Investigate the maxCustomModeScale var.
 Interdiction Matrix mode to use in-field instead of its own scale.
@@ -20,14 +18,17 @@ Expose useful values for balance.
 Move the balance section from config to their respective zones.
 Implement better tooltips.
     Modules with configurations, show the configuration value to user. i.e speed value / cost / ect.
-Increase projector max rotor speed ceiling, it spins too fast too soon.
-    Decrease the idle speed a bit more.
 Add better on/off feedback
     Show tooltip or wording.
-Tooltips rendered over HEI
 Add green border to Arrows
 Refreshing of shape from null fails.
 Check collection and confiscation modules pair?
+Glow modules apply artificial lighting to block surfaces inside a force field.
+Beacon Effects in-zone.
+Harvest speedup?
+Dye colors for force fields.
+    Use the camo module or make a new module - module could support setting color without a dye.
+
 
 ## Optimization
 The lighting not making contact with a physical block should have its own independent max value (~3-7).

@@ -30,6 +30,10 @@ import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,6 +43,7 @@ import java.util.List;
 public abstract class BaseScreen<T extends Container> extends GuiContainer {
     protected final ResourceLocation background;
     private final List<TooltipCoordinate> tooltips = new ArrayList<>();
+    private int lastMouseX, lastMouseY;
 
     public BaseScreen(T menu, InventoryPlayer playerInventory, ResourceLocation background) {
         super(menu);
@@ -49,17 +54,32 @@ public abstract class BaseScreen<T extends Container> extends GuiContainer {
     @Override
     public void initGui() {
         super.initGui();
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTick) {
+        this.tooltips.clear(); // repopulated each frame by drawGuiContainerForegroundLayer
         // super.drawScreen(): drawDefaultBackground, background layer, foreground layer, buttons, slots, carried item
         super.drawScreen(mouseX, mouseY, partialTick);
         renderFg(mouseX, mouseY, partialTick);
-        renderCustomTooltips(mouseX, mouseY);
-        // renderHoveredToolTip is NOT called by GuiContainer.drawScreen() — vanilla subclasses
-        // (GuiChest, GuiInventory) always call it explicitly at the end of their drawScreen.
-        renderHoveredToolTip(mouseX, mouseY);
+        // Tooltip rendering is deferred to onDrawScreenPost so it runs after JEI/HEI overlays
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
+    }
+
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        MinecraftForge.EVENT_BUS.unregister(this);
+    }
+
+    /** Renders tooltips after all overlays (including JEI/HEI) have drawn. */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onDrawScreenPost(GuiScreenEvent.DrawScreenEvent.Post event) {
+        if (event.getGui() != this) return;
+        renderCustomTooltips(this.lastMouseX, this.lastMouseY);
+        renderHoveredToolTip(this.lastMouseX, this.lastMouseY);
     }
 
     @Override
@@ -123,7 +143,7 @@ public abstract class BaseScreen<T extends Container> extends GuiContainer {
             for (TooltipCoordinate coord : this.tooltips) {
                 if (mouseX >= this.guiLeft + coord.x && mouseX < this.guiLeft + coord.x + coord.width
                         && mouseY >= this.guiTop + coord.y && mouseY < this.guiTop + coord.y + coord.height) {
-                    drawHoveringText(Collections.singletonList(coord.tooltip.getFormattedText()), mouseX, mouseY);
+                        drawHoveringText(Collections.singletonList(coord.tooltip.getFormattedText()), mouseX, mouseY);
                     break;
                 }
             }

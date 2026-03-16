@@ -110,14 +110,15 @@ public class IdentificationCardItem extends BaseItem {
                 tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.identity",
                     TextFormatting.GREEN + identity.getName()));
             }
-            List<FieldPermission> perms = new ArrayList<>(card.getPermissions());
-            if (!perms.isEmpty()) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(I18n.format("info.mffs.field_permission." + perms.get(0).name().toLowerCase()));
-                for (int i = 1; i < perms.size(); i++) {
-                    sb.append(", ").append(I18n.format("info.mffs.field_permission." + perms.get(i).name().toLowerCase()));
+            Set<FieldPermission> permsSet = new HashSet<>(card.getPermissions());
+            if (!permsSet.isEmpty()) {
+                tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.perms"));
+                for (FieldPermission perm : FieldPermission.values()) {
+                    if (permsSet.contains(perm)) {
+                        tooltip.add(TextFormatting.GREEN + "  " + I18n.format(
+                            "info.mffs.field_permission." + perm.name().toLowerCase()));
+                    }
                 }
-                tooltip.add(TextFormatting.DARK_GRAY + sb.toString());
             }
         }
     }
