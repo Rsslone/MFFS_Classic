@@ -20,6 +20,25 @@ import java.util.List;
 public class BiometricIdentifierScreen extends FortronScreen<BiometricIdentifierMenu> {
     public static final ResourceLocation BACKGROUND = new ResourceLocation(MFFSMod.MODID, "textures/gui/biometric_identifier.png");
 
+    /**
+     * Display order for the 7 permission buttons laid out in a 4+3 grid.
+     * Row 0 (4): Configure Security, Warp, Use Blocks, Place Blocks
+     * Row 1 (3): Bypass Defense, Remote Control, Bypass Confiscation
+     *
+     * This keeps "Configure Security" prominent in the top row and places
+     * "Remote Control" adjacent to "Bypass Defense", while fitting all 7
+     * buttons in exactly 2 rows so nothing overlaps the energy bar.
+     */
+    private static final FieldPermission[] PERM_DISPLAY_ORDER = {
+        FieldPermission.WARP,
+        FieldPermission.USE_BLOCKS,
+        FieldPermission.PLACE_BLOCKS,
+        FieldPermission.BYPASS_DEFENSE,
+        FieldPermission.BYPASS_CONFISCATION,
+        FieldPermission.REMOTE_CONTROL,
+        FieldPermission.CONFIGURE_SECURITY_CENTER,
+    };
+
     private final List<IconToggleButton> permissionButtons = new ArrayList<>();
 
     public BiometricIdentifierScreen(BiometricIdentifierMenu menu, InventoryPlayer playerInventory) {
@@ -38,22 +57,20 @@ public class BiometricIdentifierScreen extends FortronScreen<BiometricIdentifier
         super.initGui();
 
         this.permissionButtons.clear();
-        for (int i = 0, x = 0, y = 0; i < FieldPermission.values().length; i++) {
-            x++;
-            FieldPermission permission = FieldPermission.values()[i];
+        // Row 0 holds the first 4 permissions, row 1 holds the remaining 3.
+        for (int i = 0; i < PERM_DISPLAY_ORDER.length; i++) {
+            int row = i < 4 ? 0 : 1;
+            int col = i < 4 ? i : i - 4;
+            FieldPermission permission = PERM_DISPLAY_ORDER[i];
             IconToggleButton widget = new IconToggleButton(
-                this.width / 2 - 21 + 20 * x, this.height / 2 - 87 + 20 * y, 18, 18,
+                this.width / 2 - 21 + 20 * (col + 1), this.height / 2 - 87 + 20 * row, 18, 18,
                 ModUtil.translateTooltip(permission),
-                18, 18 * i,
+                18, 18 * permission.ordinal(),
                 () -> ((BiometricIdentifierMenu) this.inventorySlots).hasPermission(permission),
                 value -> togglePermission(permission, !value)
             );
             this.permissionButtons.add(widget);
             this.buttonList.add(widget);
-            if (i % 3 == 0 && i != 0) {
-                x = 0;
-                y++;
-            }
         }
     }
 

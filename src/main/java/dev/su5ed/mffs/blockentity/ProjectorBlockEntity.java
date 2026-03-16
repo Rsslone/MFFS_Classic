@@ -253,7 +253,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     public int computeAnimationSpeed() {
-        int speed = 2;
+        int speed = 1;
         int fortronCost = getFortronCost();
         // Speed up the rotor only when:
         //   1. The projector is active with a mode present.
@@ -266,7 +266,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
             speed *= fortronCost / 8.0F;
         }
-        return Math.min(120, speed);
+        return Math.min(300, speed);
     }
 
     public int getAnimationSpeed() {

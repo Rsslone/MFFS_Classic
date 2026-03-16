@@ -142,7 +142,7 @@ public final class MFFSConfig {
         coercionDriverFortronToFeLoss = configuration.getInt("fortronToFeLoss", "coercion_deriver", coercionDriverFortronToFeLoss, 0, Integer.MAX_VALUE,
             "FE to subtract when converting Fortron to FE");
         coercionDriverFortronPerTick = configuration.getInt("fortronPerTick", "coercion_deriver", coercionDriverFortronPerTick, 1, Integer.MAX_VALUE,
-            "Base limit of fortron produced per tick (Multiply this number by 20 to get L/second of fortron). Scales with speed modules and catalyst.");
+            "Base limit of fortron produced per tick (Multiply this number by 20 to get F/s of fortron). Scales with speed modules and catalyst.");
         coercionDriverFortronPerTickSpeedModule = configuration.getInt("fortronPerTickSpeedModule", "coercion_deriver",
             coercionDriverFortronPerTickSpeedModule, 1, Integer.MAX_VALUE,
             "Production bonus per speed module.");
