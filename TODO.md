@@ -37,7 +37,6 @@ Camo modules probably shouldn't be instant updates. (queue is too fast actually)
 
 
 ## Known Bugs
-Interdiction warnings can stack upon each other, implement some form of limiter, or change how its rendered entirely.
 Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
 When you access the remote, the fortron particle points to the player.
@@ -45,9 +44,6 @@ When you access the remote, the fortron particle points to the player.
 Pyramid on smaller sizes contains holes, scale should be increased
     Probably needs to be rotates by default 45 degrees
 Holes on rotation module, totally broken.
-Guard against tile entities.
-Recalculation between low power states might have issues.
-Calculation of Fortron between tick rates need to be double checked.
 
 Items phase through bottoms of force fields
 Check disentigration module.
