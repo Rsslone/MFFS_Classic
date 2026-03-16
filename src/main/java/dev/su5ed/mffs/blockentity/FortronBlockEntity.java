@@ -107,6 +107,13 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
     @Override
     public void tickServer() {
         super.tickServer();
+
+        // Guard: if we somehow missed onLoad() (chunk edge-case) re-register on the first tick
+        // so the FrequencyGrid is always populated with the correct, NBT-loaded frequency.
+        if (getTicks() == 1 && !FrequencyGrid.instance().get().contains(this.fortronStorage)) {
+            FrequencyGrid.instance().register(this.fortronStorage);
+        }
+
         boolean active = isActive();
         net.minecraft.block.state.IBlockState state = this.world.getBlockState(this.pos);
         if (state.getValue(BaseEntityBlock.ACTIVE) != active) {
