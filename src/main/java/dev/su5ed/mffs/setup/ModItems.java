@@ -118,33 +118,57 @@ public final class ModItems {
         CYLINDER_MODE = register(registry, new ProjectorModeItem(ModProjectorModes.CYLINDER), "cylinder_mode");
         CUSTOM_MODE   = register(registry, new CustomProjectorModeItem(), "custom_mode");
 
-        // Field / general modules
-        TRANSLATION_MODULE    = register(registry, new ModuleItem<>(ModModules.TRANSLATION), "translation_module");
-        SCALE_MODULE          = register(registry, new ModuleItem<>(ModModules.SCALE), "scale_module");
-        ROTATION_MODULE       = register(registry, new ModuleItem<>(ModModules.ROTATION), "rotation_module");
-        SPEED_MODULE          = register(registry, new ModuleItem<>(ModModules.SPEED), "speed_module");
-        CAPACITY_MODULE       = register(registry, new ModuleItem<>(ModModules.CAPACITY), "capacity_module");
-        FUSION_MODULE         = register(registry, singleModule(ModModules.FUSION), "fusion_module");
-        DOME_MODULE           = register(registry, new ModuleItem<>(ModModules.DOME), "dome_module");
-        CAMOUFLAGE_MODULE     = register(registry, singleModule(ModModules.CAMOUFLAGE), "camouflage_module");
-        DISINTEGRATION_MODULE = register(registry, singleModule(ModModules.DISINTEGRATION), "disintegration_module");
-        SHOCK_MODULE          = register(registry, new ModuleItem<>(ModModules.SHOCK), "shock_module");
-        GLOW_MODULE           = register(registry, new ModuleItem<>(ModModules.GLOW), "glow_module");
-        SPONGE_MODULE         = register(registry, singleModule(ModModules.SPONGE), "sponge_module");
-        STABILIZATION_MODULE  = register(registry, singleModule(ModModules.STABILIZAZION), "stabilization_module");
-        COLLECTION_MODULE     = register(registry, singleModule(ModModules.COLLECTION), "collection_module");
-        INVERTER_MODULE       = register(registry, singleModule(ModModules.INVERTER), "inverter_module");
-        SILENCE_MODULE        = register(registry, singleModule(ModModules.SILENCE), "silence_module");
+        // Field / general modules (gated by per-module config)
+        if (MFFSConfig.isModuleEnabled("translation_module"))
+            TRANSLATION_MODULE = register(registry, new ModuleItem<>(ModModules.TRANSLATION), "translation_module");
+        if (MFFSConfig.isModuleEnabled("scale_module"))
+            SCALE_MODULE = register(registry, new ModuleItem<>(ModModules.SCALE), "scale_module");
+        if (MFFSConfig.isModuleEnabled("rotation_module"))
+            ROTATION_MODULE = register(registry, new ModuleItem<>(ModModules.ROTATION), "rotation_module");
+        if (MFFSConfig.isModuleEnabled("speed_module"))
+            SPEED_MODULE = register(registry, new ModuleItem<>(ModModules.SPEED), "speed_module");
+        if (MFFSConfig.isModuleEnabled("capacity_module"))
+            CAPACITY_MODULE = register(registry, new ModuleItem<>(ModModules.CAPACITY), "capacity_module");
+        if (MFFSConfig.isModuleEnabled("fusion_module"))
+            FUSION_MODULE = register(registry, singleModule(ModModules.FUSION), "fusion_module");
+        if (MFFSConfig.isModuleEnabled("dome_module"))
+            DOME_MODULE = register(registry, new ModuleItem<>(ModModules.DOME), "dome_module");
+        if (MFFSConfig.isModuleEnabled("camouflage_module"))
+            CAMOUFLAGE_MODULE = register(registry, singleModule(ModModules.CAMOUFLAGE), "camouflage_module");
+        if (MFFSConfig.isModuleEnabled("disintegration_module"))
+            DISINTEGRATION_MODULE = register(registry, singleModule(ModModules.DISINTEGRATION), "disintegration_module");
+        if (MFFSConfig.isModuleEnabled("shock_module"))
+            SHOCK_MODULE = register(registry, new ModuleItem<>(ModModules.SHOCK), "shock_module");
+        if (MFFSConfig.isModuleEnabled("glow_module"))
+            GLOW_MODULE = register(registry, new ModuleItem<>(ModModules.GLOW), "glow_module");
+        if (MFFSConfig.isModuleEnabled("sponge_module"))
+            SPONGE_MODULE = register(registry, singleModule(ModModules.SPONGE), "sponge_module");
+        if (MFFSConfig.isModuleEnabled("stabilization_module"))
+            STABILIZATION_MODULE = register(registry, singleModule(ModModules.STABILIZAZION), "stabilization_module");
+        if (MFFSConfig.isModuleEnabled("collection_module"))
+            COLLECTION_MODULE = register(registry, singleModule(ModModules.COLLECTION), "collection_module");
+        if (MFFSConfig.isModuleEnabled("inverter_module"))
+            INVERTER_MODULE = register(registry, singleModule(ModModules.INVERTER), "inverter_module");
+        if (MFFSConfig.isModuleEnabled("silence_module"))
+            SILENCE_MODULE = register(registry, singleModule(ModModules.SILENCE), "silence_module");
 
-        // Interdiction matrix modules
-        WARN_MODULE           = register(registry, new InterdictionMatrixModuleItem(ModModules.WARN), "warn_module");
-        BLOCK_ACCESS_MODULE   = register(registry, new InterdictionMatrixModuleItem(ModModules.BLOCK_ACCESS), "block_access_module");
-        BLOCK_ALTER_MODULE    = register(registry, new InterdictionMatrixModuleItem(ModModules.BLOCK_ALTER), "block_alter_module");
-        ANTI_FRIENDLY_MODULE  = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_FRIENDLY), "anti_friendly_module");
-        ANTI_HOSTILE_MODULE   = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_HOSTILE), "anti_hostile_module");
-        ANTI_PERSONNEL_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_PERSONNEL), "anti_personnel_module");
-        ANTI_SPAWN_MODULE     = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_SPAWN), "anti_spawn_module");
-        CONFISCATION_MODULE   = register(registry, new InterdictionMatrixModuleItem(ModModules.CONFISCATION), "confiscation_module");
+        // Interdiction matrix modules (gated by per-module config)
+        if (MFFSConfig.isModuleEnabled("warn_module"))
+            WARN_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.WARN), "warn_module");
+        if (MFFSConfig.isModuleEnabled("block_access_module"))
+            BLOCK_ACCESS_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.BLOCK_ACCESS), "block_access_module");
+        if (MFFSConfig.isModuleEnabled("block_alter_module"))
+            BLOCK_ALTER_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.BLOCK_ALTER), "block_alter_module");
+        if (MFFSConfig.isModuleEnabled("anti_friendly_module"))
+            ANTI_FRIENDLY_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_FRIENDLY), "anti_friendly_module");
+        if (MFFSConfig.isModuleEnabled("anti_hostile_module"))
+            ANTI_HOSTILE_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_HOSTILE), "anti_hostile_module");
+        if (MFFSConfig.isModuleEnabled("anti_personnel_module"))
+            ANTI_PERSONNEL_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_PERSONNEL), "anti_personnel_module");
+        if (MFFSConfig.isModuleEnabled("anti_spawn_module"))
+            ANTI_SPAWN_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.ANTI_SPAWN), "anti_spawn_module");
+        if (MFFSConfig.isModuleEnabled("confiscation_module"))
+            CONFISCATION_MODULE = register(registry, new InterdictionMatrixModuleItem(ModModules.CONFISCATION), "confiscation_module");
     }
 
     /** Creates a ModuleItem with maxStackSize=1 (for modules that can only be used once). */

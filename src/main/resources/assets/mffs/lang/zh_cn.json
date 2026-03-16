@@ -154,7 +154,7 @@
     "screen.mffs.fortron": "Fortron: %s L / %s L",
     "screen.mffs.fortron.name": "Fortron:",
     "screen.mffs.fortron.value": "%s L / %s L",
-    "screen.mffs.fortron.short": "Fortron: %s L",
+    "screen.mffs.fortron.short": "Fortron: %s F",
     "screen.mffs.fortron.tooltip": "Fortron是MFFS设备中使用的能量类型。",
     "screen.mffs.fortron_cost": "%s%s F/s",
     "screen.mffs.upgrade": "升级",

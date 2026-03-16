@@ -259,11 +259,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         //   1. The projector is active with a mode present.
         //   2. The field is actually placed (projectedBlocks non-empty) — no speeding up
         //      while the field is being built or has been destroyed.
-        //   3. The Fortron reserve meets the same clamped-minimum threshold used by the
-        //      placement guards, so the rotor tracks the real sustained state rather than
-        //      flickering whenever projectionCycleTicks is set below the default of 5.
+        //   3. The Fortron reserve meets the same sustained-state threshold as the placement
+        //      guards: tank must hold at least one full billing burst after the current cycle,
+        //      so the rotor tracks whether the projector is genuinely well-powered.
         if (isActive() && getMode().isPresent() && !this.projectedBlocks.isEmpty()
-                && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
+                && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
             speed *= fortronCost / 8.0F;
         }
         return Math.min(300, speed);
@@ -322,6 +322,16 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     @Override
+    public int getBaseFortronTankCapacity() {
+        return MFFSConfig.projectorInitialTankCapacity;
+    }
+
+    @Override
+    protected int getCapacityBoostPerModule() {
+        return MFFSConfig.projectorTankCapacityPerModule;
+    }
+
+    @Override
     public void tickServer() {
         super.tickServer();
 
@@ -337,7 +347,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
         int fortronCost = getFortronCost();
         if (isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost)) {
-            consumeCost();
+            // Bill maintenance cost as a burst, aligned with the network transfer window.
+            // Same total drain as per-tick but in sync with when Fortron actually moves.
+            if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
+                this.fortronStorage.extractFortron(fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
+            }
 
             if (getTicks() % MFFSConfig.projectionCycleTicks == 0) {
                 // One-shot orphan detection: runs once per load after the async calculation first
@@ -379,11 +393,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 } else if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)
-                        && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
-                    // Buffer must cover the capacitor transfer interval (10 ticks) PLUS one tick of
-                    // safety margin.  The outer gate fires every tick; if the projector ticks before
-                    // the capacitor on the 10th tick, stored drops to fortronCost rather than 0,
-                    // keeping canConsumeFieldCost true until the burst replenishes the tank.
+                        && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
+                    // Only project when the tank still holds a full billing burst's worth of Fortron
+                    // after the current burst payment. This ensures the field can sustain through the
+                    // next billing window even if the capacitor hasn't distributed yet.
                     projectField();
                 }
 
@@ -417,10 +430,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             }
 
             if (getTicks() % (2 * 20) == 0 && !hasModule(ModModules.SILENCE)
-                    && this.fortronStorage.getStoredFortron() >= fortronCost * Math.max(MFFSConfig.projectionCycleTicks, 11)) {
-                // Only play the field sound when the projector is in a fully sustainable state
-                // (enough Fortron buffer to cover the next projection cycle). In low-power mode
-                // the projector runs silently so players have an audio cue that power is marginal.
+                    && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
+                // Only play the field sound when in a fully sustained state (tank holds at least
+                // one more billing burst). In low-power mode the projector runs silently so players
+                // have an audio cue that power is marginal.
                 // 1.21.x: SoundSource.BLOCKS → SoundCategory.BLOCKS
                 this.world.playSound(null, this.pos, ModSounds.FIELD, SoundCategory.BLOCKS, 0.4F, 1 - this.world.rand.nextFloat() * 0.1F);
             }

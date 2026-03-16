@@ -80,11 +80,6 @@ public final class MFFSMod {
         // Setup network channel
         Network.init();
 
-        // Register OreDictionary entries for Fortron fuel
-        // 1.21.x: registered via item tags in datagen (lapis_lazuli, quartz)
-        OreDictionary.registerOre(ModTags.FORTRON_FUEL, new ItemStack(Items.DYE, 1, 4)); // Lapis Lazuli (meta 4)
-        OreDictionary.registerOre(ModTags.FORTRON_FUEL, Items.QUARTZ);
-
         // 1.12 crafting recipes use OreDictionary for steel ingots (only if not disabled).
         if (!MFFSConfig.disableSteelItems) {
             OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);

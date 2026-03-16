@@ -10,18 +10,10 @@ Interdiction Matrix mode to use in-field instead of its own scale.
 Implement updated patchulli book, or entirely remove.
 Implement advancments, or entirely remove.
 Expose useful values for balance.
-    Implement base capacity and F/s rates.
-    Implement Capacity and Speed module modifier rates.
-    Implement Module Cost (Warning : Could break the balance)
     Implement Shock Module Damage Configuration
-    Include module enable settings, so server owners can disable modules they don't like.
-Move the balance section from config to their respective zones.
+    Implement Anti-x Damage Configuration with scaling
 Implement better tooltips.
     Modules with configurations, show the configuration value to user. i.e speed value / cost / ect.
-Add better on/off feedback
-    Show tooltip or wording.
-Add green border to Arrows
-Refreshing of shape from null fails.
 Check collection and confiscation modules pair?
 Glow modules apply artificial lighting to block surfaces inside a force field.
 Beacon Effects in-zone.
@@ -48,9 +40,6 @@ Camo modules probably shouldn't be instant updates. (queue is too fast actually)
 
 
 ## Known Bugs
-Fix Catalyst functionality
-    Add redstone and lapis as an option.
-    Scale with blocks.
 Interdiction warnings can stack upon each other, implement some form of limiter, or change how its rendered entirely.
 Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
@@ -62,6 +51,7 @@ Holes on rotation module, totally broken.
 Guard against tile entities.
 Recalculation between low power states might have issues.
 Calculation of Fortron between tick rates need to be double checked.
+
 Items phase through bottoms of force fields
 Check disentigration module.
     Particle needs to be addressed for culling similar to fortron particle.

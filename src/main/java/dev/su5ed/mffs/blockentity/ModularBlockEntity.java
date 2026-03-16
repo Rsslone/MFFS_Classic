@@ -40,7 +40,7 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
     private final Map<String, Object> cache = Collections.synchronizedMap(new HashMap<>());
 
     protected ModularBlockEntity() {
-        this(5);
+        this(5000);
     }
 
     protected ModularBlockEntity(int capacityBoost) {
@@ -62,7 +62,7 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
 
     @Override
     public int getBaseFortronTankCapacity() {
-        return 500;
+        return 500000;
     }
 
     @Override
@@ -173,9 +173,13 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
             .toList();
     }
 
+    /** Returns the Fortron capacity (in F) added per Capacity Module. Subclasses may override to read from config. */
+    protected int getCapacityBoostPerModule() {
+        return this.capacityBoost;
+    }
+
     private void updateFortronTankCapacity() {
-        // 1.21.x: FluidType.BUCKET_VOLUME (1000 mB per bucket)
-        int capacity = (getModuleCount(ModModules.CAPACITY) * this.capacityBoost + getBaseFortronTankCapacity()) * 1000;
+        int capacity = getModuleCount(ModModules.CAPACITY) * getCapacityBoostPerModule() + getBaseFortronTankCapacity();
         this.fortronStorage.setCapacity(capacity);
     }
 
