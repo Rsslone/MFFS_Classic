@@ -44,4 +44,3 @@ Items phase through bottoms of force fields
 Check disentigration module.
     Particle needs to be addressed for culling similar to fortron particle.
     Between adding and removing module, recalculation does not occur.
-Fix patchouli manual
