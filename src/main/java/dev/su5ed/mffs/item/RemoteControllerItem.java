@@ -157,7 +157,7 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
 
     private boolean drawEnergy(World world, BlockPos playerPos, Vec3d eyeTarget,
                                 int frequency, int energy) {
-        List<FortronStorage> fortronTiles = FrequencyGrid.instance().get(world, playerPos, 50, frequency);
+        List<FortronStorage> fortronTiles = FrequencyGrid.instance(world.isRemote).get(world, playerPos, 50, frequency);
         // Sort by distance to the player's eye position
         fortronTiles.sort(Comparator.comparingDouble(fortron -> {
             BlockPos fp = fortron.getOwner().getPos();
