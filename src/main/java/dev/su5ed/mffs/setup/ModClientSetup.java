@@ -2,21 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: Client-side setup
-// 1.21.x used @EventBusSubscriber(Dist.CLIENT) with NeoForge client events.
-// In 1.12.2 client-side setup is done via a client-only proxy class
-// (annotated with @SidedProxy) that implements an IProxy interface,
-// OR via @Mod.EventBusSubscriber(value = Side.CLIENT) on a class that
-// registers listeners on the FML event bus.
-//
-// Key replacements:
-//   FMLClientSetupEvent               -> FMLInitializationEvent (client side)
-//   RegisterMenuScreensEvent          -> GameRegistry + IGuiHandler
-//   EntityRenderersEvent.Register*    -> ClientRegistry.bindTileEntitySpecialRenderer
-//   RegisterParticleProvidersEvent    -> IParticleFactory registered in preInit
-//   EntityRenderersEvent.Layers       -> ModelBakeEvent / TextureStitchEvent
-//   RegisterColorHandlersEvent.Block  -> ColorHandlerEvent.Block
-//   RegisterClientExtensionsEvent     -> not applicable (NeoForge-specific)
-//   GuiGraphics                       -> GlStateManager / Gui
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSConfig;

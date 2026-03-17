@@ -1,7 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// 1.12.2 Backport: Item(Properties) → Item(), setMaxStackSize(1).
-
 import dev.su5ed.mffs.api.module.ProjectorMode;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import net.minecraft.item.Item;
@@ -53,10 +51,3 @@ public class ProjectorModeItem extends Item {
         }
     }
 }
-
-/*
-import net.minecraft.world.item.Item;
-public class ProjectorModeItem_NeoForge extends Item {
-    public ProjectorModeItem_NeoForge(Properties properties, ProjectorMode projectorMode) { super(properties.stacksTo(1)); ... }
-}
-*/

@@ -1,12 +1,4 @@
-/**
- *
- */
 package dev.su5ed.mffs.api;
-
-// 1.12.2 Backport: EventForceManipulate
-// 1.21.x extended NeoForge LevelEvent and used ICancellableEvent.
-// In 1.12.2 events extend net.minecraftforge.fml.common.eventhandler.Event.
-// Cancellable sub-events use @Event.Cancelable annotation.
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;

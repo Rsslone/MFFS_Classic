@@ -1,21 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// 1.21.x imports (commented out):
-// import net.minecraft.ChatFormatting;
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.network.chat.Component;
-// import net.minecraft.world.entity.LivingEntity;
-// import net.minecraft.world.entity.player.Inventory;
-// import net.minecraft.world.entity.player.Player;
-// import net.minecraft.world.inventory.AbstractContainerMenu;
-// import net.minecraft.world.level.block.entity.BlockEntity;
-// import net.minecraft.world.level.block.state.BlockState;
-// import net.minecraft.world.level.storage.ValueInput;
-// import net.minecraft.world.level.storage.ValueOutput;
-// import net.minecraft.world.phys.AABB;
-// import net.neoforged.neoforge.transfer.transaction.Transaction;
-// import dev.su5ed.mffs.setup.ModObjects;
-
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.module.InterdictionMatrixModule;
 import dev.su5ed.mffs.api.module.Module;
@@ -53,7 +37,6 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         super();
 
         this.secondaryCard = addSlot("secondaryCard", InventorySlot.Mode.BOTH,
-            // 1.21.x: stack -> ModUtil.isCard(stack) || stack.is(ModItems.INFINITE_POWER_CARD.get())
             stack -> ModUtil.isCard(stack) || stack.getItem() == ModItems.INFINITE_POWER_CARD,
             this::onFrequencySlotChanged);
         this.upgradeSlots = createUpgradeSlots(8, Module.Category.INTERDICTION, stack -> {});
@@ -83,7 +66,6 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         return getModuleCount(ModModules.SCALE);
     }
 
-    // 1.21.x: be() returned BlockEntity; in 1.12.2 it returns TileEntity (TileEntity == BlockEntity here)
     @Override
     public dev.su5ed.mffs.blockentity.BaseBlockEntity be() {
         return this;
@@ -102,11 +84,8 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         return this.confiscationMode;
     }
 
-    // 1.21.x: Component getTitle() — Component was net.minecraft.network.chat.Component
     @Override
     public ITextComponent getTitle() {
-        // 1.21.x: return getDisplayName();
-        // In 1.12.2, TileEntity has no getDisplayName() — return a translation component
         return new TextComponentTranslation("tile.mffs.interdiction_matrix.name");
     }
 
@@ -135,11 +114,6 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         super.tickServer();
 
         if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0 && (isActive() || this.frequencySlot.getItem().getItem() == ModItems.INFINITE_POWER_CARD)) {
-            // 1.21.x: try (Transaction tx = Transaction.openRoot()) {
-            //     int extracted = this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, tx);
-            //     if (extracted > 0) { tx.commit(); scan(); }
-            // }
-            // Simulate first, then apply:
             int extracted = this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, true);
             if (extracted > 0) {
                 this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
@@ -155,24 +129,19 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
 
     public void scan() {
         BiometricIdentifier identifier = getBiometricIdentifier();
-        // 1.21.x: AABB emptyBounds = AABB.encapsulatingFullBlocks(worldPosition, worldPosition.offset(1,1,1))
         AxisAlignedBB emptyBounds = new AxisAlignedBB(this.pos, this.pos.add(1, 1, 1));
 
-        // 1.21.x: level.getEntitiesOfClass(LivingEntity.class, aabb.inflate(...))
         List<EntityLivingBase> warningList = this.world.getEntitiesWithinAABB(EntityLivingBase.class, emptyBounds.grow(getWarningRange(), getWarningRange(), getWarningRange()));
         List<EntityLivingBase> actionList = this.world.getEntitiesWithinAABB(EntityLivingBase.class, emptyBounds.grow(getActionRange(), getActionRange(), getActionRange()));
 
         for (EntityLivingBase entity : warningList) {
-            // 1.21.x: entity instanceof Player player ... player.displayClientMessage(msg, false)
             if (entity instanceof EntityPlayer player && !actionList.contains(entity) && !canPlayerBypass(identifier, player) && this.world.rand.nextInt(3) == 0) {
-                // 1.21.x: player.displayClientMessage(ModUtil.translate(...).withStyle(ChatFormatting.RED), false)
                 ITextComponent msg = ModUtil.translate("info", "interdiction_matrix.warning", getTitle());
                 ((net.minecraft.util.text.Style) msg.getStyle()).setColor(TextFormatting.RED);
                 player.sendMessage(msg);
             }
         }
 
-        // 1.21.x: this.level.random.nextInt(3)
         if (this.world.rand.nextInt(3) == 0) {
             for (EntityLivingBase entity : actionList) {
                 applyAction(entity);
@@ -180,25 +149,20 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         }
     }
 
-    // 1.21.x: applyAction(LivingEntity target) — LivingEntity was net.minecraft.world.entity.LivingEntity
     public void applyAction(EntityLivingBase target) {
-        // 1.21.x: target instanceof Player player
         if (target instanceof EntityPlayer player) {
             BiometricIdentifier identifier = getBiometricIdentifier();
-            // 1.21.x: player.isCreative() → player.capabilities.isCreativeMode
             if (canPlayerBypass(identifier, player) || MFFSConfig.interactCreative && player.capabilities.isCreativeMode) {
                 return;
             }
         }
         for (Module module : getModuleInstances()) {
-            // 1.21.x: target.isDeadOrDying() → target.isDead
             if (module instanceof InterdictionMatrixModule interdictionModule && interdictionModule.onDefend(this, target) || target.isDead) {
                 break;
             }
         }
     }
 
-    // 1.21.x: canPlayerBypass(Player player, ...) — Player → EntityPlayer
     public boolean canPlayerBypass(BiometricIdentifier identifier, EntityPlayer player) {
         return identifier != null && identifier.isAccessGranted(player, FieldPermission.BYPASS_CONFISCATION);
     }
@@ -219,8 +183,4 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
 
         compound.setString("confiscationMode", this.confiscationMode.name());
     }
-
-    // 1.21.x: createMenu(int containerId, Inventory playerInventory, Player player) → AbstractContainerMenu
-    // In 1.12.2, GUI is handled via IGuiHandler registered in MFFSMod. ModMenus.INTERDICTION_MATRIX = GUI ID.
-    // TODO: Ensure IGuiHandler returns new InterdictionMatrixMenu for the matching GUI ID
 }

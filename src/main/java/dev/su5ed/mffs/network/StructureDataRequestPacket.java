@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: StructureDataRequestPacket (server-bound)
-// Client requests the voxel shape data for a custom projector structure.
-// Server replies with a SetStructureShapePacket.
-
 import dev.su5ed.mffs.item.CustomProjectorModeItem;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.util.projector.CustomStructureSavedData;

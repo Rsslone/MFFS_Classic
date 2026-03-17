@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.util.inventory;
 
-// 1.12.2 Backport: SlotInventoryFilter
-// mayPlace()/mayPickup() → isItemValid()/canTakeStack()
-// allowModification(Player) does not exist in 1.12.2 Slot — removed
-// remove(int) → decrStackSize(int)
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 

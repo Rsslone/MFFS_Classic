@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: UpdateBlockEntityPacket (client-bound)
-// Sends the full NBT data of a ForceField tile entity to the client.
-
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;

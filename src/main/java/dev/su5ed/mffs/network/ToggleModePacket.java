@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: ToggleModePacket (server-bound)
-// Sends the active state of a machine block to the server.
-
 import dev.su5ed.mffs.api.Activatable;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;

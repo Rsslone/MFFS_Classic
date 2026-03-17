@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.render.model;
 
-// 1.12.2 Backport: ForceCubeModel
-// Model → ModelBase; ModelPart/CubeListBuilder/LayerDefinition → ModelRenderer.addBox();
-// RenderType removed (GL state set up by caller); LAYER_LOCATION removed (no EntityRenderersEvent).
-
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.util.ResourceLocation;

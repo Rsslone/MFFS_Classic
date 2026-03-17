@@ -1,14 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// =============================================================================
-// 1.12.2 Backport: Networking
-// 1.21.x used NeoForge RegisterPayloadHandlersEvent + PayloadRegistrar +
-// CustomPacketPayload. In 1.12.2 we use SimpleNetworkWrapper + IMessage/IMessageHandler.
-//
-// Call Network.init() from MFFSMod.preInit.
-// Server-bound packets use Side.SERVER; client-bound use Side.CLIENT.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;

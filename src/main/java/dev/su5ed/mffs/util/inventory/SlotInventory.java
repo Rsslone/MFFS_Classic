@@ -1,16 +1,5 @@
 package dev.su5ed.mffs.util.inventory;
 
-// =============================================================================
-// 1.12.2 Backport: SlotInventory
-// Replaced 1.21.x Slot (net.minecraft.world.inventory.Slot) with
-//   Slot from net.minecraft.inventory.Slot (1.12.2 MCP mapping)
-// Replaced Container/SimpleContainer stub with IInventory stub
-// ITextComponent instead of Component for tooltips
-// mayPlace() → isItemValid(); mayPickup() → canTakeStack()
-// setChanged() → onSlotChanged(); remove(n) → decrStackSize(n); set() → putStack()
-// getItem() → getStack()
-// =============================================================================
-
 import dev.su5ed.mffs.util.TooltipSlot;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;

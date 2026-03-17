@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.menu;
 
-// 1.12.2 Backport: ProjectorMenu
-// Direction → EnumFacing (net.minecraft.util.EnumFacing)
-// Component.translatable(key) → new TextComponentTranslation(key)
-// tooltip() returns ITextComponent
-// SlotInventory(slot, x, y, ITextComponent) uses updated constructor
-// BlockPos, Player, Inventory params updated to 1.12.2 types
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
 import dev.su5ed.mffs.util.inventory.SlotInventory;

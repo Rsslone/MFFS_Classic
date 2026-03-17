@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.util;
 
-// 1.12.2 Backport: CustomEnergyStorage.
-// NeoForge version extended SimpleEnergyHandler and used Transaction.
-// In 1.12.2, implement net.minecraftforge.energy.IEnergyStorage directly.
-
 import net.minecraftforge.energy.IEnergyStorage;
 
 import java.util.function.BooleanSupplier;

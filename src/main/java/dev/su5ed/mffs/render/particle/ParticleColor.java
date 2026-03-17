@@ -1,6 +1,5 @@
 package dev.su5ed.mffs.render.particle;
 
-// 1.12.2 Backport: removed NeoForge StreamCodec (no packet codec concept in 1.12.2).
 // Packets transmitting ParticleColor use ordinal (int) serialization.
 
 public enum ParticleColor {

@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.util.inventory;
 
-// 1.12.2 Backport: SlotActive
-// ARGB.color(alpha, rgb) → (alpha << 24) | (rgb & 0x00FFFFFF)
-// Player → EntityPlayer; mayPlace() → isItemValid(); mayPickup() → canTakeStack()
-
 import dev.su5ed.mffs.api.Activatable;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
 import dev.su5ed.mffs.screen.GuiColors;

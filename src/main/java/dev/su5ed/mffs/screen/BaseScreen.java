@@ -1,21 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: BaseScreen
-// AbstractContainerScreen<T> → GuiContainer (net.minecraft.client.gui.inventory.GuiContainer)
-// GuiGraphics → direct GlStateManager / fontRenderer / drawTexturedModalRect calls
-// leftPos/topPos → guiLeft/guiTop
-// imageWidth/imageHeight → xSize/ySize
-// this.font → this.fontRenderer
-// init() → initGui()
-// addRenderableWidget() → buttonList.add()
-// renderBg() → drawGuiContainerBackgroundLayer()
-// renderLabels() → drawGuiContainerForegroundLayer()
-// render() → drawScreen()
-// AbstractContainerMenu → Container; Inventory → InventoryPlayer
-// Identifier → ResourceLocation; Component → ITextComponent
-// isHovering(Slot) → overridden getSlotAtPosition to exclude disabled SlotActive
-// Slot.x/y → Slot.xPos/yPos
-
 import dev.su5ed.mffs.menu.FortronMenu;
 import dev.su5ed.mffs.util.TooltipSlot;
 import dev.su5ed.mffs.util.ModUtil;
@@ -215,7 +199,3 @@ public abstract class BaseScreen<T extends Container> extends GuiContainer {
     }
 }
 
-/* class BaseScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference ...
-extends AbstractContainerScreen<T>, uses GuiGraphics, leftPos/topPos, renderBg/renderLabels, etc.
-*/

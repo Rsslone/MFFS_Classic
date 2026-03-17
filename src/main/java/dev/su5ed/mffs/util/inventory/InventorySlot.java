@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.util.inventory;
 
-// 1.12.2 Backport: InventorySlot
-// Removed ValueIOSerializable (NeoForge); NBT persistence handled by InventorySlotItemHandler.serializeNBT/deserializeNBT
-// ItemStack.isSameItemSameComponents() → ItemStack.areItemsEqual() + areItemStackTagsEqual()
-// stack.copyWithCount(n) → copy().setCount(n)
-
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 

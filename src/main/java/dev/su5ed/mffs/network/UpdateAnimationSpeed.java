@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: UpdateAnimationSpeed (client-bound)
-// Updates the client-side animation speed on a ProjectorBlockEntity.
-
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;

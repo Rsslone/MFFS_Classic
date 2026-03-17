@@ -25,7 +25,6 @@ import java.util.Set;
 
 /**
  * Persists custom projector mode structures via WorldSavedData.
- * In 1.21 this uses VoxelShape + Codec; in 1.12.2 we use Set&lt;BlockPos&gt; + NBT.
  */
 public class CustomStructureSavedData extends WorldSavedData {
     public static final String NAME = MFFSMod.MODID + "_custom_structures";
@@ -262,7 +261,6 @@ public class CustomStructureSavedData extends WorldSavedData {
 
         private BlockPos computeCenter() {
             // Use bounding-box center matching 1.21's VoxelShape bounds.
-            // In 1.21, AABB.encapsulatingFullBlocks extends max by +1, so
             // VoxelShape.max(axis) = blockMax + 1. We add +1 here to match.
             int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
             int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
@@ -274,8 +272,6 @@ public class CustomStructureSavedData extends WorldSavedData {
                 if (pos.getY() > maxY) maxY = pos.getY();
                 if (pos.getZ() > maxZ) maxZ = pos.getZ();
             }
-            // Match 1.21's normalizeAxis: expand single-block-thick dimensions
-            // so the center computation doesn't sit exactly on the flat plane.
             if (minX == maxX) maxX++;
             if (minY == maxY) maxY++;
             if (minZ == maxZ) maxZ++;

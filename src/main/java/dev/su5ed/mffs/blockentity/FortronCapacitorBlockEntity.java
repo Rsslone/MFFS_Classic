@@ -1,16 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// 1.21.x imports (commented out):
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.world.MenuProvider;
-// import net.minecraft.world.entity.player.Inventory;
-// import net.minecraft.world.entity.player.Player;
-// import net.minecraft.world.inventory.AbstractContainerMenu;
-// import net.minecraft.world.level.block.state.BlockState;
-// import net.minecraft.world.level.storage.ValueInput;
-// import net.minecraft.world.level.storage.ValueOutput;
-// import dev.su5ed.mffs.setup.ModObjects;
-
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.card.CoordLink;
 import dev.su5ed.mffs.api.fortron.FortronCapacitor;
@@ -29,7 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-// In 1.12.2, MenuProvider is not needed — GUI handled via IGuiHandler registered in MFFSMod
 public class FortronCapacitorBlockEntity extends ModularBlockEntity implements FortronCapacitor {
     public final InventorySlot secondaryCard;
     public final List<InventorySlot> upgradeSlots;
@@ -39,7 +27,6 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
     public FortronCapacitorBlockEntity() {
         super(10);
 
-        // 1.21.x: stack -> ModUtil.isCard(stack) || stack.is(ModItems.INFINITE_POWER_CARD.get())
         this.secondaryCard = addSlot("secondaryCard", InventorySlot.Mode.BOTH,
             stack -> ModUtil.isCard(stack) || stack.getItem() == ModItems.INFINITE_POWER_CARD,
             this::onFrequencySlotChanged);
@@ -88,15 +75,12 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
             Set<FortronStorage> machines = new HashSet<>();
 
             for (ItemStack stack : getCards()) {
-                // 1.21.x: stack.is(ModItems.INFINITE_POWER_CARD.get())
                 if (stack.getItem() == ModItems.INFINITE_POWER_CARD) {
                     this.fortronStorage.setStoredFortron(this.fortronStorage.getFortronCapacity());
                 }
-                // 1.21.x: stack.getItem() instanceof CoordLink coordLink
                 else if (stack.getItem() instanceof CoordLink coordLink) {
                     Optional.ofNullable(coordLink.getLink(stack))
                         .map(linkPosition -> {
-                            // 1.21.x: this.level.getCapability(ModCapabilities.FORTRON, linkPosition, null)
                             var te = this.world.getTileEntity(linkPosition);
                             if (te != null && te.hasCapability(ModCapabilities.FORTRON, null)) {
                                 return (FortronStorage) te.getCapability(ModCapabilities.FORTRON, null);
@@ -116,13 +100,11 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
 
     @Override
     public Collection<FortronStorage> getDevicesByFrequency() {
-        // 1.21.x: this.level, this.worldPosition → this.world, this.pos
         return FrequencyGrid.instance(this.world.isRemote).get(this.world, this.pos, getTransmissionRange(), this.fortronStorage.getFrequency());
     }
 
     @Override
     public List<ItemStack> getCards() {
-        // 1.21.x: List.of(this.frequencySlot.getItem(), this.secondaryCard.getItem())
         return Arrays.asList(this.frequencySlot.getItem(), this.secondaryCard.getItem());
     }
 
@@ -151,8 +133,4 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
             try { this.transferMode = TransferMode.valueOf(modeName); } catch (IllegalArgumentException ignored) {}
         }
     }
-
-    // 1.21.x: createMenu(int containerId, Inventory inventory, Player player) → AbstractContainerMenu
-    // In 1.12.2, GUI is handled via IGuiHandler registered in MFFSMod. ModMenus.FORTRON_CAPACITOR = GUI ID.
-    // TODO: Ensure IGuiHandler returns new FortronCapacitorMenu for the matching GUI ID
 }

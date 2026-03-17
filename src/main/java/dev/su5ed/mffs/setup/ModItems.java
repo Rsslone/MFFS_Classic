@@ -2,12 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: Item registration
-// 1.21.x used DeferredRegister.Items + DeferredRegister<CreativeModeTab>.
-// In 1.12.2:
-//   - Items registered via RegistryEvent.Register<Item>
-//   - Creative tab created by extending CreativeTabs
-//   - ItemBlock (not BlockItem) is the 1.12.2 equivalent
-//   - DataComponentType not available; item data stored as NBT on ItemStack
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSMod;

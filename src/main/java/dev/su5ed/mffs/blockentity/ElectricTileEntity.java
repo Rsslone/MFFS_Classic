@@ -1,14 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// =============================================================================
-// 1.12.2 Backport: ElectricTileEntity
-// Key changes:
-//   NeoForge EnergyHandler/EnergyHandlerUtil -> Forge IEnergyStorage / IEnergyReceiver
-//   Capabilities.Energy.ITEM / BLOCK -> CapabilityEnergy.ENERGY
-//   SidedEnergyWrapper -> Forge EnergyStorage subclass or IEnergyStorage + IEnergyReceiver
-//   saveTag/loadTag: ValueOutput/Input -> NBTTagCompound
-// =============================================================================
-
 import dev.su5ed.mffs.util.CustomEnergyStorage;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;

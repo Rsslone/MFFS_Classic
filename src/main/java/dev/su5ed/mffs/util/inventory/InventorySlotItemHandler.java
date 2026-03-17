@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.util.inventory;
 
-// =============================================================================
-// 1.12.2 Backport: InventorySlotItemHandler
-// Replaced NeoForge ResourceHandler<ItemResource>/TransactionContext/SnapshotJournal
-// with Forge IItemHandlerModifiable (net.minecraftforge.items)
-// Replaced ValueIOSerializable with standard NBT serializeNBT/deserializeNBT
-// =============================================================================
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;

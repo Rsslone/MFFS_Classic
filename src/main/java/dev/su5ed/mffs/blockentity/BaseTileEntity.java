@@ -30,8 +30,6 @@ public abstract class BaseTileEntity extends TileEntity {
         super();
     }
 
-    // 1.12.2 Backport: Forge's default shouldRefresh for modded TEs uses reference
-    // identity (oldState != newState), which destroys the TE on ANY metadata change.
     // Override to only refresh when the block type actually changes.
     @Override
     public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newState) {

@@ -1,16 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: FrequencyCardItem
-// Key changes:
-//   DataComponentType storage → NBT tag "frequency" on ItemStack
-//   FrequencyCard capability provided via initCapabilities + ICapabilityProvider
-//   InteractionResult use() → ActionResult<ItemStack> onItemRightClick()
-//   onItemUseFirst() → onItemUse() (runs before block activation in 1.12.2)
-//   player.displayClientMessage → player.sendStatusMessage
-//   Component.literal → new TextComponentString; ChatFormatting → TextFormatting
-// =============================================================================
-
 import dev.su5ed.mffs.api.card.FrequencyCard;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import dev.su5ed.mffs.util.ModUtil;

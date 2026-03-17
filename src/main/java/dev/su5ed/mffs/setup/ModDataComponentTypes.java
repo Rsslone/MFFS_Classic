@@ -2,21 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: Item data storage
-// DataComponentType<T> is a NeoForge/1.21.x concept and does NOT exist in 1.12.2.
-// In 1.12.2 all item data is stored directly as NBT on ItemStack via:
-//   - ItemStack.getTagCompound() / setTagCompound(NBTTagCompound)
-//   - ItemStack.getOrCreateSubCompound("mffs")
-// The fields below document the intended NBT keys for each former DataComponent.
-//
-// Former DataComponentType fields and their 1.12.2 NBT key equivalents:
-//   REMOTE_LINK_POS   -> NBT key "linkX", "linkY", "linkZ" (or packed long)
-//   ENERGY            -> NBT key "energy" (int)
-//   CARD_FREQUENCY    -> NBT key "frequency" (int)
-//   ID_CARD_PROFILE   -> NBT key "profile" (GameProfile serialised via NBT)
-//   ID_CARD_PERMISSIONS -> NBT key "permissions" (NBTTagList of FieldPermission names)
-//   PATTERN_ID        -> NBT key "patternId" (String)
-//   STRUCTURE_COORDS  -> NBT key "structureCoords" (NBTTagCompound)
-//   STRUCTURE_MODE    -> NBT key "structureMode" (String enum name)
 // =============================================================================
 
 /**

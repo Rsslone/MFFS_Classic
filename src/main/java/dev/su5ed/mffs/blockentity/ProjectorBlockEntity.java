@@ -5,7 +5,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ListMultimap;
-// 1.21.x: import com.mojang.datafixers.util.Pair; — not available in 1.12.2
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.api.Projector;
@@ -38,31 +37,6 @@ import net.minecraftforge.items.IItemHandler;
 import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.Nullable;
-
-// 1.21.x imports (commented out):
-// import com.mojang.datafixers.util.Pair;
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.core.Direction;
-// import net.minecraft.core.HolderLookup;
-// import net.minecraft.nbt.CompoundTag;
-// import net.minecraft.sounds.SoundSource;
-// import net.minecraft.world.entity.player.Inventory;
-// import net.minecraft.world.entity.player.Player;
-// import net.minecraft.world.inventory.AbstractContainerMenu;
-// import net.minecraft.world.item.BlockItem;
-// import net.minecraft.world.level.block.Block;
-// import net.minecraft.world.level.block.RenderShape;
-// import net.minecraft.world.level.block.entity.BlockEntity;
-// import net.minecraft.world.level.block.state.BlockState;
-// import net.minecraft.world.level.storage.ValueInput;
-// import net.minecraft.world.phys.Vec3;
-// import net.neoforged.bus.api.SubscribeEvent;
-// import net.neoforged.neoforge.capabilities.Capabilities;
-// import net.neoforged.neoforge.common.NeoForge;
-// import net.neoforged.neoforge.transfer.ResourceHandler;
-// import net.neoforged.neoforge.transfer.item.ItemResource;
-// import net.neoforged.neoforge.transfer.transaction.Transaction;
-// import dev.su5ed.mffs.setup.ModObjects;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -105,35 +79,36 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private final List<ScheduledEvent> scheduledEvents = new ArrayList<>();
     public final InventorySlot secondaryCard;
     public final InventorySlot projectorModeSlot;
-    // 1.21.x: ListMultimap<Direction, InventorySlot> → ListMultimap<EnumFacing, InventorySlot>
     public final ListMultimap<EnumFacing, InventorySlot> fieldModuleSlots;
     public final List<InventorySlot> upgradeSlots;
 
     private final Semaphore semaphore = new Semaphore();
     private final Set<BlockPos> projectedBlocks = Collections.synchronizedSet(new HashSet<>());
-    // Orphan positions left over from a soft-destroy (resize/module change). Drained gradually;
-    // a hard destroyField() removes them immediately instead.
+
+    // Orphan positions left over from a soft-destroy (resize/module change).
     // LinkedHashSet so the drain iterator walks positions in insertion order; applyFieldDiff
     // shuffles the toRemove list before inserting, matching the random order used during build.
     private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new LinkedHashSet<>());
+
     // Positions whose server-side camouflage was updated in applyFieldDiff() but whose client
-    // notification packet hasn't been sent yet.  Drained N-per-cycle in tickServer() at
-    // projection speed so large fields update gradually rather than all at once.
+    // notification packet hasn't been sent yet.  Drained N-per-cycle in tickServer()
     private final Set<BlockPos> pendingCamoRefresh = Collections.synchronizedSet(new LinkedHashSet<>());
+
     // Positions projected in the previous session, loaded from NBT. Used once per load to diff
     // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
     // Never synced/threaded — only accessed on the server tick thread.
     private final Set<BlockPos> savedProjectedBlocks = new HashSet<>();
+
     // Shadow set of currently-calculated field positions for O(1) lookup in the gap-fill sweep.
     // Rebuilt asynchronously in runCalculationTask; published via volatile for safe visibility.
     private volatile Set<BlockPos> calculatedFieldSet = Collections.emptySet();
+
     // Non-null when a diff-based field transition is in progress.  Holds a snapshot of the old
     // projectedBlocks taken at the moment softDestroyField() was called.  The field stays visible
-    // while the async recalculation runs; once CALCULATING completes, applyFieldDiff() diffs the
+    // while the async recalculation runs; once complete, applyFieldDiff() diffs the
     // snapshot against the new geometry and only touches blocks that actually changed.
     private Set<BlockPos> pendingDiffSnapshot = null;
-    // 1.21.x: Pair<BlockState, Boolean> (com.mojang.datafixers.util.Pair) — not in 1.12.2
-    // Use AbstractMap.SimpleEntry<IBlockState, Boolean> as key=blockState, value=canProject
+
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
         .expireAfterWrite(1, TimeUnit.MINUTES)
         .build(new CacheLoader<>() {
@@ -149,7 +124,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
         this.secondaryCard = addSlot("secondaryCard", InventorySlot.Mode.BOTH, ModUtil::isCard);
         this.projectorModeSlot = addSlot("projectorMode", InventorySlot.Mode.BOTH, ModUtil::isProjectorMode, this::onModeChanged);
-        // 1.21.x: StreamEx.of(Direction.values()) → StreamEx.of(EnumFacing.values())
         this.fieldModuleSlots = StreamEx.of(EnumFacing.values())
             .flatMap(side -> IntStreamEx.range(2)
                 .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> onFieldModuleChanged())))
@@ -215,19 +189,16 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return super.getCapability(capability, facing);
     }
 
-    // 1.21.x: @SubscribeEvent + NeoForge.EVENT_BUS → @SubscribeEvent + MinecraftForge.EVENT_BUS
     @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
     public void onSetBlock(SetBlockEvent event) {
         // Invalidate the projection cache for the changed position so the next gap-fill sweep
         // sees the current world state rather than a stale cached value.
-        // 1.21.x: event.getLevel() == this.level
         if (event.getWorld() == this.world && event.getState().getBlock() != ModBlocks.FORCE_FIELD) {
             this.projectionCache.invalidate(event.getPos());
         }
     }
 
     private boolean isMatrixModuleOrPass(ItemStack stack) {
-        // 1.21.x: stack.getCapability(ModCapabilities.MODULE_TYPE)
         return Optional.ofNullable(stack.getCapability(ModCapabilities.MODULE_TYPE, null))
             .map(ModuleType::getCategories)
             .map(categories -> categories.isEmpty() || categories.contains(Module.Category.MATRIX))
@@ -278,41 +249,33 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     public void setClientAnimationSpeed(int clientAnimationSpeed) {
-        // 1.21.x: this.level.isClientSide()
         if (!this.world.isRemote) {
             throw new IllegalStateException("Must only be called on the client");
         }
         this.clientAnimationSpeed = clientAnimationSpeed;
     }
 
-    // 1.21.x: be() returned BlockEntity; in 1.12.2 TileEntity
     @Override
     public BaseBlockEntity be() {
         return this;
     }
 
-    // 1.21.x: getCachedBlockState returns BlockState → IBlockState in 1.12.2
     public IBlockState getCachedBlockState(BlockPos pos) {
-        // 1.21.x: this.projectionCache.getUnchecked(pos).getFirst() → .getKey()
         return this.projectionCache.getUnchecked(pos).getKey();
     }
 
     @Override
     public void onLoad() {
         super.onLoad();
-        // 1.21.x: this.level.isClientSide()
         if (!this.world.isRemote) {
-            // 1.21.x: NeoForge.EVENT_BUS.register(this)
             MinecraftForge.EVENT_BUS.register(this);
             reCalculateForceField();
         }
     }
 
-    // 1.21.x: setRemoved() → invalidate()
     @Override
     public void invalidate() {
         if (!this.world.isRemote) {
-            // 1.21.x: NeoForge.EVENT_BUS.unregister(this)
             MinecraftForge.EVENT_BUS.unregister(this);
         }
         super.invalidate();
@@ -373,10 +336,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                             orphansToQueue.add(old);
                         } else if (this.world.getBlockState(old).getBlock() == ModBlocks.FORCE_FIELD) {
                             // Block is still valid in the new field. Restore it to projectedBlocks
-                            // so in-place operations (e.g. glow module changes via refreshFieldLights)
-                            // can find it without waiting for a full softDestroy/rebuild cycle.
-                            // projectField() won't add these itself because existing FF blocks
-                            // (not in pendingRemoval) return canProject=false and are never selected.
                             this.projectedBlocks.add(old);
                         }
                     }
@@ -421,13 +380,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 // Only play the field sound when in a fully sustained state (tank holds at least
                 // one more billing burst). In low-power mode the projector runs silently so players
                 // have an audio cue that power is marginal.
-                // 1.21.x: SoundSource.BLOCKS → SoundCategory.BLOCKS
                 this.world.playSound(null, this.pos, ModSounds.FIELD, SoundCategory.BLOCKS, 0.4F, 1 - this.world.rand.nextFloat() * 0.1F);
             }
         } else {
             // Soft power-off: on the first tick we notice power is gone, queue all projected
             // blocks for gradual removal via the drain loop below.  Subsequent ticks are no-ops
-            // until all blocks drain.  Hard destroyField() is reserved for block removal only.
+            // until all blocks drain.
             if (!this.projectedBlocks.isEmpty()) {
                 this.pendingDiffSnapshot = null;
                 this.semaphore.reset();
@@ -488,23 +446,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     private boolean canConsumeFieldCost(int fortronCost) {
-        // 1.21.x: try (Transaction tx = Transaction.openRoot()) {
-        //     return this.fortronStorage.extractFortron(fortronCost, tx) >= fortronCost;
-        // }
         return this.fortronStorage.extractFortron(fortronCost, true) >= fortronCost;
     }
 
-    // 1.21.x: preRemoveSideEffects(BlockPos pos, BlockState state)
     @Override
     public void preRemoveSideEffects(BlockPos pos) {
         destroyField();
 
         super.preRemoveSideEffects(pos);
     }
-
-    // 1.21.x: createMenu(int containerId, Inventory inventory, Player player) → AbstractContainerMenu
-    // In 1.12.2, GUI is handled via IGuiHandler. ModMenus.PROJECTOR = GUI ID.
-    // TODO: Ensure IGuiHandler returns new ProjectorMenu for the matching GUI ID
 
     @Override
     protected int doGetFortronCost() {
@@ -519,15 +469,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     protected void onInventoryChanged() {
         super.onInventoryChanged();
-        // Re-check the projector block's own light level (e.g. projector emits level 10 when
-        // active with a mode present).  Glow Module changes on already-projected field blocks are
-        // handled in-place via refreshFieldLights() triggered from the upgrade-slot callback.
+        // Re-check the projector block's own light level
         if (this.world != null && !this.world.isRemote) {
             this.world.checkLight(this.pos);
         }
     }
 
-    // 1.21.x: getUpdateTag(HolderLookup.Provider provider) → getUpdateTag()
     @Override
     public NBTTagCompound getUpdateTag() {
         NBTTagCompound tag = super.getUpdateTag();
@@ -535,7 +482,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return tag;
     }
 
-    // 1.21.x: handleUpdateTag(ValueInput input) → handleUpdateTag(NBTTagCompound tag)
     @Override
     public void handleUpdateTag(NBTTagCompound tag) {
         super.handleUpdateTag(tag);
@@ -546,7 +492,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     @Override
     public Optional<ProjectorMode> getMode() {
-        // 1.21.x: getModeStack().getCapability(ModCapabilities.PROJECTOR_MODE)
         return Optional.ofNullable(getModeStack().getCapability(ModCapabilities.PROJECTOR_MODE, null));
     }
 
@@ -555,7 +500,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return this.projectorModeSlot.getItem();
     }
 
-    // 1.21.x: getSlotsFromSide(Direction side) → getSlotsFromSide(EnumFacing side)
     @Override
     public Collection<InventorySlot> getSlotsFromSide(EnumFacing side) {
         return this.fieldModuleSlots.get(side);
@@ -569,7 +513,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     public BlockPos getTranslation() {
         return cached(TRANSLATION_CACHE_KEY, () -> {
-            // 1.21.x: Direction.NORTH/SOUTH/WEST/EAST/UP/DOWN → EnumFacing
             int zTranslationNeg = getModuleCount(ModModules.TRANSLATION, getSlotsFromSide(EnumFacing.NORTH));
             int zTranslationPos = getModuleCount(ModModules.TRANSLATION, getSlotsFromSide(EnumFacing.SOUTH));
 
@@ -652,7 +595,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     public Set<BlockPos> getInteriorPoints() {
         return cached(INTERIOR_POINTS_CACHE_KEY, () -> {
-            // 1.21.x: Set<Vec3> interiorPoints / Vec3 → Vec3d
             Set<Vec3d> interiorPoints = getMode().orElseThrow(NoSuchElementException::new).getInteriorPoints(this);
             BlockPos translation = this.pos.add(getTranslation());
             int rotationYaw = getRotationYaw();
@@ -660,7 +602,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             int rotationRoll = getRotationRoll();
             return StreamEx.of(interiorPoints)
                 .map(pos -> rotationYaw != 0 || rotationPitch != 0 || rotationRoll != 0 ? ModUtil.rotateByAngleExact(pos, rotationYaw, rotationPitch, rotationRoll) : pos)
-                // 1.21.x: BlockPos.containing(pos).offset(translation) → new BlockPos(pos).add(translation)
                 .map(pos -> new BlockPos(pos).add(translation.getX(), translation.getY(), translation.getZ()))
                 .toSet();
         });
@@ -671,7 +612,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         for (Module module : getModuleInstances()) {
             module.beforeProject(this);
         }
-        // 1.21.x: ModBlocks.FORCE_FIELD.get().defaultBlockState() → ModBlocks.FORCE_FIELD.getDefaultState()
         IBlockState state = ModBlocks.FORCE_FIELD.getDefaultState();
         List<TargetPosPair> projectable = this.semaphore.getResult(ProjectionStage.SELECTING);
         fieldLoop:
@@ -699,21 +639,16 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 // place-then-destroy oscillation seen with marginal power supplies.
                 // Reclaim paths spend no Fortron and are always safe to continue.
                 if (this.fortronStorage.getStoredFortron() <= getFortronCost() * Math.max(MFFSConfig.projectionCycleTicks, 11)) break fieldLoop;
-                // 1.21.x: level.setBlock(pos, state, Block.UPDATE_NONE) → world.setBlockState(pos, state, 0)
                 this.world.setBlockState(pos, state, 0);
                 // Set the controlling projector of the force field block to this one
-                // 1.21.x: this.level.getBlockEntity(pos, ModObjects.FORCE_FIELD_BLOCK_ENTITY.get()).ifPresent(...)
                 net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
                 if (te instanceof ForceFieldBlockEntity be) {
                     be.setProjector(this.pos);
-                    // 1.21.x: BlockState camouflage = getCamoBlock(pair.original())
                     IBlockState camouflage = getCamoBlock(pair.original());
                     be.setCamouflage(camouflage);
                 }
                 // Only update after the projector has been set
-                // 1.21.x: level.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL) → world.notifyBlockUpdate
                 this.world.notifyBlockUpdate(pos, state, state, 3);
-                // 1.21.x: try (Transaction tx = ...) { extractFortron(1, tx); tx.commit(); }
                 this.fortronStorage.extractFortron(1, false);
             } else {
                 // Reclaim existing block: update camouflage and push fresh clientBlockLight to clients
@@ -740,7 +675,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.scheduledEvents.add(new ScheduledEvent(delay, runnable));
     }
 
-    // 1.21.x: canProjectPos returns Pair<BlockState, Boolean>, now AbstractMap.SimpleEntry<IBlockState, Boolean>
     private AbstractMap.SimpleEntry<IBlockState, Boolean> canProjectPos(BlockPos pos) {
         IBlockState state = this.world.getBlockState(pos);
         // Allow projecting over our own FF blocks that remain from a previous soft-destroy —
@@ -748,16 +682,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // Only treat the block as reclaimable while it is still in pendingRemoval; once reclaimed
         // (removed from the set) this position must evaluate as non-projectable so SELECTING won't
         // keep cycling over it endlessly.
-        // This method is called from the background projection-cache loader thread via
-        // selectProjectablePositions(). Only test set membership here (synchronized set,
-        // thread-safe). The real ownership check (getProjectorPos) happens in projectField()
-        // on the server thread before any block is actually reclaimed or replaced.
         boolean isOwnField = state.getBlock() == ModBlocks.FORCE_FIELD && this.pendingRemoval.contains(pos);
-        // 1.21.x: state.isAir() → state.getBlock().isAir(state, world, pos)
-        // 1.21.x: state.liquid() → state.getMaterial().isLiquid()
-        // 1.21.x: state.is(ModTags.FORCEFIELD_REPLACEABLE) → TODO (1.12.2 tag/oredictionary check)
-        // 1.21.x: state.getDestroySpeed(level, pos) != -1 → state.getBlockHardness(world, pos) != -1
-        // 1.21.x: state.is(ModBlocks.FORCE_FIELD.get()) → state.getBlock() == ModBlocks.FORCE_FIELD
         boolean canProject = ((state.getBlock().isAir(state, this.world, pos)
             || state.getMaterial().isLiquid()
             || ModTags.getForceFieldReplaceable().contains(state.getBlock())
@@ -1005,13 +930,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
         this.semaphore.reset();
-        // 1.21.x: this.level.isClientSide() → this.world.isRemote
         if (!this.world.isRemote) {
             StreamEx.of(fieldPositions)
                 .map(TargetPosPair::pos)
-                // 1.21.x: state.is(ModBlocks.FORCE_FIELD.get()) → state.getBlock() == ModBlocks.FORCE_FIELD
                 .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
-                // 1.21.x: this.level.removeBlock(pos, false) → this.world.setBlockToAir(pos)
                 .forEach(pos -> this.world.setBlockToAir(pos));
             alsoRemove.stream()
                 .filter(pos -> this.world.getBlockState(pos).getBlock() == ModBlocks.FORCE_FIELD)
@@ -1091,12 +1013,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         }
     }
 
-    // 1.21.x: BlockState getCamoBlock(Vec3 pos) → IBlockState getCamoBlock(Vec3d pos)
     public IBlockState getCamoBlock(Vec3d pos) {
-        // 1.21.x: this.level.isClientSide() → this.world.isRemote
         if (!this.world.isRemote && hasModule(ModModules.CAMOUFLAGE)) {
             if (getModeStack().getItem() instanceof CustomProjectorModeItem custom) {
-                // 1.21.x: Map<Vec3, BlockState> → Map<Vec3d, IBlockState>
                 Map<Vec3d, IBlockState> map = custom.getFieldBlocks(this, getModeStack());
                 IBlockState block = map.get(pos);
                 if (block != null) {
@@ -1221,7 +1140,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     private List<TargetPosPair> calculateFieldPositions() {
         ProjectorMode mode = getMode().orElseThrow(NoSuchElementException::new);
-        // 1.21.x: Set<Vec3> fieldPoints → Set<Vec3d> fieldPoints
         Set<Vec3d> fieldPoints = hasModule(ModModules.INVERTER) ? mode.getInteriorPoints(this) : mode.getExteriorPoints(this);
         BlockPos translation = getTranslation();
         int rotationYaw = getRotationYaw();
@@ -1230,9 +1148,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
         return StreamEx.of(fieldPoints)
             .mapToEntry(pos -> rotationYaw != 0 || rotationPitch != 0 || rotationRoll != 0 ? ModUtil.rotateByAngleExact(pos, rotationYaw, rotationPitch, rotationRoll) : pos)
-            // 1.21.x: pos.add(worldPosition.getX(), ...) → pos.addVector(worldPos.getX(), ...); pos.y() → pos.y
             .mapValues(pos -> pos.add(this.pos.getX(), this.pos.getY(), this.pos.getZ()).add(translation.getX(), translation.getY(), translation.getZ()))
-            // 1.21.x: pos.y() → pos.y; this.level.getHeight() → this.world.getHeight()
             .filterValues((Vec3d pos) -> pos.y <= this.world.getHeight())
             .mapKeyValue((Vec3d original, Vec3d pos) -> new TargetPosPair(new BlockPos((int) Math.round(pos.x), (int) Math.round(pos.y), (int) Math.round(pos.z)), original))
             .toMutableList();
@@ -1274,8 +1190,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     break fieldLoop;
                 }
             }
-            // 1.21.x: projectionCache.getUnchecked(pos).getSecond() → .getValue()
-            // 1.21.x: this.level.isLoaded(pos) → this.world.isBlockLoaded(pos)
             if (this.projectionCache.getUnchecked(pos).getValue() && this.world.isBlockLoaded(pos)) {
                 projectable.add(pair);
                 constructionCount++;
@@ -1284,10 +1198,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return projectable;
     }
 
-    // 1.21.x: getFilterBlock(ItemStack) returns Optional<BlockState> (preserving item metadata)
-    // 1.21.x: BlockItem blockItem → ItemBlock blockItem (1.12.2 name)
-    // 1.21.x: block.defaultBlockState().getRenderShape() != RenderShape.INVISIBLE
-    //   → block.getRenderType(block.getDefaultState()) != EnumBlockRenderType.INVISIBLE
     public static Optional<IBlockState> getFilterBlock(ItemStack stack) {
         if (stack.getItem() instanceof ItemBlock blockItem) {
             Block block = blockItem.getBlock();
@@ -1319,19 +1229,13 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     public Map<IBlockState, Integer> checkNeighbors() {
         Map<IBlockState, Integer> countMap = new HashMap<>();
-        // 1.21.x: this.level.isClientSide() → this.world.isRemote
         if (!this.world.isRemote) {
-            // 1.21.x: Direction side : Direction.values() → EnumFacing side : EnumFacing.values()
             for (EnumFacing side : EnumFacing.values()) {
-                // 1.21.x: this.level.getCapability(Capabilities.Item.BLOCK, worldPosition.relative(side), side.getOpposite())
-                // In 1.12.2: get TE and IItemHandler capability
                 net.minecraft.tileentity.TileEntity neighbor = this.world.getTileEntity(this.pos.offset(side));
                 if (neighbor != null && neighbor.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side.getOpposite())) {
                     IItemHandler handler = neighbor.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side.getOpposite());
                     if (handler != null) {
                         for (int i = 0; i < handler.getSlots(); i++) {
-                            // 1.21.x: handler.getResource(i).toStack() → handler.getStackInSlot(i)
-                            // 1.21.x: handler.getAmountAsInt(i) → handler.getStackInSlot(i).getCount()
                             ItemStack stack = handler.getStackInSlot(i);
                             int count = stack.getCount();
                             getFilterBlock(stack).ifPresent(state -> countMap.put(state, countMap.getOrDefault(state, 0) + count));

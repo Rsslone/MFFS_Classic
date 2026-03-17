@@ -2,16 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: Capability registration
-// 1.21.x used NeoForge BlockCapability / ItemCapability + RegisterCapabilitiesEvent.
-// These APIs do NOT exist in Forge 1.12.2. The 1.12.2 capability system uses:
-//   - CapabilityManager.INSTANCE.register(IClass, IStorage, IFactory) in preInit
-//   - @CapabilityInject on a static Capability<T> field to obtain the token
-//   - ICapabilityProvider implemented on TileEntities / Items
-//
-// The following capabilities need to be ported:
-//   Block: FortronStorage, Projector, BiometricIdentifier, InterdictionMatrix
-//         + vanilla Energy.BLOCK (Forge RF/FE), Fluid.BLOCK, Item.BLOCK
-//   Item:  ModuleType, ProjectorMode, IdentificationCard, FrequencyCard
 // =============================================================================
 
 import dev.su5ed.mffs.api.fortron.FortronStorage;

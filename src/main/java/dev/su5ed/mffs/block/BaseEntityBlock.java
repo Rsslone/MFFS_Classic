@@ -1,18 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: BaseEntityBlock
-// 1.21.x used Block + EntityBlock (NeoForge). In 1.12.2:
-//   - Extension interface is ITileEntityProvider
-//   - BooleanProperty → PropertyBool
-//   - BlockState → IBlockState
-//   - BlockStateContainer replaces StateDefinition.Builder
-//   - getStateForPlacement takes (World, BlockPos, EnumFacing, float, float, float, int, EntityLivingBase)
-//   - getDrops(NonNullList<ItemStack>, IBlockAccess, BlockPos, IBlockState, int)
-//   - onBlockActivated replaces useWithoutItem
-//   - Ticking is handled by ITickable on the TileEntity, not BlockEntityTicker
-// =============================================================================
-
 import dev.su5ed.mffs.blockentity.BaseBlockEntity;
 import dev.su5ed.mffs.blockentity.BaseTileEntity;
 import net.minecraft.block.Block;

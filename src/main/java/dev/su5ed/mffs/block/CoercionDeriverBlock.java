@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: CoercionDeriverBlock
-// VoxelShape → multiple AxisAlignedBB via addCollisionBoxToList + getBoundingBox.
-// canConnectRedstone signature stays the same in 1.12.2.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.GuiIds;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;

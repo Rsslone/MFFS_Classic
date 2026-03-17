@@ -1,13 +1,10 @@
 package dev.su5ed.mffs.api;
 
-// 1.12.2 Backport: Projector interface
-// BlockEntity->TileEntity, Direction->EnumFacing,
-// BlockState->IBlockState, ItemStack/BlockPos namespace changes.
-
 import dev.su5ed.mffs.api.module.ModuleAcceptor;
 import dev.su5ed.mffs.api.module.ProjectorMode;
 import dev.su5ed.mffs.api.security.BiometricIdentifierLink;
 import dev.su5ed.mffs.util.inventory.InventorySlot;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -23,8 +20,7 @@ import java.util.Set;
 public interface Projector extends ModuleAcceptor, BiometricIdentifierLink {
     TileEntity be();
 
-    // TODO: IBlockState getCachedBlockState(BlockPos pos);
-    // net.minecraft.block.state.IBlockState
+    IBlockState getCachedBlockState(BlockPos pos);
 
     /**
      * @return Is the projector active?

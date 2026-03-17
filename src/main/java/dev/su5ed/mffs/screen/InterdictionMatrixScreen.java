@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: InterdictionMatrixScreen
-// ClientPacketDistributor.sendToServer() → Network.sendToServer()
-// ChatFormatting.getColor() → TextFormatting.getColor() (same method in 1.12.2)
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
 import dev.su5ed.mffs.menu.InterdictionMatrixMenu;
@@ -66,6 +62,3 @@ public class InterdictionMatrixScreen extends FortronScreen<InterdictionMatrixMe
     }
 }
 
-/* class InterdictionMatrixScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference (ChatFormatting, ClientPacketDistributor) ...
-*/

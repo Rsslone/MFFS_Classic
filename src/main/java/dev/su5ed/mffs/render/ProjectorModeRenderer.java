@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.render;
 
-// 1.12.2 Backport: ProjectorModeRenderer
-// Renders holographic mode shapes (cube, sphere, pyramid, cylinder, tube, custom)
-// above the Projector when a mode item is inserted.
-// Ported from 1.21 ProjectorModeRenderer + 1.7.10 RenderForceFieldProjector.
-// Uses a textured ModelRenderer cube (force_cube.png) matching 1.21's ForceCubeModel.
-
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
 import dev.su5ed.mffs.setup.ModItems;
 import net.minecraft.client.Minecraft;
@@ -21,6 +15,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Arrays;
 import java.util.List;
+
+// Renders holographic mode shapes (cube, sphere, pyramid, cylinder, tube, custom)
+// above the Projector when a mode item is inserted.
 
 @SideOnly(Side.CLIENT)
 public final class ProjectorModeRenderer {

@@ -2,9 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: Sound registration
-// 1.21.x used DeferredRegister<SoundEvent> (NeoForge). In 1.12.2 SoundEvent
-// instances are registered via RegistryEvent.Register<SoundEvent> on the Forge
-// event bus. The existing sounds.json in assets/mffs/ remains valid in 1.12.2.
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSMod;

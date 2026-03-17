@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: InterdictionMatrixBlock
-// In the 1.21.x NeoForge version, the Interdiction Matrix used a generic
-// BaseEntityBlock instance via DeferredBlock. In 1.12.2, we need a concrete
-// subclass since BaseEntityBlock is abstract.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
 import dev.su5ed.mffs.setup.GuiIds;

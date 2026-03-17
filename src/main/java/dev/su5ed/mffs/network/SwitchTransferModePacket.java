@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: SwitchTransferModePacket (server-bound)
-// Changes the Fortron transfer mode on a FortronCapacitor tile entity.
-
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
 import dev.su5ed.mffs.util.TransferMode;
 import io.netty.buffer.ByteBuf;

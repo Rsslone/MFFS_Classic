@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.render.model;
 
-// 1.12.2 Backport: CoercionDeriverTopModel
-// Ported from 1.7.10 ModelCoercionDeriver ("Tout" rotating part)
-// and 1.21 CoercionDeriverTopModel (LayerDefinition).
-// In 1.12.2, uses ModelBase + ModelRenderer with GL11 rotation.
-
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraftforge.fml.relauncher.Side;
@@ -22,7 +17,6 @@ public class CoercionDeriverTopModel extends ModelBase {
         // to pixel row 38 in the 128-tall file — correctly inside the content area.
         // (64x32 declaration would give UV_y = 0.594 → pixel row 76 → transparent gap.)
         this.textureHeight = 64;
-        // 1.7.10: texOffs(24,19), box(-2, 14, -2, 4, 1, 4)
         this.tout = new ModelRenderer(this, 24, 19);
         this.tout.addBox(-2.0F, 14.0F, -2.0F, 4, 1, 4);
         this.tout.setRotationPoint(0.0F, 0.0F, 0.0F);

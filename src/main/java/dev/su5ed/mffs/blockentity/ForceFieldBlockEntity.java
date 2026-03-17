@@ -96,7 +96,6 @@ public class ForceFieldBlockEntity extends BaseTileEntity {
 
     /**
      * Called from UpdateBlockEntityPacket to apply server-sent NBT on the client.
-     * Replaces the 1.21.x handleCustomUpdateTag(CompoundTag, HolderLookup.Provider).
      */
     public void handleCustomUpdateTag(NBTTagCompound tag) {
         if (tag.hasKey("projector")) {
@@ -131,7 +130,6 @@ public class ForceFieldBlockEntity extends BaseTileEntity {
 
     /**
      * Called from tickServer or projector to push update data to clients.
-     * Replaces the 1.21.x getCustomUpdateTag(HolderLookup.Provider).
      */
     public NBTTagCompound getCustomUpdateTag() {
         NBTTagCompound tag = new NBTTagCompound();

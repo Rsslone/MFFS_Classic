@@ -1,15 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: BaseItem
-// Key changes:
-//   Item(Properties) → Item() with setter methods
-//   appendHoverText(TooltipDisplay, Consumer<Component>) → addInformation(List<String>)
-//   ExtendedItemProperties → simplified shim (description via boolean flag)
-//   Component/ChatFormatting → String + TextFormatting
-//   BuiltInRegistries → getRegistryName()
-// =============================================================================
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
@@ -60,22 +50,6 @@ public class BaseItem extends Item {
                 tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.show_details",
                     TextFormatting.GRAY + I18n.format("info.mffs.key.shift")));
             }
-        }
-    }
-
-    // -----------------------------------------------------------------
-    // Compatibility shim for old 1.21.x ExtendedItemProperties pattern.
-    // In 1.12.2, just pass `showDescription=true` to the BaseItem ctor.
-    // This stub class lets callers that haven't been fully ported to
-    // compile without errors while the migration is in progress.
-    // -----------------------------------------------------------------
-    public static class ExtendedItemProperties {
-        public boolean hasDescription;
-
-        /** No-op in 1.12.2; use BaseItem(true) instead. */
-        public ExtendedItemProperties description() {
-            this.hasDescription = true;
-            return this;
         }
     }
 }

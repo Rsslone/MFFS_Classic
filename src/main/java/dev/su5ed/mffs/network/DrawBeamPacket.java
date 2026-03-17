@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: DrawBeamPacket (client-bound)
-// Instructs the client to spawn a beam particle between two positions.
-
 import dev.su5ed.mffs.render.particle.ParticleColor;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;

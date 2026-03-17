@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.api.module;
 
-// 1.12.2 Backport: Module interface
-// Level -> World, BlockPos/Entity namespace change.
-
 import dev.su5ed.mffs.api.Projector;
 import dev.su5ed.mffs.api.TargetPosPair;
 import net.minecraft.entity.Entity;

@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.render.model;
 
-// 1.12.2 Backport: ForceTubeModel
-// Same ModelBase/ModelRenderer translation as ForceCubeModel.
-// Four panels form an open-ended square tube (no front/back faces).
-
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.util.ResourceLocation;

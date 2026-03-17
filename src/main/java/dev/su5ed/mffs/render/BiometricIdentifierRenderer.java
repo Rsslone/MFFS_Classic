@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.render;
 
-// 1.12.2 Backport: BiometricIdentifierRenderer
-// Renders a holographic screen quad above the Biometric Identifier when active.
-// Uses TESR (TileEntitySpecialRenderer) for 1.12.2.
-
 import dev.su5ed.mffs.block.BiometricIdentifierBlock;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
@@ -18,6 +14,9 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
+
+// Renders a holographic screen quad above the Biometric Identifier when active.
+// Uses TESR (TileEntitySpecialRenderer) for 1.12.2.
 
 @SideOnly(Side.CLIENT)
 public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<BiometricIdentifierBlockEntity> {

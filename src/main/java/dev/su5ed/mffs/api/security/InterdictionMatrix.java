@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.api.security;
 
-// 1.12.2 Backport: InterdictionMatrix interface
-// BlockEntity->TileEntity, Component->ITextComponent, MutableComponent->ITextComponent,
-// Component.translatable->new TextComponentTranslation.
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.api.Activatable;
 import dev.su5ed.mffs.api.module.ModuleAcceptor;

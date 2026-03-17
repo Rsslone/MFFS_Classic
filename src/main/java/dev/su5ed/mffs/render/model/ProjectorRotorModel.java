@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.render.model;
 
-// 1.12.2 Backport: ProjectorRotorModel
-// Ported from 1.7.10 ModelForceFieldProjector (rotating parts only)
-// and 1.21 ProjectorRotorModel (LayerDefinition).
-// Static parts (top, bottom, corners, lense) are baked into block model JSON.
-// Rotating parts (axle, thing*, attacher*) are rendered here via TESR.
-
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraftforge.fml.relauncher.Side;
@@ -40,7 +34,6 @@ public class ProjectorRotorModel extends ModelBase {
         this.axle.setRotationPoint(0.0F, 16.0F, 0.0F);
 
         // Four "thing" parts (front, back, right, left)
-        // 1.7.10 uses thingright X=-6, thingleft X=2 (swapped vs 1.21 due to Z-flip)
         this.thingfront = new ModelRenderer(this, 0, 20);
         this.thingfront.addBox(-2.0F, -2.0F, -7.0F, 4, 8, 4);
         this.thingfront.setRotationPoint(0.0F, 16.0F, 0.0F);
@@ -91,7 +84,6 @@ public class ProjectorRotorModel extends ModelBase {
      */
     public void render(float rotation, float scale) {
         GL11.glPushMatrix();
-        // Positive Y rotation matching 1.7.10 reference (Z-flip in renderer handles direction)
         GL11.glRotatef(rotation, 0.0F, 1.0F, 0.0F);
 
         this.axle.render(scale);

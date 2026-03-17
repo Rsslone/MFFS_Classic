@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: InitialDataRequestPacket (server-bound)
-// Client requests the initial sync data (NBT) for a ForceField block entity.
-// Server replies with an UpdateBlockEntityPacket.
-
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;

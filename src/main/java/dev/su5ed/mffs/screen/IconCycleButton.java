@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: IconCycleButton
-// AbstractButton → GuiButton; onPress(InputWithModifiers) → firePress()
-// GuiGraphics.blit() → bindTexture() + Tessellator draw
-// Identifier → ResourceLocation; ARGB.colorFromFloat() → manual int
-// isHovered → this.hovered
-
 import dev.su5ed.mffs.MFFSMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -78,29 +72,3 @@ public class IconCycleButton<T extends Enum<T>> extends GuiButton {
     }
 }
 
-/* class IconCycleButton_NeoForge_1_21_x:
-... original NeoForge source preserved for reference ...
-import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
-
-public class IconCycleButton<T extends Enum<T>> extends AbstractButton {
-    public static final Identifier GUI_BUTTONS = MFFSMod.location("textures/gui/buttons.png");
-    ...
-    @Override
-    public void onPress(InputWithModifiers input) {
-        this.onPress.accept(this.value.get());
-    }
-    ...
-    @Override
-    protected void renderContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        int color = this.isHovered ? ARGB.colorFromFloat(this.alpha, 0.85F, 0.85F, 0.85F) : ARGB.white(this.alpha);
-        int vOffset = this.imageV + this.value.get().ordinal() * this.yStep;
-        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, this.image, getX(), getY(), this.imageU, vOffset, this.width, this.height, 256, 256, color);
-        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, this.image, getX() + this.width / 2, getY(), 200 - this.width / 2, vOffset, this.width / 2, this.height, 256, 256, color);
-    }
-    @Override
-    protected void updateWidgetNarration(NarrationElementOutput output) {}
-}
-*/

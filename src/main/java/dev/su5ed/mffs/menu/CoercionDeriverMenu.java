@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.menu;
 
-// 1.12.2 Backport: CoercionDeriverMenu
-// BlockPos → net.minecraft.util.math.BlockPos
-// Player → EntityPlayer; Inventory → InventoryPlayer
-// ModMenus/ModObjects removed (not needed for container construction in 1.12.2)
-// addDataSlot(new DataSlotWrapper()) → addDataSlot(getter, setter)
-
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity.EnergyMode;
 import dev.su5ed.mffs.util.inventory.SlotInventory;

@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.render;
 
-// 1.12.2 Backport: CoercionDeriverRenderer
-// TileEntitySpecialRenderer that renders the rotating top plate accent.
-// Ported from 1.7.10 RenderCoercionDeriver + 1.21 CoercionDeriverRenderer.
-
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import dev.su5ed.mffs.render.model.CoercionDeriverTopModel;
@@ -14,6 +10,9 @@ import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
+// TileEntitySpecialRenderer that renders the rotating top plate accent.
+// Ported from 1.7.10 RenderCoercionDeriver + 1.21 CoercionDeriverRenderer.
 
 @SideOnly(Side.CLIENT)
 public class CoercionDeriverRenderer extends TileEntitySpecialRenderer<CoercionDeriverBlockEntity> {
