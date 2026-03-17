@@ -24,29 +24,29 @@ public final class PyramidProjectorMode implements ProjectorMode {
         int zStretch = posScale.getZ() + negScale.getZ();
         Vec3d translation = new Vec3d(0, -negScale.getY(), 0);
 
-        // Dense 0.5 sampling prevents holes after rotation, while generating only
-        // the perimeter of each Y slice keeps the shell one block thick.
         if (xStretch <= 0 || yStretch <= 0 || zStretch <= 0) {
             fieldBlocks.add(translation);
             return fieldBlocks;
         }
 
-        for (float y = 0; y <= yStretch; y += 0.5f) {
-            double t = 1.0 - (double) y / yStretch;
-            double xLimit = xStretch * t;
-            double zLimit = zStretch * t;
+        // Trace each of the 4 triangular faces by shooting ridge lines from base-edge
+        // sample points (0.5-block spacing) to the apex.  The step along each line is
+        // always <= 0.5 blocks in 3D, which guarantees no gaps survive the
+        // rotation+round pass in ProjectorBlockEntity for any aspect ratio.
+        double ax = 0, ay = yStretch, az = 0; // apex
 
-            for (double z = -zLimit; z <= zLimit; z += 0.5) {
-                fieldBlocks.add(new Vec3d(xLimit, y, z).add(translation));
-                fieldBlocks.add(new Vec3d(-xLimit, y, z).add(translation));
-            }
-
-            for (double x = -xLimit; x <= xLimit; x += 0.5) {
-                fieldBlocks.add(new Vec3d(x, y, zLimit).add(translation));
-                fieldBlocks.add(new Vec3d(x, y, -zLimit).add(translation));
-            }
+        // ±Z faces: base edges run along X at z = ±zStretch
+        for (double u = -xStretch; u <= xStretch; u += 0.5) {
+            traceRidge(fieldBlocks, u, 0,  zStretch, ax, ay, az, translation);
+            traceRidge(fieldBlocks, u, 0, -zStretch, ax, ay, az, translation);
+        }
+        // ±X faces: base edges run along Z at x = ±xStretch
+        for (double v = -zStretch; v <= zStretch; v += 0.5) {
+            traceRidge(fieldBlocks,  xStretch, 0, v, ax, ay, az, translation);
+            traceRidge(fieldBlocks, -xStretch, 0, v, ax, ay, az, translation);
         }
 
+        // Solid base at y = 0
         for (double x = -xStretch; x <= xStretch; x += 0.5) {
             for (double z = -zStretch; z <= zStretch; z += 0.5) {
                 fieldBlocks.add(new Vec3d(x, 0, z).add(translation));
@@ -54,6 +54,28 @@ public final class PyramidProjectorMode implements ProjectorMode {
         }
 
         return fieldBlocks;
+    }
+
+    /**
+     * Traces a line from (bx,by,bz) to (ax,ay,az) in steps of <= 0.5 blocks,
+     * adding each sample translated by {@code translation} to {@code out}.
+     */
+    private static void traceRidge(Set<Vec3d> out,
+                                    double bx, double by, double bz,
+                                    double ax, double ay, double az,
+                                    Vec3d translation) {
+        double dx = ax - bx, dy = ay - by, dz = az - bz;
+        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 0.5) {
+            out.add(new Vec3d(bx, by, bz).add(translation));
+            return;
+        }
+        double tStep = 0.5 / len;
+        for (double t = 0; t <= 1.0; t += tStep) {
+            out.add(new Vec3d(bx + t * dx, by + t * dy, bz + t * dz).add(translation));
+        }
+        // Always include the apex end-point exactly
+        out.add(new Vec3d(ax, ay, az).add(translation));
     }
 
     @Override

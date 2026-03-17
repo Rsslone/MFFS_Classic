@@ -40,8 +40,10 @@ import org.apache.logging.log4j.Logger;
     modid   = MFFSMod.MODID,
     name    = MFFSMod.NAME,
     version = MFFSMod.VERSION,
-    // Require Forge 1.12.2 build 2847 or newer
-    dependencies = "required-after:forge@[14.23.5.2847,);"
+    // Require Forge 1.12.2 build 2847 or newer.
+    // "after:patchouli" ensures Patchouli's _factories.json (which registers
+    // patchouli:shapeless_book_recipe) is processed before MFFS recipes load.
+    dependencies = "required-after:forge@[14.23.5.2847,);after:patchouli"
 )
 public final class MFFSMod {
     // TODO: Replace literals with Tags.MOD_ID / Tags.MOD_NAME / Tags.VERSION
@@ -83,8 +85,16 @@ public final class MFFSMod {
         // 1.12 crafting recipes use OreDictionary for steel ingots (only if not disabled).
         if (!MFFSConfig.disableSteelItems) {
             OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);
-            // 1.12 furnace recipes are registered in code.
+            // Furnace and crafting recipes are registered in code (no recipe JSON)
+            // so they are silently absent when steel items are disabled.
             GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
+            GameRegistry.addShapedRecipe(
+                new ResourceLocation(MODID, "steel_compound"),
+                null,
+                new ItemStack(ModItems.STEEL_COMPOUND),
+                " C ", "CIC", " C ",
+                'C', new ItemStack(Items.COAL, 1, OreDictionary.WILDCARD_VALUE),
+                'I', new ItemStack(Items.IRON_INGOT));
         }
     }
 
