@@ -94,14 +94,14 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
     @Override
     public void onLoad() {
         super.onLoad();
-        FrequencyGrid.instance().register(this.fortronStorage);
+        FrequencyGrid.instance(this.world.isRemote).register(this.fortronStorage);
     }
 
     // 1.12.2: onChunkUnload() (not onChunkUnloaded)
     @Override
     public void onChunkUnload() {
         super.onChunkUnload();
-        FrequencyGrid.instance().unregister(this.fortronStorage);
+        FrequencyGrid.instance(this.world.isRemote).unregister(this.fortronStorage);
     }
 
     @Override
@@ -110,8 +110,8 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
 
         // Guard: if we somehow missed onLoad() (chunk edge-case) re-register on the first tick
         // so the FrequencyGrid is always populated with the correct, NBT-loaded frequency.
-        if (getTicks() == 1 && !FrequencyGrid.instance().get().contains(this.fortronStorage)) {
-            FrequencyGrid.instance().register(this.fortronStorage);
+        if (getTicks() == 1 && !FrequencyGrid.instance(this.world.isRemote).get().contains(this.fortronStorage)) {
+            FrequencyGrid.instance(this.world.isRemote).register(this.fortronStorage);
         }
 
         boolean active = isActive();
@@ -134,7 +134,7 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
     @Override
     public void preRemoveSideEffects(BlockPos pos) {
         if (this.markSendFortron) {
-            Fortron.transferFortron(this.fortronStorage, FrequencyGrid.instance().get(this.world, this.pos, 100, this.fortronStorage.getFrequency()), TransferMode.DRAIN, Integer.MAX_VALUE);
+            Fortron.transferFortron(this.fortronStorage, FrequencyGrid.instance(this.world.isRemote).get(this.world, this.pos, 100, this.fortronStorage.getFrequency()), TransferMode.DRAIN, Integer.MAX_VALUE);
         }
         // Note: level.invalidateCapabilities not needed in 1.12.2
     }
@@ -202,7 +202,7 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
                 }
                 return Optional.empty();
             })
-            .append(StreamEx.of(FrequencyGrid.instance().get(this.fortronStorage.getFrequency()))
+            .append(StreamEx.of(FrequencyGrid.instance(this.world.isRemote).get(this.fortronStorage.getFrequency()))
                 .mapPartial(storage -> {
                     net.minecraft.tileentity.TileEntity te = storage.getOwner();
                     return Optional.ofNullable(te != null ? te.getCapability(ModCapabilities.BIOMETRIC_IDENTIFIER, null) : null);

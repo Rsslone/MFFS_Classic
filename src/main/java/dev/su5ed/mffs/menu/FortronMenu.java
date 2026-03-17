@@ -103,7 +103,8 @@ public abstract class FortronMenu<T extends FortronBlockEntity & Activatable> ex
     @Override
     public boolean canInteractWith(EntityPlayer player) {
         if (this.isRemoteAccess) {
-            return player.getHeldItemMainhand().getItem() == ModItems.REMOTE_CONTROLLER_ITEM;
+            return player.getHeldItemMainhand().getItem() == ModItems.REMOTE_CONTROLLER_ITEM
+                || player.getHeldItemOffhand().getItem() == ModItems.REMOTE_CONTROLLER_ITEM;
         }
         BlockPos pos = this.blockEntity.getPos();
         World world = this.blockEntity.getWorld();

@@ -117,7 +117,7 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
     @Override
     public Collection<FortronStorage> getDevicesByFrequency() {
         // 1.21.x: this.level, this.worldPosition → this.world, this.pos
-        return FrequencyGrid.instance().get(this.world, this.pos, getTransmissionRange(), this.fortronStorage.getFrequency());
+        return FrequencyGrid.instance(this.world.isRemote).get(this.world, this.pos, getTransmissionRange(), this.fortronStorage.getFrequency());
     }
 
     @Override
