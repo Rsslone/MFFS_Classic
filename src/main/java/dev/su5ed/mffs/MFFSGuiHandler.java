@@ -1,9 +1,5 @@
 package dev.su5ed.mffs;
 
-// 1.12.2 IGuiHandler: maps GUI IDs to server-side Container and client-side GuiContainer.
-// Registered via NetworkRegistry.INSTANCE.registerGuiHandler(MFFSMod.INSTANCE, new MFFSGuiHandler())
-// in MFFSMod.init().
-
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
