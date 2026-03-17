@@ -1,6 +1,6 @@
 {
     "name": "Introduction",
-    "icon": "minecraft:lectern",
+    "icon": "minecraft:emerald",
     "category": "mffs:getting_started",
     "sortnum": 0,
     "priority": true,

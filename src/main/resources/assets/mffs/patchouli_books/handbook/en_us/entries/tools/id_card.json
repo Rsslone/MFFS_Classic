@@ -7,7 +7,7 @@
             "type": "spotlight",
             "item": "mffs:id_card",
             "link_recipe": true,
-            "text": "MFFS $(5)Identification Card$() are used in combination with the $(l:mffs:machines/biometric_identifier)Biometric Identifier$() to govern the rights and privileges of players."
+            "text": "MFFS $(5)Identification Card$() are used in combination with the $(l:machines/biometric_identifier)Biometric Identifier$() to govern the rights and privileges of players."
         },
         {
             "type": "crafting",

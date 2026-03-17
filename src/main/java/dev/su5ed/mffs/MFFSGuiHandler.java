@@ -12,6 +12,7 @@ import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
 import dev.su5ed.mffs.menu.BiometricIdentifierMenu;
 import dev.su5ed.mffs.menu.CoercionDeriverMenu;
 import dev.su5ed.mffs.menu.FortronCapacitorMenu;
+import dev.su5ed.mffs.menu.FortronMenu;
 import dev.su5ed.mffs.menu.InterdictionMatrixMenu;
 import dev.su5ed.mffs.menu.ProjectorMenu;
 import dev.su5ed.mffs.screen.BiometricIdentifierScreen;
@@ -98,11 +99,13 @@ public class MFFSGuiHandler implements IGuiHandler {
     @Nullable
     private Object getServerGuiElementForTileEntity(World world, BlockPos pos, EntityPlayer player) {
         TileEntity te = world.getTileEntity(pos);
-        if (te instanceof CoercionDeriverBlockEntity)     return new CoercionDeriverMenu(world, pos, player, player.inventory);
-        if (te instanceof FortronCapacitorBlockEntity)    return new FortronCapacitorMenu(world, pos, player, player.inventory);
-        if (te instanceof InterdictionMatrixBlockEntity)  return new InterdictionMatrixMenu(world, pos, player, player.inventory);
-        if (te instanceof BiometricIdentifierBlockEntity) return new BiometricIdentifierMenu(world, pos, player, player.inventory);
-        if (te instanceof ProjectorBlockEntity)           return new ProjectorMenu(world, pos, player, player.inventory);
-        return null;
+        FortronMenu<?> menu = null;
+        if (te instanceof CoercionDeriverBlockEntity)     menu = new CoercionDeriverMenu(world, pos, player, player.inventory);
+        else if (te instanceof FortronCapacitorBlockEntity)    menu = new FortronCapacitorMenu(world, pos, player, player.inventory);
+        else if (te instanceof InterdictionMatrixBlockEntity)  menu = new InterdictionMatrixMenu(world, pos, player, player.inventory);
+        else if (te instanceof BiometricIdentifierBlockEntity) menu = new BiometricIdentifierMenu(world, pos, player, player.inventory);
+        else if (te instanceof ProjectorBlockEntity)           menu = new ProjectorMenu(world, pos, player, player.inventory);
+        if (menu != null) menu.setRemoteAccess(true);
+        return menu;
     }
 }

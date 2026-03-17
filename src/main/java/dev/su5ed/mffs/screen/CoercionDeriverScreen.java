@@ -27,6 +27,8 @@ import java.util.List;
 public class CoercionDeriverScreen extends FortronScreen<CoercionDeriverMenu> {
     public static final ResourceLocation BACKGROUND = new ResourceLocation(MFFSMod.MODID, "textures/gui/coercion_deriver.png");
 
+    private static final int BATTERY_SLOT_X = 9;
+    private static final int BATTERY_SLOT_Y = 83;
     private static final int FUEL_SLOT_X = 29;
     private static final int FUEL_SLOT_Y = 83;
     private static final int CATALYST_LIST_LIMIT = 8;
@@ -98,6 +100,21 @@ public class CoercionDeriverScreen extends FortronScreen<CoercionDeriverMenu> {
         CoercionDeriverMenu menu = (CoercionDeriverMenu) this.inventorySlots;
         // Only show when the player isn't holding an item and the fuel slot is empty
         if (!this.mc.player.inventory.getItemStack().isEmpty()) return;
+
+        // Battery slot: always show the current FE-to-Fortron conversion rate
+        int batteryScreenX = this.guiLeft + BATTERY_SLOT_X;
+        int batteryScreenY = this.guiTop + BATTERY_SLOT_Y;
+        if (mouseX >= batteryScreenX && mouseX < batteryScreenX + 16
+                && mouseY >= batteryScreenY && mouseY < batteryScreenY + 16) {
+            int rate = MFFSConfig.coercionDriverFePerFortron;
+            drawHoveringText(
+                java.util.Collections.singletonList(
+                    TextFormatting.GRAY + "Rate: " + TextFormatting.YELLOW + rate
+                        + TextFormatting.GRAY + " FE -> " + TextFormatting.YELLOW + "1 Fortron"),
+                mouseX, mouseY);
+        }
+
+        // Fuel slot: show catalyst list only when slot is empty
         if (!menu.blockEntity.fuelSlot.isEmpty()) return;
 
         int slotScreenX = this.guiLeft + FUEL_SLOT_X;

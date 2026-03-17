@@ -24,6 +24,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -55,16 +56,20 @@ public class FrequencyCardItem extends BaseItem {
         if (playerIn.isSneaking()) {
             FrequencyCard card = stack.getCapability(ModCapabilities.FREQUENCY_CARD, null);
             if (card != null) {
-                if (!worldIn.isRemote) {
-                    int frequency = worldIn.rand.nextInt(MAX_FREQUENCY + 1);
-                    card.setFrequency(frequency);
-                    playerIn.sendStatusMessage(
-                        new TextComponentTranslation("info.mffs.frequency.generated",
-                            new TextComponentString(String.valueOf(frequency))
-                                .setStyle(new Style().setColor(TextFormatting.AQUA))),
-                        true);
+                double reach = playerIn.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue();
+                RayTraceResult hit = playerIn.rayTrace(reach, 1.0f);
+                if (hit == null || hit.typeOfHit != RayTraceResult.Type.BLOCK) {
+                    if (!worldIn.isRemote) {
+                        int frequency = worldIn.rand.nextInt(MAX_FREQUENCY + 1);
+                        card.setFrequency(frequency);
+                        playerIn.sendStatusMessage(
+                            new TextComponentTranslation("info.mffs.frequency.generated",
+                                new TextComponentString(String.valueOf(frequency))
+                                    .setStyle(new Style().setColor(TextFormatting.AQUA))),
+                            true);
+                    }
+                    return new ActionResult<>(EnumActionResult.SUCCESS, stack);
                 }
-                return new ActionResult<>(EnumActionResult.SUCCESS, stack);
             }
         }
         return new ActionResult<>(EnumActionResult.PASS, stack);

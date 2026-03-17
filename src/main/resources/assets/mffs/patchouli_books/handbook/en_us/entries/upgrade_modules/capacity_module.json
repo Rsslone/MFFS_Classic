@@ -7,7 +7,7 @@
             "type": "spotlight",
             "item": "mffs:capacity_module",
             "link_recipe": true,
-            "text": "The $(5)Capacity Module$() can be placed in the upgrade slots of various MFFS machines to upgrade their $(l:mffs:getting_started/fortron)Fortron$() storage capabilities. Its effects vary depending on the machine, but most commonly include increasing the $(l:mffs:getting_started/fortron)Fortron$() capacity of a device."
+            "text": "The $(5)Capacity Module$() can be placed in the upgrade slots of various MFFS machines to upgrade their $(l:getting_started/fortron)Fortron$() storage capabilities. Its effects vary depending on the machine."
         },
         {
             "type": "crafting",
