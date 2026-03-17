@@ -25,7 +25,7 @@
         {
             "type": "text",
             "title": "Usage",
-            "text": "$(li)Place a chest next to the $(l:machines/projector)Force Field Projector$() (any side) and make sure it contains the required blocks to build the field up.$(li)Insert a Field Stabilization Module into the Projector's matrix slots. Setup the field as your wish and then activate the Projector.$(li)The Projector will consume blocks from adjacent chests in the order that they appear. If a chest contains a mixture of different blocks, the target structure will also be composed of a block mixture.$()"
+            "text": "$(li)Place a chest next to the $(l:machines/projector)Force Field Projector$() (any side) and fill it with the desired blocks.$(li)Insert a Field Stabilization Module into the Projector's matrix slots. Setup the field as your wish and then activate the Projector.$(li)The Projector will consume blocks from adjacent chests in the order that they appear.$()"
         },
         {
             "type": "image",
