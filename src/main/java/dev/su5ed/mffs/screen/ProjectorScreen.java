@@ -36,7 +36,7 @@ public class ProjectorScreen extends FortronScreen<ProjectorMenu> {
         if (cost > 0) {
             String costText = TextFormatting.DARK_RED
                 + ModUtil.translate("screen", "fortron_cost", "-", cost).getUnformattedText();
-            this.fontRenderer.drawString(costText, 117, 121, GuiColors.DARK_GREY);
+            this.fontRenderer.drawString(costText, 117, 122, GuiColors.DARK_GREY);
         }
     }
 }

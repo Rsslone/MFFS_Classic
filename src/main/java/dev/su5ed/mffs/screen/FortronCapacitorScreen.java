@@ -61,6 +61,6 @@ public class FortronCapacitorScreen extends FortronScreen<FortronCapacitorMenu> 
             menu.blockEntity.fortronStorage.getStoredFortron(),
             menu.blockEntity.fortronStorage.getFortronCapacity()).getFormattedText(), 8, 105, GuiColors.DARK_GREY);
         this.fontRenderer.drawString(ModUtil.translate("screen", "fortron_cost", "-",
-            menu.getClientFortronCost() * 20).getFormattedText(), 8, 127, 0xAA0000);
+            menu.getClientFortronCost() * 20).getFormattedText(), 120, 117, 0xAA0000);
     }
 }
