@@ -7,7 +7,7 @@
             "type": "spotlight",
             "item": "mffs:biometric_identifier",
             "link_recipe": true,
-            "text": "The $(9)Biometric Identifier$() is a member of the MFFS family of machines. It uses bio-signatures given off by players to govern what permissions they have when interacting with force fields and MFFS machines. For example, it can allow a player to pass through an active force field, or exempt them from the effects of the $(l:machines/interdiction_matrix)Interdiction Matrix$()."
+            "text": "The $(9)Biometric Identifier$() is a member of the MFFS family of machines. It uses bio-signatures to govern what permissions players have when interacting with force fields and MFFS machines. For example, it can allow a player to pass through an active force field, or exempt them from the effects of the $(l:machines/interdiction_matrix)Interdiction Matrix$()."
         },
         {
             "type": "crafting",

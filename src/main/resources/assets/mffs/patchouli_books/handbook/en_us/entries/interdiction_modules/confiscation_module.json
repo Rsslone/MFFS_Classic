@@ -7,7 +7,7 @@
             "type": "spotlight",
             "item": "mffs:confiscation_module",
             "link_recipe": true,
-            "text": "The $(5)Confiscation Module$() is an optional module for the $(l:machines/interdiction_matrix)Interdiction Matrix$() that gives it the ability to automatically take items away from a player. If a player is in the action area of an Interdiction Matrix, it will scan the player's inventory and seize any forbidden items found. This applies to all items regardless of whether they are being carried, worn, or stored in inventory."
+            "text": "The $(5)Confiscation Module$() is a module for the $(l:machines/interdiction_matrix)Interdiction Matrix$() that gives it the ability to take items away from a player. If a player is in the action area of an Interdiction Matrix, it will scan the player's inventory and seize any forbidden items found."
         },
         {
             "type": "crafting",

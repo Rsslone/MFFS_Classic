@@ -7,7 +7,7 @@
             "type": "spotlight",
             "item": "mffs:custom_mode",
             "link_recipe": true,
-            "text": "The $(2)Custom Mode$() is the most versatile of all the modes, as it allows a force field of any shape or structure to be projected. Once a user-defined block pattern has been analysed and stored by the $(2)Custom Mode$() item itself, the Projector is able to generate a force field that is an $(9)exact replica$() of the original. In this manner, force fields may be constructed in the shape of $(9)anything that can be crafted$() - including a bridge, a house, or even an entire fortress!"
+            "text": "The $(2)Custom Mode$() allows a force field of any shape or structure to be projected. A user-defined block pattern is analysed and stored by the $(2)Custom Mode$() item itself, the Projector is able to generate a force field that is an $(9)exact replica$() of the original. Force fields may be constructed in the shape of $(9)anything$() - including a bridge, a house, or even an entire fortress!"
         },
         {
             "type": "crafting",
