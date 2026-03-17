@@ -100,6 +100,28 @@ public abstract class FortronMenu<T extends FortronBlockEntity & Activatable> ex
     // Container overrides
     // -----------------------------------------------------------------------
 
+    /**
+     * Overrides the vanilla drop-on-close behaviour.
+     * When a container is force-closed (e.g. by the server opening a new one mid-interaction),
+     * vanilla drops any item on the cursor on the ground.  That causes item loss and leaves the
+     * client in a desync'd state where the same item can appear to be in two places at once.
+     * Instead, we return the cursor item to the player's inventory; only drop it if the inventory
+     * is completely full.
+     */
+    @Override
+    public void onContainerClosed(EntityPlayer playerIn) {
+        // Return cursor item to inventory rather than dropping it.
+        ItemStack cursor = playerIn.inventory.getItemStack();
+        if (!cursor.isEmpty()) {
+            if (!playerIn.inventory.addItemStackToInventory(cursor)) {
+                playerIn.dropItem(cursor, false);
+            }
+            playerIn.inventory.setItemStack(ItemStack.EMPTY);
+        }
+        // Call super AFTER clearing cursor so vanilla's own drop-check is a no-op.
+        super.onContainerClosed(playerIn);
+    }
+
     @Override
     public boolean canInteractWith(EntityPlayer player) {
         if (this.isRemoteAccess) {

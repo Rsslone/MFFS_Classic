@@ -88,6 +88,13 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
     public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand handIn) {
         ItemStack stack = playerIn.getHeldItem(handIn);
         if (!worldIn.isRemote && !playerIn.isSneaking()) {
+            // Guard: if the player already has a container open, do nothing.
+            // Rapid right-clicks would otherwise call openGui multiple times, forcing
+            // close-then-open cycles that drop cursor items and desync client slots.
+            if (playerIn.openContainer != playerIn.inventoryContainer) {
+                return new ActionResult<>(EnumActionResult.PASS, stack);
+            }
+
             BlockPos pos = getLink(stack);
 
             if (pos != null && worldIn.isBlockLoaded(pos)) {
@@ -97,12 +104,15 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
                         && (Fortron.hasPermission(worldIn, pos, FieldPermission.USE_BLOCKS, playerIn)
                             || Fortron.hasPermission(worldIn, pos, FieldPermission.REMOTE_CONTROL, playerIn))) {
 
-                    double requiredEnergy = ModUtil.distance(playerIn.getPosition(), pos) * (1000.0 / 100.0);
+                    double distance = ModUtil.distance(playerIn.getPosition(), pos);
+                    double requiredEnergy = distance * (1000.0 / 100.0);
+                    // Search radius must cover at least the distance to the target machine
+                    int searchRadius = Math.max(50, (int) Math.ceil(distance));
                     int frequency = Objects.requireNonNull(
                         te.getCapability(ModCapabilities.FORTRON, null)).getFrequency();
 
                     Vec3d eyePos = playerIn.getPositionVector().add(0, playerIn.getEyeHeight() - 0.2, 0);
-                    if (drawEnergy(worldIn, playerIn.getPosition(), eyePos, frequency, (int) requiredEnergy)) {
+                    if (drawEnergy(worldIn, playerIn.getPosition(), eyePos, frequency, (int) requiredEnergy, searchRadius)) {
                         // Open the GUI of the target block (determined by MFFSGuiHandler based on TileEntity type)
                         playerIn.openGui(MFFSMod.INSTANCE, GuiIds.REMOTE_CONTROLLER, worldIn,
                             pos.getX(), pos.getY(), pos.getZ());
@@ -129,9 +139,20 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
                                      ITooltipFlag flagIn) {
         super.addInformationPre(stack, worldIn, tooltip, flagIn);
         BlockPos pos = getLink(stack);
-        if (pos != null) {
-            tooltip.add(TextFormatting.DARK_GRAY + net.minecraft.client.resources.I18n.format(
-                "info.mffs.link", TextFormatting.GRAY + posToString(pos)));
+        if (pos != null && worldIn != null) {
+            TileEntity te = worldIn.getTileEntity(pos);
+            if (te != null && te.hasCapability(ModCapabilities.FORTRON, null)) {
+                net.minecraft.block.state.IBlockState state = worldIn.getBlockState(pos);
+                tooltip.add(TextFormatting.DARK_GRAY + net.minecraft.client.resources.I18n.format(
+                    "info.mffs.link",
+                    TextFormatting.GREEN + state.getBlock().getLocalizedName(),
+                    TextFormatting.GRAY + posToString(pos)));
+            } else {
+                tooltip.add(TextFormatting.DARK_GRAY + net.minecraft.client.resources.I18n.format(
+                    "info.mffs.link",
+                    TextFormatting.RED + "?",
+                    TextFormatting.GRAY + posToString(pos)));
+            }
         }
     }
 
@@ -156,8 +177,8 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
     // -----------------------------------------------------------------------
 
     private boolean drawEnergy(World world, BlockPos playerPos, Vec3d eyeTarget,
-                                int frequency, int energy) {
-        List<FortronStorage> fortronTiles = FrequencyGrid.instance(world.isRemote).get(world, playerPos, 50, frequency);
+                                int frequency, int energy, int searchRadius) {
+        List<FortronStorage> fortronTiles = FrequencyGrid.instance(world.isRemote).get(world, playerPos, searchRadius, frequency);
         // Sort by distance to the player's eye position
         fortronTiles.sort(Comparator.comparingDouble(fortron -> {
             BlockPos fp = fortron.getOwner().getPos();
