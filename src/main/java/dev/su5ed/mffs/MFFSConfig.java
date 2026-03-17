@@ -103,9 +103,9 @@ public final class MFFSConfig {
     // Projector
     // -------------------------------------------------------------------------
     /** Base number of blocks projected per tick before speed modules are applied. Default 14. */
-    public static int     baseProjectionSpeed          = 14;
+    public static int     baseProjectionSpeed          = 7;
     /** Blocks placed per speed module per projection tick. Default 14 = half the original 28. */
-    public static int     speedModuleFactor            = 14;
+    public static int     speedModuleFactor            = 1;
     /** Divides the speed-module count when computing the removal drain rate.
      *  Formula: baseProjectionSpeed + speedModuleFactor * (speedModules / drainSpeedFactor). Higher = slower removal per speed module. */
     public static int     drainSpeedFactor             = 2;
@@ -115,7 +115,7 @@ public final class MFFSConfig {
     public static int     maxSpeedModulesProjector     = 64;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
      *  Default 10 (500 ms at 20 TPS). */
-    public static int projectionCycleTicks = 5;
+    public static int projectionCycleTicks = 1;
     /**
      * When true, the projector sweeps its entire calculated field every projection cycle and
      * immediately fills any position that became projectable (e.g. terrain dug out under the
