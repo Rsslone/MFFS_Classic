@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.mixin;
 
-// 1.12.2 Backport: LevelMixin -> WorldMixin.
-// Targets World.setBlockState(BlockPos, IBlockState, int) instead of
-// Level.setBlock(BlockPos, BlockState, int, int).
-// ModUtil.onSetBlock is called after a block state change.
-
 import dev.su5ed.mffs.util.ModUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;

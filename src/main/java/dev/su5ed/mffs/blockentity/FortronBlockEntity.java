@@ -1,18 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// =============================================================================
-// 1.12.2 Backport: FortronBlockEntity
-// Key changes:
-//   BlockEntityType(pos,state) constructor -> no-arg
-//   FluidType.BUCKET_VOLUME (NeoForge, 1000) -> use literal 1000
-//   level.invalidateCapabilities() -> not needed in 1.12.2
-//   onChunkUnloaded() -> onChunkUnload() in 1.12.2
-//   getBlockState().getValue(ACTIVE) -> world.getBlockState(pos).getValue(ACTIVE)
-//   level.setBlockAndUpdate -> world.setBlockState
-//   levle.hasNeighborSignal -> world.isBlockPowered
-//   ValueInput/Output -> NBTTagCompound
-// =============================================================================
-
 import dev.su5ed.mffs.api.Activatable;
 import dev.su5ed.mffs.api.card.CoordLink;
 import dev.su5ed.mffs.api.card.FrequencyCard;
@@ -97,7 +84,6 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
         FrequencyGrid.instance(this.world.isRemote).register(this.fortronStorage);
     }
 
-    // 1.12.2: onChunkUnload() (not onChunkUnloaded)
     @Override
     public void onChunkUnload() {
         super.onChunkUnload();
@@ -136,7 +122,6 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
         if (this.markSendFortron) {
             Fortron.transferFortron(this.fortronStorage, FrequencyGrid.instance(this.world.isRemote).get(this.world, this.pos, 100, this.fortronStorage.getFrequency()), TransferMode.DRAIN, Integer.MAX_VALUE);
         }
-        // Note: level.invalidateCapabilities not needed in 1.12.2
     }
 
     // -------------------------------------------------------------------------
@@ -185,9 +170,6 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
 
     @Override
     public Set<BiometricIdentifier> getBiometricIdentifiers() {
-        // Look up BiometricIdentifiers via CoordLink + FrequencyGrid
-        // In 1.12.2: get link from CoordLink.getLink(stack), call world.getTileEntity(pos),
-        //   then check if it has ModCapabilities.BIOMETRIC_IDENTIFIER via getCapability
         return StreamEx.of(getCards())
             .mapPartial(stack -> {
                 if (stack.getItem() instanceof CoordLink link) {

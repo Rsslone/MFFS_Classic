@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: FortronCapacitorBlock
-// Glass-material machine with a TE. No block state beyond ACTIVE.
-// noOcclusion() equivalent: override isOpaqueCube/isFullCube to return false.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.GuiIds;
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;

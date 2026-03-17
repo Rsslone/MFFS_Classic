@@ -1,15 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: BatteryItem
-// Key changes:
-//   Capabilities.Energy.ITEM / ItemAccess → CapabilityEnergy.ENERGY (direct on stack)
-//   EnergyHandler.getAmountAsInt/getCapacityAsInt → getEnergyStored/getMaxEnergyStored
-//   isBarVisible/getBarWidth/getBarColor → showDurabilityBar/getDurabilityForDisplay/getRGBDurabilityForDisplay
-//   appendHoverText → addInformation
-//   Mth.hsvToRgb → MathHelper.hsvToRGB
-// =============================================================================
-
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;

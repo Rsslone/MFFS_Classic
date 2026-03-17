@@ -58,6 +58,8 @@ public final class MFFSConfig {
     // -------------------------------------------------------------------------
     /** FE to convert into 1 Fortron. */
     public static int coercionDriverFePerFortron                  = 400;
+    /** Percentage discount on FE cost per Fortron per Speed Module (0-100). Default 1 = 1% per module. */
+    public static int coercionDriverFePerFortronSpeedDiscount     = 1;
     /** FE to subtract when converting Fortron to FE. */
     public static int coercionDriverFortronToFeLoss               = 1;
     /** Base limit of Fortron produced per second (mB/s). Divided by 20 internally to get per-tick value. */
@@ -322,6 +324,10 @@ public final class MFFSConfig {
         // -- Coercion Deriver --
         coercionDriverFePerFortron = configuration.getInt("feCostPerFortron", "coercion_deriver", coercionDriverFePerFortron, 1, Integer.MAX_VALUE,
             "FE to convert into 1 Fortron");
+        coercionDriverFePerFortronSpeedDiscount = configuration.getInt("fePerFortronSpeedDiscount", "coercion_deriver",
+            coercionDriverFePerFortronSpeedDiscount, 0, 100,
+            "Percentage discount applied to the FE cost per Fortron for each installed Speed Module. "
+            + "Default 1 = 1% cheaper per module (e.g. 8 modules → 8% discount).");
         coercionDriverFortronToFeLoss = configuration.getInt("fortronToFeLoss", "coercion_deriver", coercionDriverFortronToFeLoss, 0, Integer.MAX_VALUE,
             "FE to subtract when converting Fortron to FE");
         coercionDriverFortronPerSecond = configuration.getInt("fortronPerSecond", "coercion_deriver", coercionDriverFortronPerSecond, 1, Integer.MAX_VALUE,

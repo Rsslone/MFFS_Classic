@@ -1,13 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: BiometricIdentifierBlock
-// VoxelShape → AxisAlignedBB per facing direction (4 pre-computed rotations).
-// BlockStateProperties.HORIZONTAL_FACING → PropertyDirection FACING.
-// ModUtil.rotateShape → inline AABB rotation helper.
-// Collision via addCollisionBoxToList, selection via getBoundingBox.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.GuiIds;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;

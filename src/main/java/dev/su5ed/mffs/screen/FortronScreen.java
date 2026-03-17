@@ -1,13 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: FortronScreen
-// ClientPacketDistributor.sendToServer() → Network.sendToServer()
-// IntIntPair (fastutil) → separate int fields
-// addRenderableWidget() → buttonList.add()
-// addWidget() → just keep reference (GuiTextField handled manually)
-// GuiGraphics → fontRenderer.drawString / drawTexturedModalRect
-// leftPos/topPos → guiLeft/guiTop
-
 import dev.su5ed.mffs.menu.FortronMenu;
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.network.ToggleModePacket;
@@ -128,7 +120,3 @@ public abstract class FortronScreen<T extends FortronMenu<?>> extends BaseScreen
     }
 }
 
-/* class FortronScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference ...
-uses IntIntPair, ClientPacketDistributor, addRenderableWidget, addWidget, GuiGraphics, etc.
-*/

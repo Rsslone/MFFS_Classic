@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// 1.21.x NeoForge imports (commented out):
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.world.level.block.entity.BlockEntityType;
-// import net.minecraft.world.level.block.state.BlockState;
-// import net.neoforged.neoforge.fluids.FluidType;
-// import net.neoforged.neoforge.transfer.transaction.Transaction;
-
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.module.ModuleAcceptor;
@@ -51,7 +44,6 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
 
     public void consumeCost() {
         if (getFortronCost() > 0) {
-            // 1.21.x: try (Transaction tx = Transaction.openRoot()) { this.fortronStorage.extractFortron(getFortronCost(), tx); tx.commit(); }
             this.fortronStorage.extractFortron(getFortronCost(), false);
         }
     }
@@ -105,7 +97,6 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
 
     public Set<Module> getModuleInstances() {
         return cached(MODULE_INSTANCE_CACHE_KEY, () -> getModuleItemsStream(Collections.emptyList())
-            // 1.21.x: stack.getCapability(ModCapabilities.MODULE_TYPE)
             .<Module>mapPartial(stack -> Optional.ofNullable(stack.getCapability(ModCapabilities.MODULE_TYPE, null))
                 .map(moduleType -> moduleType.createModule(stack)))
             .toSet());
@@ -147,7 +138,6 @@ public abstract class ModularBlockEntity extends FortronBlockEntity implements M
 
     protected int doGetFortronCost() {
         double cost = StreamEx.of(getModuleStacks())
-            // 1.21.x: stack.getCapability(ModCapabilities.MODULE_TYPE)
             .mapToDouble(stack -> stack.getCount() * Optional.ofNullable(stack.getCapability(ModCapabilities.MODULE_TYPE, null))
                 .map(module -> (double) module.getFortronCost(getAmplifier()))
                 .orElse(0.0))

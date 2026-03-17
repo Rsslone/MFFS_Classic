@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.render.particle;
 
-// 1.12.2 Backport: MovingHologramParticle
-// Renders a translucent, colored cube at a block position that scales up vertically
-// over its lifetime (like a force field block materializing/dematerializing).
-// Uses GL11 immediate mode with additive blending.
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.renderer.BufferBuilder;

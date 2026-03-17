@@ -1,22 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// 1.21.x imports (commented out):
-// import net.minecraft.core.BlockPos;
-// import net.minecraft.network.FriendlyByteBuf;
-// import net.minecraft.network.chat.MutableComponent;
-// import net.minecraft.network.codec.StreamCodec;
-// import net.minecraft.world.entity.player.Inventory;
-// import net.minecraft.world.entity.player.Player;
-// import net.minecraft.world.inventory.AbstractContainerMenu;
-// import net.minecraft.world.level.block.state.BlockState;
-// import net.minecraft.world.level.storage.ValueInput;
-// import net.minecraft.world.level.storage.ValueOutput;
-// import net.neoforged.neoforge.capabilities.Capabilities;
-// import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
-// import net.neoforged.neoforge.transfer.access.ItemAccess;
-// import net.neoforged.neoforge.transfer.transaction.Transaction;
-// import dev.su5ed.mffs.setup.ModObjects;
-
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.menu.CoercionDeriverMenu;
 import dev.su5ed.mffs.setup.ModModules;
@@ -51,9 +34,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
     public CoercionDeriverBlockEntity() {
         super(DEFAULT_FE_CAPACITY);
 
-        // 1.21.x: stack.getCapability(Capabilities.Energy.ITEM, ItemAccess.forStack(stack)) != null
         this.batterySlot = addSlot("battery", InventorySlot.Mode.BOTH, stack -> stack.getCapability(CapabilityEnergy.ENERGY, null) != null);
-        // 1.21.x: stack.is(ModTags.FORTRON_FUEL)
         this.fuelSlot = addSlot("fuel", InventorySlot.Mode.BOTH, stack -> MFFSConfig.getCatalystEntry(stack) != null);
         this.upgradeSlots = createUpgradeSlots(3);
         this.energy.setMaxTransfer(getMaxFETransferRate());
@@ -164,12 +145,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
 
     private void produceFortron() {
         int fortronOutput = calculateFortronProduction();
-        // 1.21.x: try (Transaction tx = Transaction.openRoot()) {
-        //     int fortronStored = fortronProducedLastTick = this.fortronStorage.insertFortron(fortronOutput, tx);
-        //     int asEnergy = fortronStored * MFFSConfig.COMMON.coercionDriverFePerFortron.get();
-        //     this.energy.extract(asEnergy, tx);
-        //     tx.commit();
-        // }
+
         int fortronStored = this.fortronStorage.insertFortron(fortronOutput, false);
         this.fortronProducedLastTick = fortronStored;
         // Proportional cost: each Fortron costs getEffectiveCostPerFortron() FE.
@@ -181,52 +157,40 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
     /**
      * Returns the effective FE cost per Fortron unit, reduced by speed modules.
      * <p>
-     * In 1.7.10, both energy cost and Fortron output scale by (1 + speedCount),
-     * keeping the cost-per-Fortron ratio constant. In 1.21, the cost is fixed at
-     * 400 FE/Fortron regardless of speed modules, creating an energy bottleneck
-     * that makes speed modules ineffective with modest power sources.
+     * Each Speed Module applies a flat percentage discount configured via
+     * {@code MFFSConfig.coercionDriverFePerFortronSpeedDiscount} (default 1%).
+     * The total discount is capped at 99% so cost never reaches zero.
      * <p>
-     * This method bridges the two: the base cost (400 FE) is divided by (1 + speedCount),
-     * so speed modules make production more efficient per unit while total energy
-     * consumption still increases (more units × lower cost per unit).
-     * <p>
-     * Example with 5200 FE/tick supply:
-     *   0 modules: 400 FE/Fortron → 13/tick → 260 mB/s
-     *   1 module:  200 FE/Fortron → 26/tick → 520 mB/s
-     *   8 modules:  44 FE/Fortron → 118/tick → 2360 mB/s
+     * Example with default 1% discount per module and 400 FE/Fortron base:
+     *   0 modules: 400 FE/Fortron (0% discount)
+     *   1 module:  396 FE/Fortron (1% discount)
+     *   8 modules: 368 FE/Fortron (8% discount)
      */
     public int getEffectiveCostPerFortron() {
         int speedCount = getModuleCount(ModModules.SPEED);
-        return Math.max(1, MFFSConfig.coercionDriverFePerFortron / (1 + speedCount));
+        int discountPercent = Math.min(99, speedCount * MFFSConfig.coercionDriverFePerFortronSpeedDiscount);
+        return Math.max(1, MFFSConfig.coercionDriverFePerFortron * (100 - discountPercent) / 100);
     }
 
     /**
      * Predicted fortron to be produced next energy tick.
-     * Uses proportional model (like 1.21) but with speed-module-reduced FE cost per Fortron.
-     *
-     * @return fortron(ml)
+     * @return fortron(F)
      */
     public int calculateFortronProduction() {
         final int spaceLeft = this.fortronStorage.getFortronCapacity() - this.fortronStorage.getStoredFortron();
         final int effectiveCost = getEffectiveCostPerFortron();
-        // 1.21.x: final int maxFortronFromEnergy = this.energy.getEnergyStored() / MFFSConfig.coercionDriverFePerFortron;
         final int maxFortronFromEnergy = this.energy.getEnergyStored() / effectiveCost;
         return Math.min(maxFortronFromEnergy, Math.min(getMaxFortronProducedPerTick(), spaceLeft));
     }
 
     private void convertFortronIntoEnergy() {
-        // 1.21.x: final int energyPerFortron = MFFSConfig.COMMON.coercionDriverFePerFortron.get() - ... etc (Transaction-based)
         final int energyPerFortron = MFFSConfig.coercionDriverFePerFortron - MFFSConfig.coercionDriverFortronToFeLoss;
 
-        // 1.21.x: energy.getAmountAsInt() → energy.getEnergyStored()
-        // 1.21.x: energy.getCapacityAsInt() → energy.getMaxEnergyStored()
         if (this.energy.getEnergyStored() + energyPerFortron < this.energy.getMaxEnergyStored()) {
-            // Simulate extraction: use simulate=true to get max fortron available
             int maxFortronOut = this.fortronStorage.extractFortron(getMaxFortronProducedPerTick(), true);
             int maxEnergyOut = maxFortronOut * energyPerFortron;
 
             // Simulate receive: how much energy can we actually accept?
-            // 1.21.x: energy.insert(amount, stx) → energy.receiveEnergy(amount, simulate)
             int maxEnergyReceived = this.energy.receiveEnergy(maxEnergyOut, true);
 
             // Calculate actual values to move, round down to avoid material loss
@@ -241,7 +205,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
     /**
      * Upper limit on fortron produced per tick
      *
-     * @return fortron(ml) per tick
+     * @return fortron(F) per tick
      */
     public int getMaxFortronProducedPerTick() {
         if (isActive()) {
@@ -264,10 +228,6 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         return !this.fuelSlot.isEmpty() && MFFSConfig.getCatalystEntry(this.fuelSlot.getItem()) != null;
     }
 
-    // 1.21.x: createMenu(int containerId, Inventory inventory, Player player) -> AbstractContainerMenu
-    // In 1.12.2, GUI is handled via IGuiHandler registered in MFFSMod. ModMenus.COERCION_DERIVER = GUI ID.
-    // TODO: Ensure IGuiHandler returns new CoercionDeriverMenu for the matching GUI ID
-
     @Override
     protected void saveTag(NBTTagCompound compound) {
         super.saveTag(compound);
@@ -289,7 +249,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         }
     }
 
-    // 1.21.x: Set<Direction> -> Set<EnumFacing>
+    // Sides accepting energy capability.
     @Override
     public Set<EnumFacing> getEnergyInputSides() {
         return EnumSet.allOf(EnumFacing.class);
@@ -305,14 +265,11 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         INTEGRATE;  // FORT -> FE
 
         private static final EnergyMode[] VALUES = values();
-        // 1.21.x: public static final StreamCodec<FriendlyByteBuf, EnergyMode> STREAM_CODEC = NeoForgeStreamCodecs.enumCodec(EnergyMode.class);
-        // In 1.12.2: serialized by ordinal via SwitchEnergyModePacket
 
         public EnergyMode next() {
             return VALUES[(ordinal() + 1) % VALUES.length];
         }
 
-        // 1.21.x: MutableComponent translate()
         public net.minecraft.util.text.ITextComponent translate() {
             return ModUtil.translate("info", "coercion_deriver.mode." + name().toLowerCase(Locale.ROOT));
         }

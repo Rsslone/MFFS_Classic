@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.render.particle;
 
-// 1.12.2 Backport: BeamParticle
-// Ported from 1.7.10 FortronBeam + 1.21 BeamParticle.
-// Extends Particle (1.12.2's equivalent of EntityFX).
-// Renders 3 textured quads in a star pattern along the beam axis,
-// with additive blending and scrolling UV for a flow effect.
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -53,8 +47,7 @@ public class BeamParticle extends Particle {
 
         setSize(0.02F, 0.02F);
         // Set bounding box to encompass both endpoints so the beam is not
-        // frustum-culled when only the start position is off screen (e.g. OptiFine).
-        // Matches the 1.21 BeamParticle: setBoundingBox(new AABB(start, target));
+        // frustum-culled when only the start position is off screen.
         this.setBoundingBox(new AxisAlignedBB(start, target));
         this.canCollide = false;
         this.motionX = 0;

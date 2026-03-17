@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: IconToggleButton
-// AbstractButton → GuiButton; onPress(InputWithModifiers) → firePress()
-// Tooltip.create() removed (no tooltip widget in 1.12.2; screen renders tooltip for hovered button)
-// BooleanConsumer (fastutil) → java.util.function.Consumer<Boolean>
-// GuiGraphics.blit() → bindTexture() + Tessellator
-// isHoveredOrFocused() → this.hovered
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -89,6 +82,3 @@ public class IconToggleButton extends GuiButton {
     }
 }
 
-/* class IconToggleButton_NeoForge_1_21_x:
-... original NeoForge source preserved for reference (BooleanConsumer from fastutil, Tooltip.create(), AbstractButton, etc.) ...
-*/

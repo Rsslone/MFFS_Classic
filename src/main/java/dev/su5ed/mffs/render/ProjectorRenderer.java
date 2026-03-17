@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.render;
 
-// 1.12.2 Backport: ProjectorRenderer
-// TileEntitySpecialRenderer that renders the rotating rotor accent + holographic pyramid.
-// Ported from 1.7.10 RenderForceFieldProjector + 1.21 ProjectorRenderer.
-
 import dev.su5ed.mffs.blockentity.ProjectorBlockEntity;
 import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import dev.su5ed.mffs.render.model.ProjectorRotorModel;
@@ -20,6 +16,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
+
+// TileEntitySpecialRenderer that renders the rotating rotor accent + holographic pyramid.
 
 @SideOnly(Side.CLIENT)
 public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockEntity> {
@@ -40,7 +38,7 @@ public class ProjectorRenderer extends TileEntitySpecialRenderer<ProjectorBlockE
         bindTexture(te.isActive() ? TEXTURE_ON : TEXTURE_OFF);
 
         GlStateManager.pushMatrix();
-        // Standard 1.7.10/1.12.2 TESR model pattern: translate to block center + 1.5 above,
+        // Translate to block center + 1.5 above,
         // then flip 180° on Z so model Y-up becomes render Y-down (correct normals + lighting).
         GlStateManager.translate(x + 0.5, y + 1.5, z + 0.5);
         GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);

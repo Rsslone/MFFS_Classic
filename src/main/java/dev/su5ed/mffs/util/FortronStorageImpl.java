@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.util;
 
-// 1.12.2 Backport: FortronStorageImpl.
-// NeoForge version used FluidStacksResourceHandler (fluid-based Fortron storage)
-// and Transaction-based extract/insert. In 1.12.2, we use a simple int field.
-// NBT serialization is handled by readFromNBT/writeToNBT on the owning TileEntity.
-// The FortronBlockEntity calls fortronStorage.readNbt(tag) / writeNbt(tag).
-
 import dev.su5ed.mffs.api.fortron.FortronStorage;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;

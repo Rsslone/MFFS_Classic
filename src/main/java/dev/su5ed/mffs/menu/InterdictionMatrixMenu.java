@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.menu;
 
-// 1.12.2 Backport: InterdictionMatrixMenu
-// BlockPos → net.minecraft.util.math.BlockPos
-// Player → EntityPlayer; Inventory → InventoryPlayer
-// addInventorySlotRange(TriFunction) → inlined loop for clarity
-
 import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
 import dev.su5ed.mffs.util.inventory.SlotInventory;
 import dev.su5ed.mffs.util.inventory.SlotInventoryInterdictionFilter;

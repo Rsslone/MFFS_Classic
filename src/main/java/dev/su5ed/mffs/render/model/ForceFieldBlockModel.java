@@ -24,7 +24,6 @@ import java.util.List;
  * Wraps the default force field baked model. During chunk meshing, reads the
  * camouflage block state from {@link IExtendedBlockState} and returns the
  * camouflage block's quads instead of the default force field quads.
- * This is the 1.12.2 equivalent of the 1.20.1 {@code IDynamicBakedModel} approach.
  */
 public class ForceFieldBlockModel implements IBakedModel {
     private final IBakedModel defaultModel;

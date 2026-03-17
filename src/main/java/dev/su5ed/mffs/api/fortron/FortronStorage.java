@@ -1,13 +1,5 @@
 package dev.su5ed.mffs.api.fortron;
 
-// 1.12.2 Backport: FortronStorage
-// 1.21.x extended NeoForge ValueIOSerializable (NBT I/O) and used Transaction for
-// simulate-mode energy operations. Neither exists in 1.12.2.
-//
-// Replacement:
-//   - Remove ValueIOSerializable (TileEntity already handles NBT via readFromNBT/writeToNBT).
-//   - Replace Transaction with a boolean "simulate" parameter (Forge RF convention).
-
 import dev.su5ed.mffs.api.FrequencyBlock;
 import net.minecraft.tileentity.TileEntity;
 

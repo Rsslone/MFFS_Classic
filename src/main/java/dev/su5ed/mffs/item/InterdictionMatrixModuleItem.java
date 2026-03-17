@@ -1,7 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// 1.12.2 Backport: appendHoverText(NeoForge) → addInformation(1.12.2).
-
 import dev.su5ed.mffs.api.module.InterdictionMatrixModule;
 import dev.su5ed.mffs.api.module.ModuleType;
 import dev.su5ed.mffs.setup.ModBlocks;
@@ -31,18 +29,3 @@ public class InterdictionMatrixModuleItem extends ModuleItem<InterdictionMatrixM
         super.addInformationPre(stack, worldIn, tooltip, flagIn);
     }
 }
-
-/*
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.component.TooltipDisplay;
-import java.util.function.Consumer;
-public class InterdictionMatrixModuleItem_NeoForge extends ModuleItem<InterdictionMatrixModule> {
-    public InterdictionMatrixModuleItem_NeoForge(ExtendedItemProperties properties, ModuleType<InterdictionMatrixModule> module) { super(properties, module); }
-    @Override
-    protected void appendHoverTextPre(ItemStack stack, TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag flag) {
-        tooltipAdder.accept(ModBlocks.INTERDICTION_MATRIX.get().getName().withStyle(ChatFormatting.DARK_RED));
-        super.appendHoverTextPre(stack, context, tooltipDisplay, tooltipAdder, flag);
-    }
-}
-*/

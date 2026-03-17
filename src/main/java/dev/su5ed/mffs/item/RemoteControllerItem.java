@@ -1,26 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: RemoteControllerItem
-// Key changes:
-//   - CoordLink: NBT-based via BlockPos.toLong()/fromLong() in tag "link"
-//   - FluidType.BUCKET_VOLUME → 1000 (mB per bucket)
-//   - Transaction.openRoot() → simulate-then-commit boolean pattern:
-//       first pass: extractFortron(n, true)  → check total
-//       second pass: extractFortron(n, false) → actually consume
-//   - MenuProvider / player.openMenu() → TODO Phase 12 IGuiHandler
-//     Stub: player.openGui(MFFSMod.INSTANCE, GuiIds.REMOTE, worldIn, x, y, z)
-//   - level.isLoaded(pos) → level.isBlockLoaded(pos)
-//   - player.blockPosition() → player.getPosition()
-//   - player.position() → player.getPositionVector()
-//   - Vec3 → Vec3d (net.minecraft.util.math)
-//   - BlockEntity be / be.getBlockPos() → TileEntity te / te.getPos()
-//   - level.getCapability(FORTRON, be, ...) → te.getCapability(FORTRON, null)
-//   - pos.toShortString() → manual "x, y, z" format
-//   - distToCenterSqr(target) → Vec3d center + squareDistanceTo(target)
-//   - RemoteMenuProvider (inner class) removed; GUI opened via IGuiHandler (Phase 12)
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.api.card.CoordLink;
 import dev.su5ed.mffs.api.fortron.FortronStorage;

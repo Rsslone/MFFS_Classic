@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: TextButton
-// Button.Plain → GuiButton; OnPress → Runnable (button param ignored)
-// getMessage() → still used via getDisplayString() override
-// Component → ITextComponent
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.text.ITextComponent;
@@ -44,23 +39,3 @@ public class TextButton extends GuiButton {
         }
     }
 }
-
-/* class TextButton_NeoForge_1_21_x:
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.network.chat.Component;
-import java.util.function.Supplier;
-
-public class TextButton extends Button.Plain {
-    private final Supplier<Component> messageSupplier;
-
-    public TextButton(int x, int y, int width, int height, Supplier<Component> messageSupplier, OnPress onPress) {
-        super(x, y, width, height, Component.empty(), onPress, s -> Component.empty());
-        this.messageSupplier = messageSupplier;
-    }
-
-    @Override
-    public Component getMessage() {
-        return this.messageSupplier.get();
-    }
-}
-*/

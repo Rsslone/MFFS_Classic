@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: SwitchEnergyModePacket (server-bound)
-// Switches the energy mode (FE→Fortron or Fortron→FE) on a CoercionDeriver.
-
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;

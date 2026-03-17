@@ -57,7 +57,6 @@ public final class ModUtil {
 
     /**
      * Attempts to merge the given ItemStack into the provided slots.
-     * Ported from 1.21.x — slot API is compatible.
      */
     public static boolean moveItemStackTo(ItemStack stack, List<Slot> slots) {
         int i = 0;
@@ -111,7 +110,6 @@ public final class ModUtil {
 
     /**
      * Normalizes a BlockPos relative to another position.
-     * Identical to 1.21.x (BlockPos API unchanged).
      */
     public static BlockPos normalize(BlockPos pos, BlockPos other) {
         if (other.getX() <= pos.getX()) {
@@ -155,7 +153,6 @@ public final class ModUtil {
 
     /**
      * Check if stack is a frequency card via capability.
-     * 1.12.2: uses hasCapability with null facing.
      */
     public static boolean isCard(ItemStack stack) {
         return !stack.isEmpty() && stack.hasCapability(ModCapabilities.FREQUENCY_CARD, null);
@@ -197,18 +194,13 @@ public final class ModUtil {
 
     /**
      * Deals shock damage to an entity.
-     * 1.12.2: uses DamageSource.GENERIC instead of custom damage type + advancement trigger.
-     * TODO: Create a custom DamageSource for field shock if needed.
      */
     public static void shockEntity(Entity entity, int damage) {
         entity.attackEntityFrom(DamageSource.GENERIC, damage);
-        // 1.21.x: ModObjects.DAMAGE_TRIGGER.get().trigger(serverPlayer, ModObjects.FIELD_SHOCK_TYPE)
-        // No advancement trigger equivalent in 1.12.2
     }
 
     /**
      * Ensures an ItemStack has a tag compound, creating one if absent.
-     * Replaces 1.12.2-missing ItemStack.getOrCreateTagCompound().
      */
     public static NBTTagCompound getOrCreateTag(ItemStack stack) {
         if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());

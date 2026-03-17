@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.menu;
 
-// 1.12.2 Backport: BiometricIdentifierMenu
-// BlockPos → net.minecraft.util.math.BlockPos
-// Player → EntityPlayer; Inventory → InventoryPlayer
-// addDataSlot(new DataSlotWrapper()) → addDataSlot(getter, setter)
-// fieldPermissions bitmask logic unchanged
-
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.util.inventory.SlotActive;

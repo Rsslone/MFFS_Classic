@@ -91,11 +91,6 @@ public abstract class FortronMenu<T extends FortronBlockEntity & Activatable> ex
         this.frequencyChangeListener = listener;
     }
 
-    /** Trigger any open-menu advancement (stub — fill in when advancements are backported). */
-    public void triggerMenuAdvancement() {
-        // TODO Phase 15: trigger advancement once advancement system is backported
-    }
-
     // -----------------------------------------------------------------------
     // Container overrides
     // -----------------------------------------------------------------------
@@ -150,10 +145,8 @@ public abstract class FortronMenu<T extends FortronBlockEntity & Activatable> ex
                 } else {
                     slot.putStack(ItemStack.EMPTY);
                 }
-                triggerMenuAdvancement();
                 return ItemStack.EMPTY;
             }
-            triggerMenuAdvancement();
         }
         return super.slotClick(slotId, dragType, clickType, player);
     }

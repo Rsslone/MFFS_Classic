@@ -1,26 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: CustomProjectorModeItem
-// Key changes:
-//   - StructureCoords: plain class + NBT (blockPos.toLong/fromLong), no Codec/StreamCodec
-//   - Mode enum: plain enum, no Codec/StreamCodec; stored as name string in NBT
-//   - InteractionResult use() → ActionResult<ItemStack> onItemRightClick()
-//   - InteractionResult onItemUseFirst() → EnumActionResult onItemUseFirst()
-//     (Forge 1.12.2 signature: player, world, pos, side, hitX, hitY, hitZ, hand)
-//   - ServerLevel → WorldServer; ServerPlayer → EntityPlayerMP
-//   - PlayerBlockInteractionRange → player.blockInteractionRange() not available;
-//     use fixed value of 5.0 (same as vanilla 1.12.2 default)
-//   - player.pick() → player.rayTrace(range, 0)  [returns RayTraceResult]
-//   - BlockHitResult → RayTraceResult.Type.BLOCK
-//   - Component.literal/translate → TextComponentString/TextComponentTranslation
-//   - MutableComponent + ChatFormatting → TextFormatting strings
-//   - appendHoverText → addInformationPre (override in BaseItem pattern)
-//   - DataComponentType storage → NBT-based helpers
-//   - ServerLevel.getDataStorage().computeIfAbsent() → WorldServer MapStorage
-//   - ModUtil.translate("item","key") → new TextComponentTranslation("item.mffs.key")
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.Projector;
@@ -217,7 +196,7 @@ public class CustomProjectorModeItem extends BaseItem {
                     }
                 }
             } else if (coords != null && coords.selectSecondary()) {
-                // Match 1.21's player.pick(): find the block the player is aiming at,
+                // Match player.pick(): find the block the player is aiming at,
                 // including air positions. Use solid-block raytrace first; fall back to
                 // the position at end of look vector when no solid block is within range.
                 Vec3d eyePos = playerIn.getPositionEyes(0);
@@ -249,8 +228,8 @@ public class CustomProjectorModeItem extends BaseItem {
 
     // -----------------------------------------------------------------------
     // Right-click on block: set primary/secondary position
-    // Uses onItemUseFirst (Forge 1.12.2) to fire BEFORE block activation,
-    // matching 1.21's onItemUseFirst. Returns SUCCESS to prevent block GUIs.
+    // Uses onItemUseFirst to fire BEFORE block activation,
+    // Returns SUCCESS to prevent block GUIs.
     // -----------------------------------------------------------------------
 
     @Override
@@ -349,7 +328,7 @@ public class CustomProjectorModeItem extends BaseItem {
     @Nullable
     public CustomStructureSavedData getOrCreateData(World world) {
         if (world.isRemote) return null;
-        // Always use overworld MapStorage, matching 1.21's level.getServer().overworld()
+        // Always use overworld MapStorage
         // Don't cache on the Item singleton — MapStorage caches internally
         net.minecraft.world.WorldServer overworld = world.getMinecraftServer().getWorld(0);
         CustomStructureSavedData data = (CustomStructureSavedData)
@@ -387,10 +366,6 @@ public class CustomProjectorModeItem extends BaseItem {
             return false;
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Mode enum — no Codec/StreamCodec in 1.12.2
-    // -----------------------------------------------------------------------
 
     public enum Mode {
         ADDITIVE,

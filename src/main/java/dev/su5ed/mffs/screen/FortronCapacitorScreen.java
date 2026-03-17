@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: FortronCapacitorScreen
-// ClientPacketDistributor.sendToServer() → Network.sendToServer()
-// Matrix3x2fStack pose rotation → GlStateManager.rotate()
-// GuiGraphics.drawString() → fontRenderer.drawString()
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.menu.FortronCapacitorMenu;
 import dev.su5ed.mffs.network.Network;
@@ -65,10 +60,7 @@ public class FortronCapacitorScreen extends FortronScreen<FortronCapacitorMenu> 
         this.fontRenderer.drawString(ModUtil.translate("screen", "fortron.value",
             menu.blockEntity.fortronStorage.getStoredFortron(),
             menu.blockEntity.fortronStorage.getFortronCapacity()).getFormattedText(), 8, 105, GuiColors.DARK_GREY);
-        // TODO Fortron cost
+        this.fontRenderer.drawString(ModUtil.translate("screen", "fortron_cost", "-",
+            menu.getClientFortronCost() * 20).getFormattedText(), 8, 127, 0xAA0000);
     }
 }
-
-/* class FortronCapacitorScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference (Matrix3x2fStack, GuiGraphics, ClientPacketDistributor) ...
-*/

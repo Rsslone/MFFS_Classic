@@ -1,17 +1,5 @@
 package dev.su5ed.mffs.blockentity;
 
-// =============================================================================
-// 1.12.2 Backport: InventoryBlockEntity
-// Key changes:
-//   BlockEntityType(pos,state) constructor -> no-arg
-//   ValueInput/ValueOutput -> NBTTagCompound
-//   ResourceHandler / Capabilities.Item.BLOCK (NeoForge) ->
-//       IItemHandler capability from Forge or direct IInventory approach
-//   ItemUtil.insertItemReturnRemaining -> use IItemHandler.insertItem pattern
-//   ItemEntity -> EntityItem
-//   level.addFreshEntity -> world.spawnEntityInWorld
-// =============================================================================
-
 import dev.su5ed.mffs.util.inventory.InventorySlot;
 import dev.su5ed.mffs.util.inventory.InventorySlotItemHandler;
 import net.minecraft.entity.item.EntityItem;

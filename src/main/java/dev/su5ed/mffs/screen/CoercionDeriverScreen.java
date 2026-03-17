@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: CoercionDeriverScreen
-// ClientPacketDistributor.sendToServer() → Network.sendToServer()
-// Matrix3x2fStack pose rotation → GlStateManager.rotate() + translate()
-// GuiGraphics.drawString() → fontRenderer.drawString()
-// ChatFormatting → net.minecraft.util.text.TextFormatting
-
 import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity.EnergyMode;
@@ -245,6 +239,3 @@ public class CoercionDeriverScreen extends FortronScreen<CoercionDeriverMenu> {
     }
 }
 
-/* class CoercionDeriverScreen_NeoForge_1_21_x:
-... original NeoForge source (Matrix3x2fStack, GuiGraphics, ClientPacketDistributor, ChatFormatting) preserved for reference ...
-*/

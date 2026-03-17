@@ -1,11 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: ModuleItem
-// appendHoverText (NeoForge) → addInformation (1.12.2 Forge).
-// TooltipDisplay/Consumer<Component> → List<String> with TextFormatting.
-// =============================================================================
-
 import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.module.ModuleType;
 import dev.su5ed.mffs.setup.ModCapabilities;
@@ -50,7 +44,6 @@ public class ModuleItem<T extends Module> extends BaseItem {
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip,
                                net.minecraft.client.util.ITooltipFlag flagIn) {
         super.addInformation(stack, worldIn, tooltip, flagIn);
-        // "Fortron usage: X mB/s"
         tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.fortron_usage",
             TextFormatting.GRAY + FORTRON_COST_FORMAT.format(this.module.getFortronCost(1) * 20)));
     }

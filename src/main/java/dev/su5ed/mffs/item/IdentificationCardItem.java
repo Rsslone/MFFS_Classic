@@ -1,18 +1,5 @@
 package dev.su5ed.mffs.item;
 
-// =============================================================================
-// 1.12.2 Backport: IdentificationCardItem
-// Key changes:
-//   DataComponentType → NBT (permissions as int bitmask, identity as GameProfile NBT)
-//   IdentificationCard capability via initCapabilities + ICapabilityProvider
-//   NeoForge PlayerInteractEvent.EntityInteract → same class exists in Forge 1.12.2
-//   event.setCancellationResult() → not available in 1.12.2; just setCanceled(true)
-//   player.level().isClientSide() → player.world.isRemote
-//   List.of() → ArrayList  
-//   List.copyOf(Set.copyOf(x)) → new ArrayList<>(x)
-//   MutableComponent.append → StringBuilder
-// =============================================================================
-
 import com.mojang.authlib.GameProfile;
 import dev.su5ed.mffs.api.card.IdentificationCard;
 import dev.su5ed.mffs.api.security.FieldPermission;

@@ -2,13 +2,6 @@ package dev.su5ed.mffs.setup;
 
 // =============================================================================
 // 1.12.2 Backport: TileEntity, Particle, and Advancement registration
-// 1.21.x used DeferredRegister<BlockEntityType<?>>, DeferredRegister<ParticleType<?>>,
-// and DeferredRegister<CriterionTrigger<?>> (NeoForge). In 1.12.2:
-//   - TileEntities are registered via GameRegistry.registerTileEntity() in preInit
-//   - Particles use EnumParticleTypes or custom IParticleFactory (no registry)
-//   - Advancements/CriterionTriggers do not exist in 1.12.2  (Forge 1.12.2 has
-//     no advancement trigger system)
-//   - DamageType is not a registry in 1.12.2 (just a string used in DamageSource)
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSMod;

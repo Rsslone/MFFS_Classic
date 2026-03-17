@@ -1,14 +1,13 @@
 package dev.su5ed.mffs.render;
 
-// 1.12.2 Backport: FortronCapacitorRenderer
-// Renders the emissive blue-accent overlay on the Fortron Capacitor when active.
-
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
 import dev.su5ed.mffs.compat.CodeChickenLibEmissiveCompat;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
+// Renders the emissive blue-accent overlay on the Fortron Capacitor when active.
 
 @SideOnly(Side.CLIENT)
 public class FortronCapacitorRenderer extends TileEntitySpecialRenderer<FortronCapacitorBlockEntity> {

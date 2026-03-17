@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: ToggleFieldPermissionPacket (server-bound)
-// Adds or removes a FieldPermission from the card being manipulated in a BiometricIdentifier.
-
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import io.netty.buffer.ByteBuf;

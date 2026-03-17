@@ -1,12 +1,5 @@
 package dev.su5ed.mffs.block;
 
-// =============================================================================
-// 1.12.2 Backport: ProjectorBlock
-// VoxelShape → AxisAlignedBB + addCollisionBoxToList.
-// getLightEmission → getLightValue(IBlockState, IBlockAccess, BlockPos).
-// ILevelExtension.getCapability removed; capability obtained from TileEntity directly.
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.setup.GuiIds;
 import dev.su5ed.mffs.api.Projector;

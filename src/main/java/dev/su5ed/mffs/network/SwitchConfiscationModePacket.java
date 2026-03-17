@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: SwitchConfiscationModePacket (server-bound)
-// Changes the confiscation mode on an InterdictionMatrix tile entity.
-
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
 import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
 import io.netty.buffer.ByteBuf;

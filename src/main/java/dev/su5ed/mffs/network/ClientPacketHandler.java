@@ -1,9 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: ClientPacketHandler
-// Static methods called from each client-bound packet's Handler class.
-// All methods run on the client main thread (scheduled in the Handler).
-
 import dev.su5ed.mffs.render.particle.BeamParticle;
 import dev.su5ed.mffs.render.particle.MovingHologramParticle;
 import dev.su5ed.mffs.render.particle.ParticleColor;
@@ -22,15 +18,6 @@ public final class ClientPacketHandler {
         BeamParticle particle = new BeamParticle(
             mc.world, pos, packet.getTarget(), packet.getColor(), packet.getLifetime());
         mc.effectRenderer.addEffect(particle);
-    }
-
-    public static void handleSetStructureShapePacket(SetStructureShapePacket packet) {
-        // Handled by SetStructureShapePacket.Handler which calls
-        // CustomProjectorModeClientHandler.setShape() directly
-    }
-
-    public static void handleUpdateAnimationSpeedPacket(UpdateAnimationSpeed packet) {
-        // Handled inline in UpdateAnimationSpeed.Handler
     }
 
     public static void handleDrawHologramPacket(DrawHologramPacket packet) {

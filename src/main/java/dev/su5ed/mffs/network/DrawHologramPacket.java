@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: DrawHologramPacket (client-bound)
-// Instructs the client to spawn hologram beam particles showing construction/destruction.
-
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.Vec3d;

@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: ProjectorScreen
-// ChatFormatting → TextFormatting
-// GuiGraphics.drawString() → fontRenderer.drawString()
-// withStyle() → wrap in TextFormatting string
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.menu.ProjectorMenu;
 import dev.su5ed.mffs.util.ModUtil;
@@ -45,7 +40,3 @@ public class ProjectorScreen extends FortronScreen<ProjectorMenu> {
         }
     }
 }
-
-/* class ProjectorScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference (ChatFormatting.DARK_RED, GuiGraphics) ...
-*/

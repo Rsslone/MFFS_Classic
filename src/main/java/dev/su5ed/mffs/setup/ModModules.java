@@ -27,7 +27,6 @@ import java.util.Set;
 
 /**
  * Registry of all MFFS module types.
- * 1.12.2 Backport: Set.of() replaced with unmodifiable HashSet.
  */
 public final class ModModules {
     // --- Field / general modules ---

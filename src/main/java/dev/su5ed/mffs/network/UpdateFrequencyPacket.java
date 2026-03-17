@@ -1,8 +1,5 @@
 package dev.su5ed.mffs.network;
 
-// 1.12.2 Backport: UpdateFrequencyPacket (server-bound)
-// Sends the new Fortron frequency value to the server.
-
 import dev.su5ed.mffs.api.fortron.FortronStorage;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import io.netty.buffer.ByteBuf;

@@ -1,10 +1,5 @@
 package dev.su5ed.mffs.screen;
 
-// 1.12.2 Backport: BiometricIdentifierScreen
-// ClientPacketDistributor.sendToServer() → Network.sendToServer()
-// AbstractWidget → GuiButton (IconToggleButton)
-// addWidget() → just keep in permissionButtons list and call drawButton() manually
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.menu.BiometricIdentifierMenu;
@@ -98,6 +93,3 @@ public class BiometricIdentifierScreen extends FortronScreen<BiometricIdentifier
     }
 }
 
-/* class BiometricIdentifierScreen_NeoForge_1_21_x:
-... original NeoForge source preserved for reference (ClientPacketDistributor, AbstractWidget, addWidget, etc.) ...
-*/
