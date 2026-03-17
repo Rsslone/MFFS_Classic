@@ -119,6 +119,19 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         });
     private int clientAnimationSpeed;
 
+    // Incrementally maintained send radius. -1 means "dirty, must recompute".
+    private double cachedFieldSendRadius = -1;
+
+    // Fast camo checks — updated on inventory change, avoids synchronized map lookups per block.
+    private boolean camoModulePresent;
+    // Cached own-inventory camo result. null = not yet computed this inventory-change cycle.
+    // Uses Optional: empty() means "scanned, nothing found", present() means a valid block.
+    @Nullable
+    private Optional<IBlockState> cachedOwnCamo;
+    // Cached neighbor camo data for the current projection pass. Null = not yet computed this pass.
+    @Nullable
+    private List<IBlockState> cachedNeighborWeightedList;
+
     public ProjectorBlockEntity() {
         super(50);
 
@@ -129,10 +142,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 .mapToEntry(i -> side, i -> addSlot("field_module_" + side.getName() + "_" + i, InventorySlot.Mode.BOTH, stack -> ModUtil.isModule(stack, Module.Category.FIELD), stack -> onFieldModuleChanged())))
             .toListAndThen(ImmutableListMultimap::copyOf);
         // Each upgrade slot gets its own closure so we can compare old vs new content.
-        // Three-way decision per slot change:
+        // Four-way decision per slot change:
         //   1. Both old and new are regen-exempt (Speed/Capacity/etc.)  → no action
         //   2. Both old and new are glow-or-empty                        → refreshFieldLights()
-        //   3. Either side is a geometry-affecting module                → softDestroyField()
+        //   3. Both old and new are camo-or-empty                        → refreshFieldVisuals()
+        //   4. Either side is a geometry-affecting module                → softDestroyField()
         //
         // upgradeSlotListRef is populated after the stream completes so the capacity-provider
         // lambdas can safely reference all upgrade slots at insert time (not at construction time).
@@ -148,6 +162,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                         } else if (isGlowOrEmpty(prev) && isGlowOrEmpty(current)) {
                             // glow-only change: update light in-place, no field rebuild needed
                             refreshFieldLights();
+                        } else if (isCamoModuleOrEmpty(prev) && isCamoModuleOrEmpty(current)) {
+                            // camo-only change: update camouflage in-place, no field rebuild needed
+                            refreshFieldVisuals();
                         } else {
                             softDestroyField();
                         }
@@ -227,6 +244,17 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return type == ModModules.GLOW;
     }
 
+    /**
+     * Returns {@code true} if {@code stack} is empty or is a Camouflage Module.
+     * Used to detect upgrade-slot changes that only affect block appearance, allowing
+     * an in-place {@link #refreshFieldVisuals()} instead of a full field rebuild.
+     */
+    private static boolean isCamoModuleOrEmpty(ItemStack stack) {
+        if (stack.isEmpty()) return true;
+        ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
+        return type == ModModules.CAMOUFLAGE;
+    }
+
     public int computeAnimationSpeed() {
         int speed = 1;
         int fortronCost = getFortronCost();
@@ -267,6 +295,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     public void onLoad() {
         super.onLoad();
+        this.camoModulePresent = hasModule(ModModules.CAMOUFLAGE);
         if (!this.world.isRemote) {
             MinecraftForge.EVENT_BUS.register(this);
             reCalculateForceField();
@@ -396,6 +425,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 this.pendingRemoval.addAll(powerOffRemoval);
                 this.projectedBlocks.clear();
                 this.pendingCamoRefresh.clear();
+                this.invalidateFieldSendRadius();
             }
         }
 
@@ -469,6 +499,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     @Override
     protected void onInventoryChanged() {
         super.onInventoryChanged();
+        // Refresh camo caches — hasModule() is already cleared by super.onInventoryChanged()
+        this.camoModulePresent = hasModule(ModModules.CAMOUFLAGE);
+        this.cachedOwnCamo = null;
+        this.cachedNeighborWeightedList = null;
         // Re-check the projector block's own light level
         if (this.world != null && !this.world.isRemote) {
             this.world.checkLight(this.pos);
@@ -612,6 +646,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         for (Module module : getModuleInstances()) {
             module.beforeProject(this);
         }
+        // Invalidate per-pass neighbor camo cache so each projection sweep sees fresh inventories.
+        invalidateNeighborCamoCache();
+        // Hoist send radius computation out of the loop — the +64 buffer covers any newly-added blocks.
+        double sendRadius = computeFieldSendRadius();
         IBlockState state = ModBlocks.FORCE_FIELD.getDefaultState();
         List<TargetPosPair> projectable = this.semaphore.getResult(ProjectionStage.SELECTING);
         fieldLoop:
@@ -658,12 +696,13 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     // Send from projector position so players near the projector receive updates
                     // for all FF blocks regardless of each block's distance from the player.
                     Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
-                        this.world, this.pos, computeFieldSendRadius());
+                        this.world, this.pos, sendRadius);
                 }
             }
             // Mark as part of the new field; remove from pending-removal so it isn't deleted.
             this.pendingRemoval.remove(pos);
             this.projectedBlocks.add(pos);
+            expandFieldSendRadius(pos);
             this.projectionCache.invalidate(pos);
         }
         task.complete(null);
@@ -704,24 +743,29 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     /**
-     * Pushes a fresh {@link UpdateBlockEntityPacket} (clientBlockLight + camouflage)
-     * to every currently-projected block without rebuilding the field.
-     * Updates camouflage on each block entity first so the packet reflects the
-     * current state (e.g. null when the camo module was just removed).
+     * Queues a camouflage+light refresh for every currently-projected block into
+     * {@link #pendingCamoRefresh} for rate-limited delivery, instead of blasting all
+     * blocks in a single tick.  Server-side camouflage is updated immediately so the
+     * TE state is correct before packets start draining; the list is shuffled so the
+     * visual update radiates in a scattered pattern rather than following hash order.
      */
     private void refreshFieldVisuals() {
         if (this.world == null || this.world.isRemote) return;
-        double radius = computeFieldSendRadius();
+        // Invalidate per-pass camo caches so each block gets a fresh getCamoBlock() result.
+        this.cachedOwnCamo = null;
+        this.cachedNeighborWeightedList = null;
+        List<BlockPos> toRefresh = new ArrayList<>();
         for (BlockPos pos : new HashSet<>(this.projectedBlocks)) {
             net.minecraft.tileentity.TileEntity te = this.world.getTileEntity(pos);
             if (te instanceof ForceFieldBlockEntity be) {
-                // Recompute camouflage — returns null when camo module is absent
+                // Update server-side state immediately so the TE is consistent before packets drain.
                 IBlockState newCamo = getCamoBlock(new net.minecraft.util.math.Vec3d(pos.getX(), pos.getY(), pos.getZ()));
                 be.setCamouflage(newCamo);
-                Network.sendToAllAround(new UpdateBlockEntityPacket(pos, be.getCustomUpdateTag()),
-                    this.world, this.pos, radius);
+                toRefresh.add(pos);
             }
         }
+        Collections.shuffle(toRefresh);
+        this.pendingCamoRefresh.addAll(toRefresh);
     }
 
     /**
@@ -754,13 +798,34 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * <p>The radius is: max distance from projector to any currently-projected
      * block + 64 (a generous player-interaction buffer).  Falls back to 128 when
      * {@code projectedBlocks} is empty (e.g. called during initial field build).
+     *
+     * <p>The result is cached incrementally: {@link #expandFieldSendRadius(BlockPos)}
+     * extends it as blocks are added, and {@link #invalidateFieldSendRadius()} marks
+     * it dirty when blocks are bulk-removed or cleared.
      */
     private double computeFieldSendRadius() {
+        if (this.cachedFieldSendRadius >= 0) {
+            return this.cachedFieldSendRadius;
+        }
         double maxDistSq = this.projectedBlocks.stream()
             .mapToDouble(this.pos::distanceSq)
             .max()
             .orElse(0);
-        return Math.sqrt(maxDistSq) + 64;
+        this.cachedFieldSendRadius = Math.sqrt(maxDistSq) + 64;
+        return this.cachedFieldSendRadius;
+    }
+
+    /** Extend the cached send radius to cover {@code pos} if it is farther away. */
+    private void expandFieldSendRadius(BlockPos pos) {
+        double dist = Math.sqrt(this.pos.distanceSq(pos)) + 64;
+        if (dist > this.cachedFieldSendRadius) {
+            this.cachedFieldSendRadius = dist;
+        }
+    }
+
+    /** Mark the cached send radius as dirty so the next call recomputes from scratch. */
+    private void invalidateFieldSendRadius() {
+        this.cachedFieldSendRadius = -1;
     }
 
     private void onModeChanged(ItemStack stack) {
@@ -862,6 +927,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         // Queue removals and update projectedBlocks.
         this.pendingRemoval.addAll(toRemoveList);
         this.projectedBlocks.removeAll(toRemove);
+        this.invalidateFieldSendRadius();
 
         // Invalidate cache for removed positions so gap-fill doesn't see stale state.
         for (BlockPos pos : toRemove) {
@@ -929,6 +995,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.calculatedFieldSet = Collections.emptySet();
         this.projectedBlocks.clear();
         this.projectionCache.invalidateAll();
+        this.invalidateFieldSendRadius();
         this.semaphore.reset();
         if (!this.world.isRemote) {
             StreamEx.of(fieldPositions)
@@ -1014,7 +1081,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     }
 
     public IBlockState getCamoBlock(Vec3d pos) {
-        if (!this.world.isRemote && hasModule(ModModules.CAMOUFLAGE)) {
+        if (!this.world.isRemote && this.camoModulePresent) {
             if (getModeStack().getItem() instanceof CustomProjectorModeItem custom) {
                 Map<Vec3d, IBlockState> map = custom.getFieldBlocks(this, getModeStack());
                 IBlockState block = map.get(pos);
@@ -1023,34 +1090,50 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 }
             }
 
-            return getCamoBlockFromOwnInventory()
-                .orElseGet(this::getWeightedCamoBlockFromNeighbors);
+            Optional<IBlockState> ownCamo = this.cachedOwnCamo;
+            if (ownCamo == null) {
+                ownCamo = getAllModuleItemsStream()
+                    .mapPartial(ProjectorBlockEntity::getFilterBlock)
+                    .findFirst();
+                this.cachedOwnCamo = ownCamo;
+            }
+            if (ownCamo.isPresent()) {
+                return ownCamo.get();
+            }
+
+            return getWeightedCamoBlockFromNeighbors();
         }
         return null;
     }
 
-    // Prioritize own inventory for backwards compatibility
-    @Nullable
-    private Optional<IBlockState> getCamoBlockFromOwnInventory() {
-        return getAllModuleItemsStream()
-            .mapPartial(ProjectorBlockEntity::getFilterBlock)
-            .findFirst();
+    /**
+     * Invalidates the per-pass neighbor camo cache so the next call to
+     * {@link #getWeightedCamoBlockFromNeighbors()} rescans adjacent inventories.
+     * Called at the start of each projection pass.
+     */
+    private void invalidateNeighborCamoCache() {
+        this.cachedNeighborWeightedList = null;
     }
 
     @Nullable
     private IBlockState getWeightedCamoBlockFromNeighbors() {
-        Map<IBlockState, Integer> neighborsInventory = checkNeighbors();
-        if (neighborsInventory.isEmpty()) {
+        List<IBlockState> weightedList = this.cachedNeighborWeightedList;
+        if (weightedList == null) {
+            Map<IBlockState, Integer> neighborsInventory = checkNeighbors();
+            if (neighborsInventory.isEmpty()) {
+                this.cachedNeighborWeightedList = Collections.emptyList();
+                return null;
+            }
+            weightedList = neighborsInventory.entrySet()
+                .stream()
+                .flatMap(e -> Collections.nCopies(e.getValue(), e.getKey()).stream())
+                .collect(Collectors.toList());
+            this.cachedNeighborWeightedList = weightedList;
+        }
+        if (weightedList.isEmpty()) {
             return null;
         }
-
-        List<IBlockState> weightedList = neighborsInventory.entrySet()
-            .stream()
-            .flatMap(e -> Collections.nCopies(e.getValue(), e.getKey()).stream())
-            .collect(Collectors.toList());
-
-        int random = ThreadLocalRandom.current().nextInt(weightedList.size());
-        return weightedList.get(random);
+        return weightedList.get(ThreadLocalRandom.current().nextInt(weightedList.size()));
     }
 
     private CompletableFuture<?> runCalculationTask() {
@@ -1093,6 +1176,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Respects the projector speed limit so speed upgrade modules remain meaningful.
      */
     private void fillGaps() {
+        invalidateNeighborCamoCache();
         IBlockState ffState = ModBlocks.FORCE_FIELD.getDefaultState();
         Set<Module> modules = getModuleInstances();
         for (Module module : modules) {
@@ -1133,6 +1217,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             this.fortronStorage.extractFortron(1, false);
             this.pendingRemoval.remove(pos);
             this.projectedBlocks.add(pos);
+            expandFieldSendRadius(pos);
             this.projectionCache.invalidate(pos);
             placed++;
         }
