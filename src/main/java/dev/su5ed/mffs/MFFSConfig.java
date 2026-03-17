@@ -1,14 +1,5 @@
 package dev.su5ed.mffs;
 
-// =============================================================================
-// 1.12.2 Backport: Configuration
-// 1.21.x used NeoForge ModConfigSpec (data-driven, registered at build time).
-// In 1.12.2 we use net.minecraftforge.common.config.Configuration, loaded
-// during FMLPreInitializationEvent via event.getSuggestedConfigurationFile().
-// All values are stored as plain fields; call MFFSConfig.load(configFile)
-// from MFFSMod.preInit and MFFSConfig.save() when done.
-// =============================================================================
-
 import dev.su5ed.mffs.api.module.ModuleType;
 import dev.su5ed.mffs.setup.ModModules;
 import net.minecraftforge.common.config.Configuration;
