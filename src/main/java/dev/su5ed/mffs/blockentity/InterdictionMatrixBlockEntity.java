@@ -159,26 +159,39 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         return IMAZoneSyncPacket.ZONE_DEFENSE;
     }
 
-    /** Broadcasts current zone configuration to all nearby clients. */
+    /** Broadcasts current zone configuration to all nearby clients, respecting bypass permissions. */
     private void sendZoneSync() {
         if (this.world == null || this.world.isRemote) return;
         boolean active   = isActive();
         int actionRange  = active ? getActionRange()  : 0;
         int warningRange = active ? getWarningRange() : 0;
         double sendRadius = Math.max(warningRange + 32, 48);
-        Network.sendToAllAround(
-            new IMAZoneSyncPacket(this.pos, actionRange, warningRange, getZoneTypeByte(), active),
-            this.world, this.pos, sendRadius);
+        double cx = this.pos.getX() + 0.5;
+        double cy = this.pos.getY() + 0.5;
+        double cz = this.pos.getZ() + 0.5;
+        BiometricIdentifier identifier = getBiometricIdentifier();
+        byte zoneType = getZoneTypeByte();
+        for (net.minecraft.entity.player.EntityPlayerMP player :
+                this.world.getPlayers(net.minecraft.entity.player.EntityPlayerMP.class, p -> true)) {
+            // Only send to players within the broadcast radius
+            if (player.getDistanceSq(cx, cy, cz) > sendRadius * sendRadius) continue;
+            boolean playerActive = active && !canPlayerBypass(identifier, player);
+            int pActionRange  = playerActive ? actionRange  : 0;
+            int pWarningRange = playerActive ? warningRange : 0;
+            Network.sendTo(new IMAZoneSyncPacket(this.pos, pActionRange, pWarningRange, zoneType, playerActive), player);
+        }
     }
 
-    /** Sends current zone configuration to a single player (e.g. on login). */
+    /** Sends current zone configuration to a single player (e.g. on login), respecting bypass. */
     public void sendZoneSyncTo(net.minecraft.entity.player.EntityPlayerMP player) {
         if (this.world == null || this.world.isRemote) return;
         boolean active   = isActive();
-        int actionRange  = active ? getActionRange()  : 0;
-        int warningRange = active ? getWarningRange() : 0;
+        boolean bypass   = canPlayerBypass(getBiometricIdentifier(), player);
+        boolean playerActive = active && !bypass;
+        int actionRange  = playerActive ? getActionRange()  : 0;
+        int warningRange = playerActive ? getWarningRange() : 0;
         Network.sendTo(
-            new IMAZoneSyncPacket(this.pos, actionRange, warningRange, getZoneTypeByte(), active),
+            new IMAZoneSyncPacket(this.pos, actionRange, warningRange, getZoneTypeByte(), playerActive),
             player);
     }
 
