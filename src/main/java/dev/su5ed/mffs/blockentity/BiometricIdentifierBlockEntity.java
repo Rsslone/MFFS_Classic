@@ -12,7 +12,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import one.util.streamex.IntStreamEx;
-import one.util.streamex.StreamEx;
 
 import java.util.List;
 import java.util.Optional;
@@ -84,12 +83,28 @@ public class BiometricIdentifierBlockEntity extends FortronBlockEntity implement
 
     @Override
     public boolean isAccessGranted(EntityPlayer player, FieldPermission permission) {
-        return !isActive() || canOpBypass(player) || StreamEx.of(this.masterSlot)
-            .append(this.identitySlots)
-            .anyMatch(slot -> {
-                IdentificationCard card = slot.getItem().getCapability(ModCapabilities.IDENTIFICATION_CARD, null);
-                return card != null && card.checkIdentity(player);
-            });
+        if (!isActive()) return false;
+        if (canOpBypass(player)) return true;
+
+        // Named cards (specific identity) take priority over blank wildcard cards.
+        // First pass: look for a card that explicitly names this player.
+        for (InventorySlot slot : this.identitySlots) {
+            IdentificationCard card = slot.getItem().getCapability(ModCapabilities.IDENTIFICATION_CARD, null);
+            if (card != null && card.getIdentity() != null && card.checkIdentity(player)) {
+                // Found a card that specifically targets this player — its permissions are definitive.
+                return card.hasPermission(permission);
+            }
+        }
+
+        // Second pass: no named card matched; fall back to blank (everyone) wildcard cards.
+        for (InventorySlot slot : this.identitySlots) {
+            IdentificationCard card = slot.getItem().getCapability(ModCapabilities.IDENTIFICATION_CARD, null);
+            if (card != null && card.getIdentity() == null) {
+                return card.hasPermission(permission);
+            }
+        }
+
+        return false;
     }
 
     public static boolean canOpBypass(EntityPlayer player) {

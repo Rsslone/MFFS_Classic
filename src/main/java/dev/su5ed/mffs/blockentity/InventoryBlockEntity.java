@@ -5,6 +5,7 @@ import dev.su5ed.mffs.util.inventory.InventorySlotItemHandler;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
@@ -66,8 +67,9 @@ public abstract class InventoryBlockEntity extends BaseBlockEntity {
         if (!this.world.isRemote && !stack.isEmpty()) {
             ItemStack remainder = stack.copy();
             for (EnumFacing side : EnumFacing.values()) {
-                IItemHandler handler = this.world.getTileEntity(this.pos.offset(side)) != null
-                    ? this.world.getTileEntity(this.pos.offset(side)).getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side.getOpposite())
+                TileEntity neighbor = this.world.getTileEntity(this.pos.offset(side));
+                IItemHandler handler = neighbor != null
+                    ? neighbor.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side.getOpposite())
                     : null;
                 if (handler != null) {
                     remainder = ItemHandlerHelper.insertItemStacked(handler, remainder, false);

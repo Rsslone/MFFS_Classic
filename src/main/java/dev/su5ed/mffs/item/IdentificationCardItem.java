@@ -96,6 +96,9 @@ public class IdentificationCardItem extends BaseItem {
             if (identity != null) {
                 tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.identity",
                     TextFormatting.GREEN + identity.getName()));
+            } else {
+                tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.identity",
+                    TextFormatting.YELLOW + I18n.format("info.mffs.identity.everyone")));
             }
             Set<FieldPermission> permsSet = new HashSet<>(card.getPermissions());
             if (!permsSet.isEmpty()) {
