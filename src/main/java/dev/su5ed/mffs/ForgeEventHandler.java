@@ -19,6 +19,7 @@ import dev.su5ed.mffs.api.EventForceManipulate;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
+import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
 import dev.su5ed.mffs.setup.ModBlocks;
 import dev.su5ed.mffs.setup.ModModules;
 import dev.su5ed.mffs.util.Fortron;
@@ -39,6 +40,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class ForgeEventHandler {
@@ -101,6 +103,21 @@ public class ForgeEventHandler {
         tag.setString("patchouli:book", MFFSMod.MODID + ":handbook");
         stack.setTagCompound(tag);
         player.inventory.addItemStackToInventory(stack);
+    }
+
+    /**
+     * When a player logs into the server, push all currently-active Interdiction Matrix zones
+     */
+    @SubscribeEvent
+    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.player instanceof EntityPlayerMP)) return;
+        EntityPlayerMP player = (EntityPlayerMP) event.player;
+        World world = player.world;
+        for (TileEntity te : world.loadedTileEntityList) {
+            if (te instanceof InterdictionMatrixBlockEntity im) {
+                im.sendZoneSyncTo(player);
+            }
+        }
     }
 
     private void onPlayerInteractInternal(PlayerInteractEvent event, EntityPlayer player, World world, BlockPos pos, Fortron.Action action) {

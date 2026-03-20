@@ -9,6 +9,7 @@ import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.blockentity.BiometricIdentifierBlockEntity;
 import dev.su5ed.mffs.blockentity.CoercionDeriverBlockEntity;
 import dev.su5ed.mffs.blockentity.ForceFieldBlockEntity;
+import dev.su5ed.mffs.client.ClientZoneTracker;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
 import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
 import dev.su5ed.mffs.blockentity.InterdictionMatrixBlockEntity;
@@ -203,8 +204,11 @@ public final class ModClientSetup {
         // Discard stale light-check positions when the world changes.
         if (mc.world != lastClientWorld) {
             ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.clear();
+            ClientZoneTracker.clearAll();
             lastClientWorld = mc.world;
         }
+
+        ClientZoneTracker.tick(mc);
 
         if (mc.world == null || ForceFieldBlockEntity.PENDING_LIGHT_CHECKS.isEmpty()) return;
         int limit = Math.max(1, MFFSConfig.glowLightChecksPerTick);
