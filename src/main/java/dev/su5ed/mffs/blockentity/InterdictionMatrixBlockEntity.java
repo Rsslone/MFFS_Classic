@@ -6,6 +6,8 @@ import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.security.BiometricIdentifier;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
+import dev.su5ed.mffs.network.IMAZoneSyncPacket;
+import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.setup.ModCapabilities;
 import dev.su5ed.mffs.setup.ModItems;
 import dev.su5ed.mffs.setup.ModModules;
@@ -18,7 +20,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextFormatting;
 import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,8 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
     public final List<InventorySlot> bannedItemSlots;
 
     private ConfiscationMode confiscationMode = ConfiscationMode.BLACKLIST;
+    /** Tracks the last known active state so we can detect changes in tickServer. */
+    private boolean prevActive = false;
 
     public InterdictionMatrixBlockEntity() {
         super();
@@ -92,6 +95,14 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
     public void setConfiscationMode(ConfiscationMode confiscationMode) {
         this.confiscationMode = confiscationMode;
         markDirty();
+        sendZoneSync();
+    }
+
+    @Override
+    protected void onInventoryChanged() {
+        super.onInventoryChanged();
+        // Module slots changed — ranges and zone type may have shifted; re-sync clients.
+        sendZoneSync();
     }
 
     @Override
@@ -114,11 +125,24 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
     public void tickServer() {
         super.tickServer();
 
-        if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0 && (isActive() || this.frequencySlot.getItem().getItem() == ModItems.INFINITE_POWER_CARD)) {
-            int extracted = this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, true);
+        boolean active  = isActive();
+        boolean powered = active || this.frequencySlot.getItem().getItem() == ModItems.INFINITE_POWER_CARD;
+
+        // Push zone data to nearby clients when active state changes, and as a heartbeat
+        // every 200 ticks (10 s) so players who walk into range pick up the zone config.
+        if (active != this.prevActive) {
+            this.prevActive = active;
+            sendZoneSync();
+        } else if (powered && getTicks() % 200 == 0) {
+            sendZoneSync();
+        }
+
+        // Actions (confiscation, damage, etc.) on the configurable action tick rate.
+        if (getTicks() % Math.max(1, MFFSConfig.interdictionMatrixActionTickRate) == 0 && powered) {
+            int extracted = this.fortronStorage.extractFortron(getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate), true);
             if (extracted > 0) {
-                this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
-                scan();
+                this.fortronStorage.extractFortron(getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate), false);
+                scanActions();
             }
         }
     }
@@ -128,25 +152,49 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         return Math.max(Math.min(getActionRange() / 20, 10), 1);
     }
 
-    public void scan() {
-        BiometricIdentifier identifier = getBiometricIdentifier();
-        AxisAlignedBB emptyBounds = new AxisAlignedBB(this.pos, this.pos.add(1, 1, 1));
+    /** Encodes the zone type as a byte for the sync packet. */
+    private byte getZoneTypeByte() {
+        if (hasModule(ModModules.ANTI_PERSONNEL)) return IMAZoneSyncPacket.ZONE_KILL;
+        if (hasModule(ModModules.CONFISCATION))   return IMAZoneSyncPacket.ZONE_CONFISCATION;
+        return IMAZoneSyncPacket.ZONE_DEFENSE;
+    }
 
-        List<EntityLivingBase> warningList = this.world.getEntitiesWithinAABB(EntityLivingBase.class, emptyBounds.grow(getWarningRange(), getWarningRange(), getWarningRange()));
+    /** Broadcasts current zone configuration to all nearby clients. */
+    private void sendZoneSync() {
+        if (this.world == null || this.world.isRemote) return;
+        boolean active   = isActive();
+        int actionRange  = active ? getActionRange()  : 0;
+        int warningRange = active ? getWarningRange() : 0;
+        double sendRadius = Math.max(warningRange + 32, 48);
+        Network.sendToAllAround(
+            new IMAZoneSyncPacket(this.pos, actionRange, warningRange, getZoneTypeByte(), active),
+            this.world, this.pos, sendRadius);
+    }
+
+    /** Sends current zone configuration to a single player (e.g. on login). */
+    public void sendZoneSyncTo(net.minecraft.entity.player.EntityPlayerMP player) {
+        if (this.world == null || this.world.isRemote) return;
+        boolean active   = isActive();
+        int actionRange  = active ? getActionRange()  : 0;
+        int warningRange = active ? getWarningRange() : 0;
+        Network.sendTo(
+            new IMAZoneSyncPacket(this.pos, actionRange, warningRange, getZoneTypeByte(), active),
+            player);
+    }
+
+    /** Sends proximity warning messages. Called every 5 ticks for a responsive distance counter. */
+    public void scanWarnings() {
+        // Warning display is now entirely client-side via ClientZoneTracker.
+        // This method is kept for API compatibility only.
+    }
+
+    /** Applies zone effects (confiscation, damage, etc.). Called on the Fortron drain cycle. */
+    public void scanActions() {
+        AxisAlignedBB emptyBounds = new AxisAlignedBB(this.pos, this.pos.add(1, 1, 1));
         List<EntityLivingBase> actionList = this.world.getEntitiesWithinAABB(EntityLivingBase.class, emptyBounds.grow(getActionRange(), getActionRange(), getActionRange()));
 
-        for (EntityLivingBase entity : warningList) {
-            if (entity instanceof EntityPlayer player && !actionList.contains(entity) && !canPlayerBypass(identifier, player) && this.world.rand.nextInt(3) == 0) {
-                ITextComponent msg = ModUtil.translate("info", "interdiction_matrix.warning", getTitle());
-                ((net.minecraft.util.text.Style) msg.getStyle()).setColor(TextFormatting.RED);
-                player.sendMessage(msg);
-            }
-        }
-
-        if (this.world.rand.nextInt(3) == 0) {
-            for (EntityLivingBase entity : actionList) {
-                applyAction(entity);
-            }
+        for (EntityLivingBase entity : actionList) {
+            applyAction(entity);
         }
     }
 

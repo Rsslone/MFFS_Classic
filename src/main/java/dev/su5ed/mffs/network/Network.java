@@ -34,6 +34,7 @@ public final class Network {
         CHANNEL.registerMessage(DrawBeamPacket.Handler.class,                DrawBeamPacket.class,                id++, Side.CLIENT);
         CHANNEL.registerMessage(UpdateAnimationSpeed.Handler.class,          UpdateAnimationSpeed.class,          id++, Side.CLIENT);
         CHANNEL.registerMessage(DrawHologramPacket.Handler.class,            DrawHologramPacket.class,            id++, Side.CLIENT);
+        CHANNEL.registerMessage(IMAZoneSyncPacket.Handler.class,             IMAZoneSyncPacket.class,             id++, Side.CLIENT);
     }
 
     /** Find a TileEntity by class at the given position. */

@@ -1,12 +1,8 @@
 package dev.su5ed.mffs.util.module;
 
 import dev.su5ed.mffs.api.module.ModuleType;
-import dev.su5ed.mffs.api.security.BiometricIdentifier;
-import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
-import dev.su5ed.mffs.util.ModUtil;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 
 public class WarnModule extends BaseInterdictionModule {
@@ -16,13 +12,8 @@ public class WarnModule extends BaseInterdictionModule {
 
     @Override
     public boolean onDefend(InterdictionMatrix interdictionMatrix, EntityLivingBase target) {
-        BiometricIdentifier identifier = interdictionMatrix.getBiometricIdentifier();
-        if (target instanceof EntityPlayer) {
-            EntityPlayer player = (EntityPlayer) target;
-            if (identifier == null || !identifier.isAccessGranted(player, FieldPermission.BYPASS_DEFENSE)) {
-                player.sendStatusMessage(ModUtil.translate("info", "interdiction_matrix.no_entry", interdictionMatrix.getTitle()), false);
-            }
-        }
+        // The action zone warning is implicit — players feel the effects (confiscation, damage).
+        // The proximity warning before the action zone is handled by the scanner as an action bar popup.
         return false;
     }
 }

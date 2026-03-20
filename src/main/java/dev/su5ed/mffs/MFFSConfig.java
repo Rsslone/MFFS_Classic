@@ -94,6 +94,8 @@ public final class MFFSConfig {
     // -------------------------------------------------------------------------
     /** Energy to consume when the Interdiction Matrix kills a player. */
     public static int    interdictionMatrixKillEnergy = 0;
+    /** How often (in ticks) the Interdiction Matrix runs zone actions (confiscation, damage, etc.). Default 10 (0.5 s). */
+    public static int    interdictionMatrixActionTickRate = 20;
     /** Initial Fortron tank capacity in F. */
     public static int    interdictionMatrixInitialTankCapacity   = 500000;
     /** Fortron tank capacity added per Capacity Module in F. */
@@ -382,6 +384,8 @@ public final class MFFSConfig {
         // -- Interdiction Matrix --
         interdictionMatrixKillEnergy = configuration.getInt("interdictionMatrixKillEnergy", "interdiction_matrix", interdictionMatrixKillEnergy, 0, Integer.MAX_VALUE,
             "Fortron to consume when the Interdiction Matrix kills a player");
+        interdictionMatrixActionTickRate = configuration.getInt("actionTickRate", "interdiction_matrix", interdictionMatrixActionTickRate, 1, 200,
+            "How often (in ticks) the Interdiction Matrix runs zone actions such as confiscation and damage. Lower = more responsive but higher server load. Default 20 (1 s).");
         interdictionMatrixInitialTankCapacity = configuration.getInt("initialTankCapacity", "interdiction_matrix",
             interdictionMatrixInitialTankCapacity, 1, Integer.MAX_VALUE,
             "Initial Fortron tank capacity in F.");
