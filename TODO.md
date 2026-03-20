@@ -25,6 +25,8 @@ Dye colors for force fields.
 The lighting not making contact with a physical block should have its own independent max value (~3-7).
     Lighting updates higher than this cause cascading light updates.
     Create a variable for this value and place in performance section.
+Implement CCL emissives on force field blocks.
+    Based on amount of glow modules, up to 64.
 
 Remove the projectionCycleTicks from the settings, this is not as useful of a setting.
     **New default of 1 then lower max speeds to smooth FF placements**
@@ -38,8 +40,6 @@ Camo modules probably shouldn't be instant updates. (queue is too fast actually)
 ## Known Bugs
 Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
-When you access the remote, the fortron particle points to the player.
-    Increase range limit on remote
 Items phase through bottoms of force fields
 Check disentigration module.
     Particle needs to be addressed for culling similar to fortron particle.

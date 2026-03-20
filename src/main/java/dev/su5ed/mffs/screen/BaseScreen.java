@@ -160,6 +160,11 @@ public abstract class BaseScreen<T extends Container> extends GuiContainer {
         this.tooltips.add(new TooltipCoordinate(x, y, width, height, tooltip));
     }
 
+    /** Registers a hover tooltip for an arbitrary screen region without drawing any text. */
+    protected void addTooltipRegion(int x, int y, int width, int height, ITextComponent tooltip) {
+        this.tooltips.add(new TooltipCoordinate(x, y, width, height, tooltip));
+    }
+
     // Hovered-button tooltips (IconToggleButton) + disabled-slot item tooltips
     @Override
     protected void renderHoveredToolTip(int mouseX, int mouseY) {

@@ -35,6 +35,8 @@
   "info.mffs.interdiction_matrix.no_entry": "[%s] Saia desta zona imediatamente. Você não tem o direito de entrar.",
   "info.mffs.interdiction_matrix.no_permission": "[%s] Você não tem permissão para fazer isso!",
   "info.mffs.interdiction_matrix.fairwell": "[%s] Adeus.",
+  "info.mffs.interdiction_matrix.anti_personnel_no_biometric": "[%s] ⚠ O Módulo Anti-Pessoal está instalado, mas nenhum Identificador Biométrico ativo está vinculado. O módulo está desativado até que um seja configurado.",
+  "info.mffs.module.anti_personnel.requires_biometric": "⚠ Requer um Identificador Biométrico ativo",
   "info.mffs.interdiction_matrix.confiscation_singular": "[%s] %s dos seus itens foi confiscado.",
   "info.mffs.interdiction_matrix.confiscation_plural": "[%s] %s dos seus itens foram confiscados.",
   "info.mffs.show_details": "Segure %s para detalhes",

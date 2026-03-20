@@ -10,6 +10,7 @@ import net.minecraft.world.World;
 
 public class InterdictionMatrixMenu extends FortronMenu<InterdictionMatrixBlockEntity> {
     private int clientFortronCost;
+    private int clientBiometricWarning;
 
     public InterdictionMatrixMenu(World world, BlockPos pos, EntityPlayer player, InventoryPlayer playerInventory) {
         super(world, pos, player, playerInventory);
@@ -26,9 +27,15 @@ public class InterdictionMatrixMenu extends FortronMenu<InterdictionMatrixBlockE
                 () -> this.blockEntity.getConfiscationMode().slotTintColor));
         }
         addIntDataSlot(this.blockEntity::getFortronCost, i -> this.clientFortronCost = i);
+        addIntDataSlot(this.blockEntity::getBiometricWarningFlag, i -> this.clientBiometricWarning = i);
     }
 
     public int getClientFortronCost() {
         return this.clientFortronCost;
+    }
+
+    /** Returns true when the server has flagged that biometric-requiring modules lack an active BI. */
+    public boolean getClientBiometricWarning() {
+        return this.clientBiometricWarning != 0;
     }
 }

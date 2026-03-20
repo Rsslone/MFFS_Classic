@@ -491,6 +491,16 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         return super.doGetFortronCost() + 5;
     }
 
+    /**
+     * Returns 1 when the projector is active but has no active Biometric Identifier linked.
+     * Used to drive the GUI warning indicator via a synced data slot.
+     */
+    public int getBiometricWarningFlag() {
+        if (!isActive()) return 0;
+        dev.su5ed.mffs.api.security.BiometricIdentifier identifier = getBiometricIdentifier();
+        return (identifier == null || !identifier.isActive()) ? 1 : 0;
+    }
+
     @Override
     public float getAmplifier() {
         return Math.max(Math.min(getCalculatedFieldPositions().size() / 1000, 10), 1);

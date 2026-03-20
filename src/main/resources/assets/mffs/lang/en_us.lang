@@ -52,6 +52,11 @@ info.mffs.interdiction_matrix.warning.defense_zone=Defense Zone
 info.mffs.interdiction_matrix.no_entry=[%s] Leave this zone immediately. You have no right to enter.
 info.mffs.interdiction_matrix.no_permission=[%s] You have no permission to do that!
 info.mffs.interdiction_matrix.fairwell=[%s] Fairwell.
+info.mffs.module.anti_personnel.requires_biometric=⚠ Requires an active Biometric Identifier
+info.mffs.module.block_alter.requires_biometric=⚠ Requires an active Biometric Identifier
+info.mffs.module.block_access.requires_biometric=⚠ Requires an active Biometric Identifier
+info.mffs.interdiction_matrix.biometric_warning=§cError:§r Offensive modules require biometrics!
+info.mffs.projector.biometric_warning=§cWarning:§r No biometrics - Fields unrestricted!
 info.mffs.interdiction_matrix.confiscation_singular=[%s] %s of your items has been confiscated.
 info.mffs.interdiction_matrix.confiscation_plural=[%s] %s of your items have been confiscated.
 

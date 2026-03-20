@@ -10,6 +10,13 @@ import java.util.Optional;
  */
 public interface BiometricIdentifier {
     /**
+     * Returns true when the Biometric Identifier is operational (powered and has a master card).
+     * Anti-Personnel modules and other security checks use this to verify the BI is configured
+     * before enforcing access control.
+     */
+    boolean isActive();
+
+    /**
      * Is access granted to this specific user?
      *
      * @param player     - Player.

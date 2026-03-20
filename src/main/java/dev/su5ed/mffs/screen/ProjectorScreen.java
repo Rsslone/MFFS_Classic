@@ -3,6 +3,7 @@ package dev.su5ed.mffs.screen;
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.menu.ProjectorMenu;
 import dev.su5ed.mffs.util.ModUtil;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -37,6 +38,20 @@ public class ProjectorScreen extends FortronScreen<ProjectorMenu> {
             String costText = TextFormatting.DARK_RED
                 + ModUtil.translate("screen", "fortron_cost", "-", cost).getUnformattedText();
             this.fontRenderer.drawString(costText, 117, 122, GuiColors.DARK_GREY);
+        }
+
+        if (menu.getClientBiometricWarning()) {
+            int wx = 162, wy = 5;
+            float scale = 1.25f;
+            addTooltipRegion(wx, wy, (int) (this.fontRenderer.getStringWidth("⚠") * scale), (int) (this.fontRenderer.FONT_HEIGHT * scale),
+                ModUtil.translate("info", "projector.biometric_warning"));
+            if ((System.currentTimeMillis() / 500) % 2 == 0) {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(wx, wy, 0);
+                GlStateManager.scale(scale, scale, 1.0f);
+                this.fontRenderer.drawString(TextFormatting.RED + "⚠", 0, 0, 0xFFFFFF);
+                GlStateManager.popMatrix();
+            }
         }
     }
 }

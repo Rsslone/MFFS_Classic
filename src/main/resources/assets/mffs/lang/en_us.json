@@ -35,6 +35,8 @@
   "info.mffs.interdiction_matrix.no_entry": "[%s] Leave this zone immediately. You have no right to enter.",
   "info.mffs.interdiction_matrix.no_permission": "[%s] You have no permission to do that!",
   "info.mffs.interdiction_matrix.fairwell": "[%s] Fairwell.",
+  "info.mffs.interdiction_matrix.anti_personnel_no_biometric": "[%s] ⚠ Anti-Personnel Module is installed but no active Biometric Identifier is linked. The module is disabled until one is configured.",
+  "info.mffs.module.anti_personnel.requires_biometric": "⚠ Requires an active Biometric Identifier",
   "info.mffs.interdiction_matrix.confiscation_singular": "[%s] %s of your items has been confiscated.",
   "info.mffs.interdiction_matrix.confiscation_plural": "[%s] %s of your items have been confiscated.",
   "info.mffs.show_details": "Hold %s for details",

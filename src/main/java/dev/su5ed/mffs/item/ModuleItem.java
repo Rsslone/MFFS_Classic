@@ -46,6 +46,13 @@ public class ModuleItem<T extends Module> extends BaseItem {
         super.addInformation(stack, worldIn, tooltip, flagIn);
         tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.fortron_usage",
             TextFormatting.GRAY + FORTRON_COST_FORMAT.format(this.module.getFortronCost(1) * 20)));
+        if (this.module == dev.su5ed.mffs.setup.ModModules.ANTI_PERSONNEL) {
+            tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.anti_personnel.requires_biometric"));
+        } else if (this.module == dev.su5ed.mffs.setup.ModModules.BLOCK_ALTER) {
+            tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.block_alter.requires_biometric"));
+        } else if (this.module == dev.su5ed.mffs.setup.ModModules.BLOCK_ACCESS) {
+            tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.block_access.requires_biometric"));
+        }
     }
 
     private static class ModuleTypeProvider implements ICapabilityProvider {

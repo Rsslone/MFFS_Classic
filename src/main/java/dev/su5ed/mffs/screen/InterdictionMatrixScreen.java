@@ -6,6 +6,7 @@ import dev.su5ed.mffs.menu.InterdictionMatrixMenu;
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.network.SwitchConfiscationModePacket;
 import dev.su5ed.mffs.util.ModUtil;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -59,6 +60,20 @@ public class InterdictionMatrixScreen extends FortronScreen<InterdictionMatrixMe
         int fortronCostColor = 0xAA0000;
         this.fontRenderer.drawString(ModUtil.translate("screen", "fortron_cost", "-",
             menu.getClientFortronCost() * 20).getFormattedText(), 120, 122, fortronCostColor);
+
+        if (menu.getClientBiometricWarning()) {
+            int wx = 162, wy = 5;
+            float scale = 1.25f;
+            addTooltipRegion(wx, wy, (int) (this.fontRenderer.getStringWidth("⚠") * scale), (int) (this.fontRenderer.FONT_HEIGHT * scale),
+                ModUtil.translate("info", "interdiction_matrix.biometric_warning"));
+            if ((System.currentTimeMillis() / 500) % 2 == 0) {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(wx, wy, 0);
+                GlStateManager.scale(scale, scale, 1.0f);
+                this.fontRenderer.drawString(TextFormatting.RED + "⚠", 0, 0, 0xFFFFFF);
+                GlStateManager.popMatrix();
+            }
+        }
     }
 }
 

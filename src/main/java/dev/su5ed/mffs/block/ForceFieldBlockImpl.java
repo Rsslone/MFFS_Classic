@@ -252,7 +252,10 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
     private boolean preventStackOverflow(IBlockState state) { return state.getBlock() != this; }
 
     private boolean isAuthorized(BiometricIdentifier identifier, EntityPlayer player) {
+        // No biometric configured → everyone is allowed through by default.
+        // With a biometric configured, the player must have the WARP permission.
         return player.capabilities.isCreativeMode
-            || (identifier != null && identifier.isAccessGranted(player, FieldPermission.WARP));
+            || identifier == null
+            || identifier.isAccessGranted(player, FieldPermission.WARP);
     }
 }

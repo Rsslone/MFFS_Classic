@@ -152,6 +152,20 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         return Math.max(Math.min(getActionRange() / 20, 10), 1);
     }
 
+    /**
+     * Returns 1 when the IM is active, has at least one biometric-requiring module
+     * (Anti-Personnel, Block Alter, or Block Access), but no active Biometric Identifier
+     * is linked. Used to drive the GUI warning indicator via a synced data slot.
+     */
+    public int getBiometricWarningFlag() {
+        if (!isActive()) return 0;
+        if (!hasModule(ModModules.ANTI_PERSONNEL)
+                && !hasModule(ModModules.BLOCK_ALTER)
+                && !hasModule(ModModules.BLOCK_ACCESS)) return 0;
+        BiometricIdentifier identifier = getBiometricIdentifier();
+        return (identifier == null || !identifier.isActive()) ? 1 : 0;
+    }
+
     /** Encodes the zone type as a byte for the sync packet. */
     private byte getZoneTypeByte() {
         if (hasModule(ModModules.ANTI_PERSONNEL)) return IMAZoneSyncPacket.ZONE_KILL;

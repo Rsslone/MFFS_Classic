@@ -13,12 +13,14 @@ import net.minecraft.world.World;
 
 public class ProjectorMenu extends FortronMenu<ProjectorBlockEntity> {
     private int clientFortronCost;
+    private int clientBiometricWarning;
 
     public ProjectorMenu(World world, BlockPos pos, EntityPlayer player, InventoryPlayer playerInventory) {
         super(world, pos, player, playerInventory);
 
         layoutPlayerInventorySlots(8, 135);
         addIntDataSlot(this.blockEntity::getFortronCost, i -> this.clientFortronCost = i);
+        addIntDataSlot(this.blockEntity::getBiometricWarningFlag, i -> this.clientBiometricWarning = i);
 
         addInventorySlot(new SlotInventory(this.blockEntity.frequencySlot, 10, 89));
         addInventorySlot(new SlotInventory(this.blockEntity.secondaryCard, 28, 89));
@@ -60,5 +62,9 @@ public class ProjectorMenu extends FortronMenu<ProjectorBlockEntity> {
 
     public int getClientFortronCost() {
         return this.clientFortronCost;
+    }
+
+    public boolean getClientBiometricWarning() {
+        return this.clientBiometricWarning != 0;
     }
 }

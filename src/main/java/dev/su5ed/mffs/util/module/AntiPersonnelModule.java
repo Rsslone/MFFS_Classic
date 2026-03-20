@@ -21,9 +21,12 @@ public class AntiPersonnelModule extends BaseInterdictionModule {
     @Override
     public boolean onDefend(InterdictionMatrix interdictionMatrix, EntityLivingBase target) {
         BiometricIdentifier identifier = interdictionMatrix.getBiometricIdentifier();
+        // Anti-Personnel requires an active Biometric Identifier.
+        // Without one, the module is dormant — no kills without access control.
+        if (identifier == null || !identifier.isActive()) return false;
         if (target instanceof EntityPlayer) {
             EntityPlayer player = (EntityPlayer) target;
-            if ((identifier == null || !identifier.isAccessGranted(player, FieldPermission.BYPASS_DEFENSE))
+            if (!identifier.isAccessGranted(player, FieldPermission.BYPASS_DEFENSE)
                 && !player.isCreative() && !player.capabilities.disableDamage) {
                 // Confiscate all items
                 for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
