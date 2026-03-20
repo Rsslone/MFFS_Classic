@@ -91,6 +91,7 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
 
     public void setConfiscationMode(ConfiscationMode confiscationMode) {
         this.confiscationMode = confiscationMode;
+        markDirty();
     }
 
     @Override
