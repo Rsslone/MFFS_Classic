@@ -25,9 +25,12 @@ position offset, and utility modules. For example, the upgrade to shock attacks,
 protect tiles.
 
 ## Differences
-- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 the lighting has always been known as being heavy and laggy, to address this we slimmed down the scope for the glow module to only light force fields making contact with physical blocks and process these updates client side. Its still very flawed, but may recieve changes in the future.
-- We've made extra options for server owners to balance and tweak, such as easily disabling the steel ingot recipe, which other mods do a better job at.
-- Block translation difference checks. We avoid block costly block updates which do not need to be updated by comparing a difference between old and updated projections.
+- Lighting -- The upstream mod uses the updated lighting system to defer updates, on 1.12.2 the lighting has always been known as being heavy and laggy, to address this we slimmed down the scope for the glow module to only light force fields making contact with physical blocks (by default) and process these updates client side in a queue.
+- Configurable -- We've made extra options for server owners to balance and tweak, such as easily disabling the steel ingot recipe, which other mods do a better job at.
+- Transitions -- Block translation difference checks. We avoid block costly block updates which do not need to be updated by comparing a difference between old and updated projections.
+- Safety -- We've added simply safety measures to prevent base owners from locking themselves out of their base, wasting time of server OPs to fix their mistake. Hostile and restrictive features require biometrics active, ensuring at least someone has the keys to the kingdom.
+- Feedback -- Instead of chat prints for getting close to an interdiction zone, we print a on screen message with a distance, so you have a better idea where not to go. Cached and calculated on the client!
+- Commands -- A feature hopefully you never need, /mffs command that allows OPs to clean up orphan force fields that would otherwise be very hard to remove.
 
 ### Contributing
 
