@@ -34,10 +34,7 @@ Implement CCL emissives on force field blocks.
 Remove the projectionCycleTicks from the settings, this is not as useful of a setting.
     **New default of 1 then lower max speeds to smooth FF placements**
 Investigate useCache var.
-    We may have hard coded the cache in my accident... tehe :D
-Camo modules probably shouldn't be instant updates. (queue is too fast actually)
-    Renders in slices, previous issue.
-    Check performance on larger objects.
+    We may have hard coded the cache by accident... tehe :D
 zeroFieldBlockLights is called on a soft destroy, probably not optimal if its not needed.
 
 
