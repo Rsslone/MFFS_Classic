@@ -19,10 +19,11 @@ import org.lwjgl.opengl.GL11;
 
 @SideOnly(Side.CLIENT)
 public class BeamParticle extends Particle {
-    private static final ResourceLocation TEXTURE = new ResourceLocation("mffs", "textures/particle/fortron.png");
+    public static final ResourceLocation TEXTURE_NEUTRAL = new ResourceLocation("mffs", "textures/particle/fortron_neutral.png");
     private static final ResourceLocation PARTICLE_RESOURCE = new ResourceLocation("textures/particle/particles.png");
     private static final int ROTATION_SPEED = 20;
 
+    private final ResourceLocation texture;
     private final float length;
     private final float rotYaw;
     private final float rotPitch;
@@ -35,11 +36,16 @@ public class BeamParticle extends Particle {
     private final double startOffsetZ;
 
     public BeamParticle(World world, Vec3d start, Vec3d target, ParticleColor color, int lifetime) {
+        this(world, start, target, color, lifetime, TEXTURE_NEUTRAL);
+    }
+
+    public BeamParticle(World world, Vec3d start, Vec3d target, ParticleColor color, int lifetime, ResourceLocation texture) {
         // Position the particle at the midpoint between start and target so that
         // frustum culling (which uses posX/posY/posZ) keeps the beam visible even
         // when the source block is off screen.
         super(world, (start.x + target.x) / 2.0, (start.y + target.y) / 2.0, (start.z + target.z) / 2.0, 0, 0, 0);
 
+        this.texture = texture;
         // Store offset from midpoint to start for rendering
         this.startOffsetX = start.x - this.posX;
         this.startOffsetY = start.y - this.posY;
@@ -117,7 +123,7 @@ public class BeamParticle extends Particle {
         }
 
         // Bind beam texture
-        Minecraft.getMinecraft().getTextureManager().bindTexture(TEXTURE);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(this.texture);
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
 
@@ -128,6 +134,7 @@ public class BeamParticle extends Particle {
         float vOffset = -slide * 0.2F - MathHelper.floor(-slide * 0.1F);
 
         // Additive blending for glow effect
+        GlStateManager.disableLighting();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
         GlStateManager.depthMask(false);
@@ -179,6 +186,7 @@ public class BeamParticle extends Particle {
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.depthMask(true);
         GlStateManager.disableBlend();
+        GlStateManager.enableLighting();
         // Restore previous lightmap
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, prevLightX, prevLightY);
         GL11.glEnable(GL11.GL_CULL_FACE);

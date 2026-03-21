@@ -28,15 +28,15 @@ public final class ClientPacketHandler {
         Vec3d target = packet.getTarget();
         Vec3d tc     = new Vec3d(target.x + 0.5, target.y + 0.5, target.z + 0.5);
         if (type == DrawHologramPacket.HoloType.CONSTRUCT) {
-            // Spawn blue beam from projector to target
-            BeamParticle beam = new BeamParticle(mc.world, pos, tc, ParticleColor.BLUE_BEAM, 40);
+            // Spawn blue beam from projector to target (neutral texture — color tint renders cleanly)
+            BeamParticle beam = new BeamParticle(mc.world, pos, tc, ParticleColor.BLUE_BEAM, 40, BeamParticle.TEXTURE_NEUTRAL);
             mc.effectRenderer.addEffect(beam);
             // Spawn hologram cube at target position (materializing effect)
             MovingHologramParticle holo = new MovingHologramParticle(mc.world, target, ParticleColor.BLUE_FIELD, 40);
             mc.effectRenderer.addEffect(holo);
         } else if (type == DrawHologramPacket.HoloType.DESTROY) {
-            // Spawn red beam from projector to target
-            BeamParticle beam = new BeamParticle(mc.world, pos, tc, ParticleColor.RED, 40);
+            // Spawn red beam from projector to target (neutral texture — color tint renders cleanly)
+            BeamParticle beam = new BeamParticle(mc.world, pos, tc, ParticleColor.RED, 40, BeamParticle.TEXTURE_NEUTRAL);
             mc.effectRenderer.addEffect(beam);
             // Spawn hologram cube at target position (dematerializing effect)
             MovingHologramParticle holo = new MovingHologramParticle(mc.world, target, ParticleColor.RED, 40);
