@@ -1,6 +1,7 @@
 ## TODO/IDEAS
 Add scaling to the custom shape mode.
     Investigate the maxCustomModeScale var.
+    Add 3rd mode for hollow shape
 Interdiction Matrix mode to use in-field instead of its own scale.
     Scale modules could add to blocks outside of field.
     Min scale modules could be required.
@@ -9,6 +10,7 @@ Interdiction Matrix mode to use in-field instead of its own scale.
     Option to disable mob drops from interdiction kills without collection module.
 Implement advancments, or entirely remove.
 Expose useful values for balance.
+    Balance and Reasonable defaults are bad.
     Implement Shock Module Damage Configuration
     Implement Anti-x Damage Configuration with scaling
 Implement better tooltips.
