@@ -19,7 +19,7 @@ Beacon Effects in-zone.
 Harvest speedup?
 Dye colors for force fields.
     Use the camo module or make a new module - module could support setting color without a dye.
-
+Only send the interdiction warn zone to clients when isActive(); when biometrics is active.
 
 ## Optimization
 The lighting not making contact with a physical block should have its own independent max value (~3-7).
