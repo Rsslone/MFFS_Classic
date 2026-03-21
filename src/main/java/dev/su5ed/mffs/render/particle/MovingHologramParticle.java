@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -40,6 +41,13 @@ public class MovingHologramParticle extends Particle {
         if (viewer != null && viewer.getDistance(this.posX, this.posY, this.posZ) > visibleDist) {
             this.particleMaxAge = 0;
         }
+
+        // Expand bounding box to match the rendered 1×1 cube so Minecraft's frustum culling
+        // doesn't clip the particle when only part of it is on-screen.
+        this.setBoundingBox(new AxisAlignedBB(
+            pos.x - 0.5, pos.y, pos.z - 0.5,
+            pos.x + 0.5, pos.y + 1, pos.z + 0.5
+        ));
     }
 
     @Override
@@ -85,7 +93,7 @@ public class MovingHologramParticle extends Particle {
 
         // Scale slightly larger than block (1.01) and vertically by completion
         GL11.glTranslatef(0.5F, 0.5F, 0.5F);
-        GL11.glScalef(1.01F, 1.01F * completion, 1.01F);
+        GL11.glScalef(1.1F, 1.05F * completion, 1.1F);
         GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
 
         // Translucent blending
@@ -95,6 +103,10 @@ public class MovingHologramParticle extends Particle {
         GlStateManager.disableTexture2D();
         GL11.glDisable(GL11.GL_CULL_FACE);
         GlStateManager.disableLighting();
+        // Polygon offset biases depth toward the camera so the overlay always
+        // renders on top of a solid block at the same position (avoids Z-fighting).
+        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
+        GL11.glPolygonOffset(-1.0F, -1.0F);
 
         float r = this.particleRed;
         float g = this.particleGreen;
@@ -141,6 +153,7 @@ public class MovingHologramParticle extends Particle {
         GlStateManager.enableLighting();
         GlStateManager.depthMask(true);
         GlStateManager.disableBlend();
+        GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
 
         GL11.glPopMatrix();
 

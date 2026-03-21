@@ -166,6 +166,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                             // camo-only change: update camouflage in-place, no field rebuild needed
                             refreshFieldVisuals();
                         } else {
+                            // If a worker module (Stabilization, Disintegration) is being inserted
+                            // into an active field, move all existing FF blocks into pendingRemoval
+                            // so the module can access them on the next projection cycle.
+                            ModuleType<?> newType = current.isEmpty() ? null
+                                : current.getCapability(ModCapabilities.MODULE_TYPE, null);
+                            if ((newType == ModModules.STABILIZAZION || newType == ModModules.DISINTEGRATION)
+                                && !this.projectedBlocks.isEmpty()) {
+                                forceReclaimField();
+                            }
                             softDestroyField();
                         }
                     },
@@ -260,12 +269,15 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         int fortronCost = getFortronCost();
         // Speed up the rotor only when:
         //   1. The projector is active with a mode present.
-        //   2. The field is actually placed (projectedBlocks non-empty) — no speeding up
-        //      while the field is being built or has been destroyed.
+        //   2. There is something to process: the field is placed (projectedBlocks non-empty),
+        //      OR there are pending block removals in the drain queue (e.g. Disintegration/module
+        //      change soft-destroy), OR there are deferred module-scheduled actions in flight
+        //      (e.g. Disintegration's 39-tick removal timer).
         //   3. The Fortron reserve meets the same sustained-state threshold as the placement
         //      guards: tank must hold at least one full billing burst after the current cycle,
         //      so the rotor tracks whether the projector is genuinely well-powered.
-        if (isActive() && getMode().isPresent() && !this.projectedBlocks.isEmpty()
+        if (isActive() && getMode().isPresent()
+                && (!this.projectedBlocks.isEmpty() || !this.pendingRemoval.isEmpty() || !this.scheduledEvents.isEmpty())
                 && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
             speed *= fortronCost / 8.0F;
         }
@@ -665,6 +677,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         fieldLoop:
         for (TargetPosPair pair : projectable) {
             BlockPos pos = pair.pos();
+            boolean modulePlaced = false;
             for (Module module : getModuleInstances()) {
                 Module.ProjectAction action = module.onProject(this, pos);
 
@@ -672,7 +685,20 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     continue fieldLoop;
                 } else if (action == Module.ProjectAction.INTERRUPT) {
                     break fieldLoop;
+                } else if (action == Module.ProjectAction.PLACED) {
+                    modulePlaced = true;
+                    break;
                 }
+            }
+
+            if (modulePlaced) {
+                // A module (e.g. Stabilization) placed a physical block at this position.
+                // Track it so the selection pipeline knows this position is handled.
+                this.pendingRemoval.remove(pos);
+                this.projectedBlocks.add(pos);
+                expandFieldSendRadius(pos);
+                this.projectionCache.invalidate(pos);
+                continue fieldLoop;
             }
 
             // Check if this position is already occupied by our own FF block (soft-destroy transition).
@@ -844,6 +870,35 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             this.world.checkLight(this.pos);
         }
         softDestroyField();
+    }
+
+    /**
+     * Moves all currently-projected blocks into {@link #pendingRemoval} so that worker modules
+     * (Stabilization, Disintegration) can access them during the next projection cycle.
+     * Stabilization will convert each reclaimable block to a physical block via PLACED.
+     * Disintegration lets them drain naturally via the pending-removal loop, then scans fresh
+     * for physical terrain at the now-empty positions.
+     * <p>Must be called before {@link #softDestroyField()} so the snapshot taken in that method
+     * sees an empty {@code projectedBlocks} set, making all 100 positions appear as {@code toAdd}
+     * in {@link #applyFieldDiff()} rather than {@code unchanged}.</p>
+     */
+    private void forceReclaimField() {
+        if (this.world == null || this.world.isRemote) return;
+        // Collect all tracked FF blocks, shuffle so the drain order is scattered
+        // (matching the random placement order used during build), then move into
+        // the pending-removal queue.
+        List<BlockPos> toReclaim = new ArrayList<>(this.projectedBlocks);
+        this.projectedBlocks.clear();
+        // Include any NBT-loaded blocks that haven't been diff-processed yet.
+        if (!this.savedProjectedBlocks.isEmpty()) {
+            toReclaim.addAll(this.savedProjectedBlocks);
+            this.savedProjectedBlocks.clear();
+        }
+        Collections.shuffle(toReclaim);
+        this.pendingRemoval.addAll(toReclaim);
+        // Invalidate cache so canProjectPos re-evaluates each position
+        // with the updated pendingRemoval membership.
+        this.projectionCache.invalidateAll();
     }
 
     /**
@@ -1211,10 +1266,23 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 || (hasModule(ModModules.DISINTEGRATION) && current.getBlockHardness(this.world, pos) != -1))
                 && !pos.equals(this.pos);
             if (!projectable) continue;
+            boolean gapModulePlaced = false;
             for (Module m : modules) {
                 Module.ProjectAction action = m.onProject(this, pos);
                 if (action == Module.ProjectAction.SKIP) continue fieldLoop;
                 if (action == Module.ProjectAction.INTERRUPT) return;
+                if (action == Module.ProjectAction.PLACED) {
+                    gapModulePlaced = true;
+                    break;
+                }
+            }
+            if (gapModulePlaced) {
+                this.pendingRemoval.remove(pos);
+                this.projectedBlocks.add(pos);
+                expandFieldSendRadius(pos);
+                this.projectionCache.invalidate(pos);
+                placed++;
+                continue fieldLoop;
             }
             if (!canConsumeFieldCost(1)) return;
             this.world.setBlockState(pos, ffState, 0);

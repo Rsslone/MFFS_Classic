@@ -61,6 +61,8 @@ public interface Module {
         /** Skip this block and continue */
         SKIP,
         /** Cancel the projection entirely */
-        INTERRUPT
+        INTERRUPT,
+        /** Module placed a physical block at this position, track it in projectedBlocks */
+        PLACED
     }
 }

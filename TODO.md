@@ -41,6 +41,3 @@ Camo modules probably shouldn't be instant updates. (queue is too fast actually)
 Look into rendering of power cables not showing emittions on deriver.
     Draining cable too fast?
 Items phase through bottoms of force fields
-Check disentigration module.
-    Particle needs to be addressed for culling similar to fortron particle.
-    Between adding and removing module, recalculation does not occur.
