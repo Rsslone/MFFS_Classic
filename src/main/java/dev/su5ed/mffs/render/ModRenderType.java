@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * 1.12.2 backport of ModRenderType.
- *
  * Reference (1.20.1): extends {@code RenderType}, defines named {@code RenderType} instances.
  * In 1.12.2 there is no {@code RenderType} abstraction; each instance here wraps a
  * {@link ModRenderPipeline.Pipeline} (GL state setup/teardown) + an optional texture,

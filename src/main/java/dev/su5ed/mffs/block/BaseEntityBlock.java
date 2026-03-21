@@ -31,7 +31,7 @@ public abstract class BaseEntityBlock extends Block implements ITileEntityProvid
     protected final Supplier<? extends TileEntity> provider;
 
     /**
-     * @param material   1.12.2 Block material (e.g. Material.ROCK).
+     * @param material   1.12.2 Block material
      * @param provider   Supplier that creates a fresh TileEntity instance.
      */
     public BaseEntityBlock(Material material, Supplier<? extends TileEntity> provider) {

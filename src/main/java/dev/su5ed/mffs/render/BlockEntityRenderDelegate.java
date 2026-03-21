@@ -68,16 +68,11 @@ public final class BlockEntityRenderDelegate {
     /**
      * Renders all active camo-TESR delegates directly in world space.
      *
-     * <p>Called from {@link RenderTickHandler} via {@code RenderWorldLastEvent}.
+     * Called from {@link RenderTickHandler} via {@code RenderWorldLastEvent}.
      * The GL matrix must be in camera-relative space when this is called (i.e.
      * the caller has NOT yet applied a camera translation); this method applies
      * {@code translate(-camX, -camY, -camZ)} itself so that delegates receive
      * their block's absolute world coordinates and draw at the correct position.
-     *
-     * <p>This replaces the former class-wide {@code ForceFieldBlockEntityRenderer}
-     * TESR registration.  By only iterating the (typically tiny) {@code renderDelegates}
-     * map instead of every single force-field block entity, we avoid the per-instance
-     * frustum test overhead that was responsible for ~34 % of frame time at scale.
      */
     public void renderAllDelegates(double camX, double camY, double camZ, float partialTicks) {
         if (this.renderDelegates.isEmpty()) return;

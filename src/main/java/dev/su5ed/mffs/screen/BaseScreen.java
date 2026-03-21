@@ -44,7 +44,6 @@ public abstract class BaseScreen<T extends Container> extends GuiContainer {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTick) {
         this.tooltips.clear(); // repopulated each frame by drawGuiContainerForegroundLayer
-        // super.drawScreen(): drawDefaultBackground, background layer, foreground layer, buttons, slots, carried item
         super.drawScreen(mouseX, mouseY, partialTick);
         renderFg(mouseX, mouseY, partialTick);
         // Tooltip rendering is deferred to onDrawScreenPost so it runs after JEI/HEI overlays

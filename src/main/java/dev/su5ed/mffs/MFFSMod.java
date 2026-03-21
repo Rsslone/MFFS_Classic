@@ -14,7 +14,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import dev.su5ed.mffs.command.MffsCommand;
 import dev.su5ed.mffs.compat.MFFSProbeProvider;
@@ -70,9 +69,7 @@ public final class MFFSMod {
         // Setup network channel
         Network.init();
 
-        // Optional TheOneProbe integration — must be sent during init so it's in the IMC
-        // queue before TOP's imcCallback processes FMLInterModComms.IMCEvent (fires between
-        // init and postInit). Sending in postInit is too late.
+        // Optional TheOneProbe integration
         if (Loader.isModLoaded(TOP_MODID)) {
             FMLInterModComms.sendFunctionMessage(TOP_MODID, "getTheOneProbe",
                 MFFSProbeProvider.class.getName());
@@ -81,8 +78,6 @@ public final class MFFSMod {
         // 1.12 crafting recipes use OreDictionary for steel ingots (only if not disabled).
         if (!MFFSConfig.disableSteelItems) {
             OreDictionary.registerOre(ModTags.INGOTS_STEEL, ModItems.STEEL_INGOT);
-            // Furnace and crafting recipes are registered in code (no recipe JSON)
-            // so they are silently absent when steel items are disabled.
             GameRegistry.addSmelting(ModItems.STEEL_COMPOUND, new ItemStack(ModItems.STEEL_INGOT), 0.5F);
             GameRegistry.addShapedRecipe(
                 new ResourceLocation(MODID, "steel_compound"),
@@ -102,21 +97,11 @@ public final class MFFSMod {
     @EventHandler
     public void serverAboutToStart(FMLServerAboutToStartEvent event) {
         // Reset the FrequencyGrid before world/chunk loading to prevent stale references.
-        // Must be FMLServerAboutToStartEvent (not FMLServerStartingEvent) because in 1.12.2,
-        // FMLServerStartingEvent fires AFTER spawn chunks load. If we reinitiate after chunk
-        // loading, TileEntities that registered in onLoad() have their entries wiped.
         FrequencyGrid.reinitiate();
-    }
-
-    @EventHandler
-    public void postInit(FMLPostInitializationEvent event) {
-        // Nothing to do here currently.
-        // TOP IMC is sent in init() — see comment there.
     }
 
     /**
      * Creates a {@link ResourceLocation} namespaced to this mod.
-     * 1.21.x equivalent: Identifier.fromNamespaceAndPath(MODID, path)
      */
     public static ResourceLocation location(String path) {
         return new ResourceLocation(MODID, path);

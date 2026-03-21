@@ -17,10 +17,8 @@ import java.util.Map;
 /**
  * Client-side registry of active Interdiction Matrix zones.
  *
- * <p>The server sends zone data via {@link IMAZoneSyncPacket} on state/module changes and as
- * a periodic heartbeat.  This class stores that data and fires proximity warnings locally every
- * 10 client ticks — completely eliminating the per-player entity-list queries that the server
- * previously ran every 5 ticks.
+ * The server sends zone data via {@link IMAZoneSyncPacket} on state/module changes and as
+ * a periodic heartbeat.  Fires proximity warnings locally.
  */
 @SideOnly(Side.CLIENT)
 public final class ClientZoneTracker {
@@ -44,18 +42,13 @@ public final class ClientZoneTracker {
     }
 
     /**
-     * Called every client tick (Phase.END).  Refreshes the action bar warning message when the
-     * local player is inside the warning shell of any tracked zone.  Updates every 5 ticks
-     * (4×/sec, 250 ms) — fast enough to keep the distance counter smooth.
-     *
-     * <p>Bails out immediately when no zones are tracked, so the cost when no
-     * Interdiction Matrix is active is a single isEmpty() check.
+     * Refreshes the action bar warning message when the player is inside the warning 
+     * zone of any tracked zone.  Updates every 5 ticks.
      */
     public static void tick(Minecraft mc) {
         // Fastest possible exit when no IMs are on the network.
         if (ZONES.isEmpty()) return;
         if (mc.world == null || mc.player == null) return;
-        // 5 ticks = 250 ms at 20 TPS.
         if (mc.world.getTotalWorldTime() % 5 != 0) return;
 
         EntityPlayer player = mc.player;

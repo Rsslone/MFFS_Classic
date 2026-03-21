@@ -5,8 +5,6 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import org.lwjgl.opengl.GL11;
 
 /**
- * 1.12.2 backport of ModRenderPipeline.
- *
  * Reference (1.21) defines {@code RenderPipeline} instances for each holographic render type.
  * In 1.12.2 there is no RenderPipeline / RenderType abstraction for TESR-style rendering;
  * GL state is managed directly via {@link GlStateManager}.

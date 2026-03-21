@@ -42,7 +42,7 @@ public class MovingHologramParticle extends Particle {
             this.particleMaxAge = 0;
         }
 
-        // Expand bounding box to match the rendered 1×1 cube so Minecraft's frustum culling
+        // Expand bounding box to match the rendered 1×1 cube so culling
         // doesn't clip the particle when only part of it is on-screen.
         this.setBoundingBox(new AxisAlignedBB(
             pos.x - 0.5, pos.y, pos.z - 0.5,

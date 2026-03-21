@@ -24,7 +24,6 @@ import java.util.Locale;
 
 /**
  * Utility class for MFFS.
- * 1.12.2 Backport: Removed Codec/StreamCodec/VoxelShape utilities (NeoForge-only).
  * Capability checks use stack.hasCapability() instead of stack.getCapability() != null.
  */
 public final class ModUtil {
@@ -32,7 +31,6 @@ public final class ModUtil {
 
     /**
      * Rotates a position vector by exact Euler angles (yaw, pitch, roll) in degrees.
-     * Pure math — identical to 1.21.x.
      */
     public static Vec3d rotateByAngleExact(Vec3d pos, double yaw, double pitch, double roll) {
         double yawRadians = Math.toRadians(yaw);
@@ -210,7 +208,6 @@ public final class ModUtil {
     /**
      * Called from the Mixin-injected hook when a block is set.
      * Posts a SetBlockEvent to the Forge event bus.
-     * 1.12.2: NeoForge.EVENT_BUS → MinecraftForge.EVENT_BUS
      */
     @SuppressWarnings("unused") // Called from injected hook
     public static void onSetBlock(net.minecraft.world.World level, BlockPos pos, net.minecraft.block.state.IBlockState state) {

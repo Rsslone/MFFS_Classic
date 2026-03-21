@@ -20,6 +20,7 @@ Harvest speedup?
 Dye colors for force fields.
     Use the camo module or make a new module - module could support setting color without a dye.
 Only send the interdiction warn zone to clients when isActive(); when biometrics is active.
+Make the non-square camo filter an option instead of forced, some people are delusional.
 
 ## Optimization
 The lighting not making contact with a physical block should have its own independent max value (~3-7).
@@ -35,6 +36,7 @@ Investigate useCache var.
 Camo modules probably shouldn't be instant updates. (queue is too fast actually)
     Renders in slices, previous issue.
     Check performance on larger objects.
+zeroFieldBlockLights is called on a soft destroy, probably not optimal if its not needed.
 
 
 ## Known Bugs

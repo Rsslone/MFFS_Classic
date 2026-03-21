@@ -1,20 +1,5 @@
 package dev.su5ed.mffs;
 
-// =============================================================================
-// 1.12.2 Backport: Forge event handler
-// 1.21.x used NeoForge bus events; here we use Forge 1.12.2 event types.
-// Key changes:
-//   MobSpawnEvent.PositionCheck   -> LivingSpawnEvent.CheckSpawn
-//   EntityJoinLevelEvent          -> EntityJoinWorldEvent
-//   PlayerInteractEvent.RightClickBlock / LeftClickBlock (1.12.2 subclasses)
-//   ServerStartingEvent           -> FMLServerStartingEvent (handled in MFFSMod)
-//   Level / ServerLevel           -> World / WorldServer
-//   ICancellableEvent             -> standard Forge setCanceled
-//   ServerPlayer                  -> EntityPlayerMP
-//   block.get().is(other)         -> block == ModBlocks.FORCE_FIELD (direct ref)
-//   Guidebook criterion trigger   -> EntityJoinWorldEvent + player.getEntityData() NBT flag
-// =============================================================================
-
 import dev.su5ed.mffs.api.EventForceManipulate;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
@@ -44,9 +29,6 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 public class ForgeEventHandler {
-
-    // Note: FMLServerStartingEvent is an FML lifecycle event, not a Forge bus event.
-    // It is handled in MFFSMod.serverStarting() instead.
 
     @SubscribeEvent
     public void eventPreForceManipulate(EventForceManipulate.EventPreForceManipulate event) {

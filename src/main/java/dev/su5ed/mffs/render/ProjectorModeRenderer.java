@@ -34,8 +34,6 @@ public final class ProjectorModeRenderer {
     private static final List<Item> CYCLE_MODES = Arrays.asList(ModItems.CUBE_MODE, ModItems.SPHERE_MODE, ModItems.TUBE_MODE, ModItems.PYRAMID_MODE);
     private static final int CUSTOM_PERIOD = 40;
 
-    // Textured cube model matching 1.7.10/1.21 ForceCubeModel: addBox(-8, -8, -8, 16, 16, 16)
-    // Texture is 112x70 (1.7.10 setTextureSize(112, 70)), UV space must match for all 6 faces
     private static final ModelBase CUBE_MODEL_BASE = new ModelBase() {};
     private static final ModelRenderer FORCE_CUBE;
     static {

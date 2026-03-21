@@ -1,24 +1,5 @@
 package dev.su5ed.mffs.menu;
 
-// =============================================================================
-// 1.12.2 Backport: FortronMenu
-// AbstractContainerMenu → Container (net.minecraft.inventory.Container)
-// MenuType → doesn't exist; constructor takes World/BlockPos/EntityPlayer/InventoryPlayer
-// Player → EntityPlayer; Inventory → InventoryPlayer
-// addSlot() → addSlotToContainer()
-// BlockEntityType<T>.get() → just cast World.getTileEntity(pos)
-// ContainerLevelAccess → manual TE + distance check
-// DataSlot/DataSlotWrapper → manual tracking via detectAndSendChanges()/updateProgressBar()
-// IContainerListener for window properties (Forge 1.12.2 compatible)
-// Slot.set() → putStack(); Slot.getItem() → getStack()
-// ItemStack.copyWithCount(n) → copy().setCount(n)
-// getCarried() → player.inventory.getItemStack()
-// ClickType.PICKUP → net.minecraft.inventory.ClickType.PICKUP
-// TransferStackInSlot / quickMoveStack → uses Container.mergeItemStack()
-// addSlotListener → handled manually via detectAndSendChanges
-// ModUtil.moveItemStackTo → inlined using mergeItemStack
-// =============================================================================
-
 import dev.su5ed.mffs.api.Activatable;
 import dev.su5ed.mffs.blockentity.FortronBlockEntity;
 import dev.su5ed.mffs.setup.ModItems;

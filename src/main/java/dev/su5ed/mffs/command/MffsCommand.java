@@ -19,17 +19,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Provides the {@code /mffs} server command.
+ * Provides the /mffs server command. (Requires OP permission)
  *
- * <p>Subcommands:</p>
- * <ul>
- *   <li>{@code /mffs removeorphans all} — scans every loaded chunk in every world for
- *       orphaned force field blocks (blocks whose owning projector no longer exists) and
- *       removes them.</li>
- *   <li>{@code /mffs removeorphans <radius>} — same scan but limited to chunks within
- *       {@code radius} chunk-lengths of the command sender's current position.</li>
- * </ul>
- * <p>Requires OP permission level 2.</p>
+ * Subcommands:
+ *   /mffs removeorphans all — scans every loaded chunk
+ *   /mffs removeorphans <radius> — limited to chunks within sender's current position
  */
 public final class MffsCommand extends CommandBase {
 
@@ -101,9 +95,7 @@ public final class MffsCommand extends CommandBase {
     }
 
     /**
-     * Scans loaded tile entities in {@code world} for orphaned force field blocks and
-     * removes them. When {@code center} is non-null, only blocks within {@code chunkRadius}
-     * chunks of that position are considered.
+     * Scans loaded tile entities for orphaned force field blocks and removes them. 
      *
      * @param world       the world to scan
      * @param center      chunk-filter centre position, or {@code null} to scan all

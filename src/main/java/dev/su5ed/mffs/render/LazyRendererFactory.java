@@ -3,8 +3,6 @@ package dev.su5ed.mffs.render;
 import net.minecraft.tileentity.TileEntity;
 
 /**
- * 1.12.2 backport of LazyRendererFactory.
- *
  * Reference (1.20.1):
  *   void apply(BlockEntity be, Function&lt;ModelLayerLocation, ModelPart&gt; modelFactory)
  *

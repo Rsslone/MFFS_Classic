@@ -109,7 +109,6 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
                 dischargeItemIntoSelf(this.batterySlot.getItem());
 
                 // Check if we can afford the effective cost for at least 1 Fortron.
-                // Speed modules reduce the per-Fortron cost, matching 1.7.10's balanced scaling.
                 if (this.energy.extractEnergy(getEffectiveCostPerFortron(), true) >= getEffectiveCostPerFortron()
                     || !MFFSConfig.enableElectricity && (hasFuel() || hasQueuedFuel())) {
                     produceFortron();
@@ -121,8 +120,7 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
 
     private void consumeFuel() {
         // Start a new catalyst item when the current burn ends and more is queued in the slot.
-        // activeCatalystMultiplier and burnTicks are taken from the item's config entry,
-        // so different items can have different durations and boost strengths.
+        // activeCatalystMultiplier and burnTicks are taken from the item's config entry
         if (this.processTime == 0 && hasQueuedFuel()) {
             ItemStack fuelItem = this.fuelSlot.getItem();
             MFFSConfig.CatalystEntry entry = MFFSConfig.getCatalystEntry(fuelItem);
@@ -149,7 +147,6 @@ public class CoercionDeriverBlockEntity extends ElectricTileEntity {
         int fortronStored = this.fortronStorage.insertFortron(fortronOutput, false);
         this.fortronProducedLastTick = fortronStored;
         // Proportional cost: each Fortron costs getEffectiveCostPerFortron() FE.
-        // Speed modules reduce the per-Fortron cost to match 1.7.10's balanced scaling.
         int asEnergy = fortronStored * getEffectiveCostPerFortron();
         this.energy.extractEnergy(asEnergy, false);
     }

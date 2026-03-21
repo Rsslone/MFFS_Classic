@@ -23,9 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StabilizationModule extends BaseModule {
-    // Positions that have been committed for placement and are visually "in-flight".
-    // Mirrors DisintegrationModule.activeBlocks — limits concurrent in-flight placements
-    // so speed modules increase throughput without placing everything instantaneously.
     private final List<BlockPos> activeBlocks = new ArrayList<>();
 
     public StabilizationModule(ModuleType<?> type, ItemStack stack) {

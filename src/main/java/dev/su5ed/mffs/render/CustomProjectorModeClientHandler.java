@@ -23,11 +23,6 @@ import java.util.Set;
 /**
  * Client-side cache for custom projector mode structure shapes,
  * and event handler that renders selection highlights while the item is held.
- *
- * Reference (1.20.1): uses {@code RenderLevelStageEvent.AFTER_WEATHER},
- *   {@code VoxelShape}, {@code ResourceKey<Level>}.
- * In 1.12.2: uses {@code RenderWorldLastEvent},
- *   {@code Set<BlockPos>}, {@code int dimensionId}.
  */
 @Mod.EventBusSubscriber(value = Side.CLIENT, modid = MFFSMod.MODID)
 public final class CustomProjectorModeClientHandler {

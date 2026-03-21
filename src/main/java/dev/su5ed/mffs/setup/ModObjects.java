@@ -11,10 +11,6 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public final class ModObjects {
 
-    /**
-     * Call from {@link MFFSMod#preInit} to register all tile entity classes.
-     * 1.12.2 uses GameRegistry.registerTileEntity instead of DeferredRegister.
-     */
     public static void registerTileEntities() {
         GameRegistry.registerTileEntity(ProjectorBlockEntity.class,           new ResourceLocation(MFFSMod.MODID, "projector"));
         GameRegistry.registerTileEntity(CoercionDeriverBlockEntity.class,     new ResourceLocation(MFFSMod.MODID, "coercion_deriver"));

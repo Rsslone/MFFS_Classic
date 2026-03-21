@@ -28,7 +28,6 @@ public class BaseItem extends Item {
 
     /**
      * Override to inject tooltip lines before the description line.
-     * Equivalent of 1.21.x {@code appendHoverTextPre}.
      */
     @SideOnly(Side.CLIENT)
     protected void addInformationPre(ItemStack stack, @Nullable World worldIn, List<String> tooltip,

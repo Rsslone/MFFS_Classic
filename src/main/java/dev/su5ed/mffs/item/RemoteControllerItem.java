@@ -67,9 +67,7 @@ public class RemoteControllerItem extends BaseItem implements CoordLink {
     public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand handIn) {
         ItemStack stack = playerIn.getHeldItem(handIn);
         if (!worldIn.isRemote && !playerIn.isSneaking()) {
-            // Guard: if the player already has a container open, do nothing.
-            // Rapid right-clicks would otherwise call openGui multiple times, forcing
-            // close-then-open cycles that drop cursor items and desync client slots.
+            // If the player already has a container open, do nothing.
             if (playerIn.openContainer != playerIn.inventoryContainer) {
                 return new ActionResult<>(EnumActionResult.PASS, stack);
             }

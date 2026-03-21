@@ -11,9 +11,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-// TileEntitySpecialRenderer that renders the rotating top plate accent.
-// Ported from 1.7.10 RenderCoercionDeriver + 1.21 CoercionDeriverRenderer.
-
 @SideOnly(Side.CLIENT)
 public class CoercionDeriverRenderer extends TileEntitySpecialRenderer<CoercionDeriverBlockEntity> {
     private static final ResourceLocation TEXTURE_OFF      = new ResourceLocation("mffs", "textures/model/coercion_deriver_off.png");

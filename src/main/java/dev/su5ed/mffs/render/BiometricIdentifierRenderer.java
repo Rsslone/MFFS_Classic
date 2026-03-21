@@ -23,8 +23,7 @@ public class BiometricIdentifierRenderer extends TileEntitySpecialRenderer<Biome
     private static final ResourceLocation HOLO_SCREEN_TEXTURE = new ResourceLocation("mffs", "textures/model/holo_screen.png");
     private static final ResourceLocation EMISSIVE_TEXTURE     = new ResourceLocation("mffs", "textures/model/biometric_identifier_emissive.png");
     // holo_screen.png is a 32x288 spritesheet (9 frames of 32x32).
-    // frametime=2 matches the .mcmeta. Direct-bound textures don't go through the atlas
-    // animation system, so we drive the frame manually from world time.
+    // frametime=2 matches the .mcmeta.
     private static final int HOLO_FRAME_COUNT = 9;
     private static final int HOLO_FRAME_TIME  = 2; // ticks per frame
 

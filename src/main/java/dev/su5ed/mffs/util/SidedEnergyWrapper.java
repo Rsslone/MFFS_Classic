@@ -3,12 +3,7 @@ package dev.su5ed.mffs.util;
 import net.minecraftforge.energy.IEnergyStorage;
 
 /**
- * 1.12.2 backport of SidedEnergyWrapper.
- *
- * Reference (1.21): extends {@code DelegatingEnergyHandler}, restricting
- * {@code insert()} and {@code extract()} per side via boolean flags.
- *
- * In 1.12.2: implements {@link IEnergyStorage} and delegates all calls to a
+ * Implements {@link IEnergyStorage} and delegates all calls to a
  * wrapped storage instance, short-circuiting {@link #receiveEnergy} /
  * {@link #extractEnergy} when the respective flag is {@code false}.
  */

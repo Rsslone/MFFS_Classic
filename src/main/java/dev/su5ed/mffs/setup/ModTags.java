@@ -34,8 +34,7 @@ public final class ModTags {
             set.add(Blocks.VINE);
             set.add(Blocks.TALLGRASS);
             set.add(Blocks.DEADBUSH);
-            set.add(Blocks.DOUBLE_PLANT); // tall grass, sunflowers, etc.
-            // 1.12.2 doesn't have glow_lichen, seagrass, kelp, but waterlily is similar
+            set.add(Blocks.DOUBLE_PLANT);
             set.add(Blocks.WATERLILY);
             FORCEFIELD_REPLACEABLE = Collections.unmodifiableSet(set);
         }

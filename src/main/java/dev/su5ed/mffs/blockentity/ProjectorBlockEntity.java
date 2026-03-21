@@ -58,7 +58,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Upgrade-slot modules that do NOT affect field geometry and therefore should not
      * trigger a force-field regeneration when inserted or removed.
      *
-     * <p>Note: Glow Module is intentionally absent from this set.  Glow changes are
+     * Note: Glow Module is intentionally absent from this set.  Glow changes are
      * handled separately: they call {@link #refreshFieldLights()} to push updated
      * {@code clientBlockLight} values in-place without a field rebuild.
      *
@@ -86,8 +86,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private final Set<BlockPos> projectedBlocks = Collections.synchronizedSet(new HashSet<>());
 
     // Orphan positions left over from a soft-destroy (resize/module change).
-    // LinkedHashSet so the drain iterator walks positions in insertion order; applyFieldDiff
-    // shuffles the toRemove list before inserting, matching the random order used during build.
     private final Set<BlockPos> pendingRemoval = Collections.synchronizedSet(new LinkedHashSet<>());
 
     // Positions whose server-side camouflage was updated in applyFieldDiff() but whose client
@@ -95,18 +93,16 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     private final Set<BlockPos> pendingCamoRefresh = Collections.synchronizedSet(new LinkedHashSet<>());
 
     // Positions projected in the previous session, loaded from NBT. Used once per load to diff
-    // against the freshly-calculated field to find orphans (e.g. after a field-size code change).
-    // Never synced/threaded — only accessed on the server tick thread.
+    // against the freshly-calculated field to find orphans.
     private final Set<BlockPos> savedProjectedBlocks = new HashSet<>();
 
     // Shadow set of currently-calculated field positions for O(1) lookup in the gap-fill sweep.
-    // Rebuilt asynchronously in runCalculationTask; published via volatile for safe visibility.
+    // Rebuilt asynchronously in runCalculationTask
     private volatile Set<BlockPos> calculatedFieldSet = Collections.emptySet();
 
-    // Non-null when a diff-based field transition is in progress.  Holds a snapshot of the old
-    // projectedBlocks taken at the moment softDestroyField() was called.  The field stays visible
-    // while the async recalculation runs; once complete, applyFieldDiff() diffs the
-    // snapshot against the new geometry and only touches blocks that actually changed.
+    // Holds a snapshot of the old projectedBlocks taken at the moment softDestroyField() was called.
+    // Once complete, applyFieldDiff() diffs the snapshot against the new geometry
+    // and only touches blocks that actually changed.
     private Set<BlockPos> pendingDiffSnapshot = null;
 
     private final LoadingCache<BlockPos, AbstractMap.SimpleEntry<IBlockState, Boolean>> projectionCache = CacheBuilder.newBuilder()
@@ -124,10 +120,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     // Fast camo checks — updated on inventory change, avoids synchronized map lookups per block.
     private boolean camoModulePresent;
+
     // Cached own-inventory camo result. null = not yet computed this inventory-change cycle.
     // Uses Optional: empty() means "scanned, nothing found", present() means a valid block.
     @Nullable
     private Optional<IBlockState> cachedOwnCamo;
+
     // Cached neighbor camo data for the current projection pass. Null = not yet computed this pass.
     @Nullable
     private List<IBlockState> cachedNeighborWeightedList;
@@ -267,15 +265,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     public int computeAnimationSpeed() {
         int speed = 1;
         int fortronCost = getFortronCost();
-        // Speed up the rotor only when:
+        // Speed up the rotor when:
         //   1. The projector is active with a mode present.
-        //   2. There is something to process: the field is placed (projectedBlocks non-empty),
-        //      OR there are pending block removals in the drain queue (e.g. Disintegration/module
-        //      change soft-destroy), OR there are deferred module-scheduled actions in flight
-        //      (e.g. Disintegration's 39-tick removal timer).
-        //   3. The Fortron reserve meets the same sustained-state threshold as the placement
-        //      guards: tank must hold at least one full billing burst after the current cycle,
-        //      so the rotor tracks whether the projector is genuinely well-powered.
+        //   2. There is something to process
+        //   3. The Fortron reserve meets the sustained-state threshold
         if (isActive() && getMode().isPresent()
                 && (!this.projectedBlocks.isEmpty() || !this.pendingRemoval.isEmpty() || !this.scheduledEvents.isEmpty())
                 && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
@@ -364,13 +357,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             if (getTicks() % MFFSConfig.projectionCycleTicks == 0) {
                 // One-shot orphan detection: runs once per load after the async calculation first
                 // completes. Diffs previously-projected positions against the new field to enqueue
-                // only genuine orphans (e.g. after a field-size change between sessions).
                 if (!this.savedProjectedBlocks.isEmpty() && this.semaphore.isComplete(ProjectionStage.CALCULATING)) {
                     Set<BlockPos> newField = StreamEx.of(getCalculatedFieldPositions())
                         .map(TargetPosPair::pos)
                         .toSet();
-                    // Collect orphans into a list and shuffle before queuing so the drain order
-                    // is scattered rather than following the hash-bucket order of the saved set.
+                    // Collect orphans into a list and shuffle
                     List<BlockPos> orphansToQueue = new ArrayList<>();
                     for (BlockPos old : this.savedProjectedBlocks) {
                         if (!newField.contains(old)) {
@@ -399,17 +390,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)
                         && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
                     // Only project when the tank still holds a full billing burst's worth of Fortron
-                    // after the current burst payment. This ensures the field can sustain through the
-                    // next billing window even if the capacitor hasn't distributed yet.
                     projectField();
                 }
 
-                // Gap-fill sweep: walk every position in the calculated field geometry and fill
-                // any that are now projectable (air/liquid/replaceable) but missing a force field
-                // block. This handles positions that were blocked on initial projection (e.g. the
-                // field formed half-submerged in terrain) and were later exposed by digging.
-                // Gated behind MFFSConfig.enableFastFill (default false) — disabled by default
-                // as it scans the full field list every cycle and is only beneficial in PvP.
+                // Gap-fill sweep: walk every position in the calculated field geometry
                 if (MFFSConfig.enableFastFill && !this.calculatedFieldSet.isEmpty()) {
                     fillGaps();
                 }
@@ -418,9 +402,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
             if (getTicks() % (2 * 20) == 0 && !hasModule(ModModules.SILENCE)
                     && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
-                // Only play the field sound when in a fully sustained state (tank holds at least
-                // one more billing burst). In low-power mode the projector runs silently so players
-                // have an audio cue that power is marginal.
+                // Only play the field sound when in a fully sustained state
                 this.world.playSound(null, this.pos, ModSounds.FIELD, SoundCategory.BLOCKS, 0.4F, 1 - this.world.rand.nextFloat() * 0.1F);
             }
         } else {
@@ -482,7 +464,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         int speed = computeAnimationSpeed();
         if (speed != this.clientAnimationSpeed) {
             this.clientAnimationSpeed = speed;
-            // 1.21.x: sendToChunk(new UpdateAnimationSpeed(worldPosition, speed))
             sendToChunk(new UpdateAnimationSpeed(this.pos, speed));
         }
     }
@@ -708,10 +689,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
             if (!isOwnField) {
                 // Stop placing when Fortron would drop below the full-cycle reserve threshold.
-                // This ensures that after this projection sweep, enough Fortron remains to cover
-                // every maintenance tick until the next projection cycle fires, preventing the
-                // place-then-destroy oscillation seen with marginal power supplies.
-                // Reclaim paths spend no Fortron and are always safe to continue.
                 if (this.fortronStorage.getStoredFortron() <= getFortronCost() * Math.max(MFFSConfig.projectionCycleTicks, 11)) break fieldLoop;
                 this.world.setBlockState(pos, state, 0);
                 // Set the controlling projector of the force field block to this one
@@ -754,9 +731,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         IBlockState state = this.world.getBlockState(pos);
         // Allow projecting over our own FF blocks that remain from a previous soft-destroy —
         // they will be "reclaimed" in projectField() without being re-placed or costing Fortron.
-        // Only treat the block as reclaimable while it is still in pendingRemoval; once reclaimed
-        // (removed from the set) this position must evaluate as non-projectable so SELECTING won't
-        // keep cycling over it endlessly.
         boolean isOwnField = state.getBlock() == ModBlocks.FORCE_FIELD && this.pendingRemoval.contains(pos);
         boolean canProject = ((state.getBlock().isAir(state, this.world, pos)
             || state.getMaterial().isLiquid()
@@ -810,7 +784,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * touching camouflage or rebuilding the field.  Called when only the Glow
      * Module count has changed (Case 2: in-place light update).
      *
-     * <p>If the projector is off ({@code projectedBlocks} is empty) this is a no-op;
+     * If the projector is off ({@code projectedBlocks} is empty) this is a no-op;
      * correct light values will be sent during the next {@code projectField()} pass.
      */
     private void refreshFieldLights() {
@@ -831,11 +805,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * projector's own position as the center so a single radius value covers ALL
      * projected blocks, regardless of how far they are from the player.
      *
-     * <p>The radius is: max distance from projector to any currently-projected
-     * block + 64 (a generous player-interaction buffer).  Falls back to 128 when
-     * {@code projectedBlocks} is empty (e.g. called during initial field build).
-     *
-     * <p>The result is cached incrementally: {@link #expandFieldSendRadius(BlockPos)}
+     * The result is cached incrementally: {@link #expandFieldSendRadius(BlockPos)}
      * extends it as blocks are added, and {@link #invalidateFieldSendRadius()} marks
      * it dirty when blocks are bulk-removed or cleared.
      */
@@ -875,18 +845,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     /**
      * Moves all currently-projected blocks into {@link #pendingRemoval} so that worker modules
      * (Stabilization, Disintegration) can access them during the next projection cycle.
-     * Stabilization will convert each reclaimable block to a physical block via PLACED.
-     * Disintegration lets them drain naturally via the pending-removal loop, then scans fresh
-     * for physical terrain at the now-empty positions.
-     * <p>Must be called before {@link #softDestroyField()} so the snapshot taken in that method
-     * sees an empty {@code projectedBlocks} set, making all 100 positions appear as {@code toAdd}
-     * in {@link #applyFieldDiff()} rather than {@code unchanged}.</p>
      */
     private void forceReclaimField() {
         if (this.world == null || this.world.isRemote) return;
-        // Collect all tracked FF blocks, shuffle so the drain order is scattered
-        // (matching the random placement order used during build), then move into
-        // the pending-removal queue.
+        // Collect all tracked FF blocks
         List<BlockPos> toReclaim = new ArrayList<>(this.projectedBlocks);
         this.projectedBlocks.clear();
         // Include any NBT-loaded blocks that haven't been diff-processed yet.
@@ -897,7 +859,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         Collections.shuffle(toReclaim);
         this.pendingRemoval.addAll(toReclaim);
         // Invalidate cache so canProjectPos re-evaluates each position
-        // with the updated pendingRemoval membership.
         this.projectionCache.invalidateAll();
     }
 
@@ -905,23 +866,12 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Soft destroy: starts a diff-based field transition.  The current projected field stays
      * visible while a new field geometry is calculated asynchronously.  When the calculation
      * completes, {@link #applyFieldDiff()} compares old vs new positions and only touches
-     * blocks that actually changed:
-     * <ul>
-     *   <li><b>toRemove</b> (old − new): queued to {@code pendingRemoval} for gradual drain</li>
-     *   <li><b>unchanged</b> (old ∩ new): kept in place; camouflage refreshed if needed</li>
-     *   <li><b>toAdd</b> (new − old): handled by the normal SELECTING → PROJECTING pipeline</li>
-     * </ul>
+     * blocks that actually changed
      */
     private void softDestroyField() {
         if (this.world != null && !this.world.isRemote) {
-            // Snapshot the current field for diffing after the async recalculation.  Include any
-            // savedProjectedBlocks that haven't been diffed yet (e.g. a module change right after
-            // load before the one-shot orphan detection ran).
-            // Always set pendingDiffSnapshot (even when empty) so the tick-loop condition
-            // "pendingDiffSnapshot != null && CALCULATING done" fires correctly when starting
-            // from an empty-field state (e.g. adding a shape module from scratch, or adjusting
-            // scale while the field has not yet been projected).  applyFieldDiff() handles an
-            // empty old-field safely: no removals, no camo refresh, then runSelectionTask().
+            // Snapshot the current field for diffing after the async recalculation. Include any
+            // savedProjectedBlocks that haven't been diffed yet.
             Set<BlockPos> snapshot = new HashSet<>(this.projectedBlocks);
             if (!this.savedProjectedBlocks.isEmpty()) {
                 snapshot.addAll(this.savedProjectedBlocks);
@@ -948,14 +898,6 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Applies the diff between the old projected field (snapshot) and the newly-calculated
      * field geometry.  Called on the server thread once the async CALCULATING stage completes
      * and {@link #pendingDiffSnapshot} is non-null.
-     *
-     * <ul>
-     *   <li><b>toRemove</b>: lights zeroed (if glow active), queued to {@code pendingRemoval},
-     *       removed from {@code projectedBlocks}.</li>
-     *   <li><b>unchanged</b>: camouflage updated if it differs from what {@link #getCamoBlock}
-     *       now returns; otherwise left completely untouched.</li>
-     *   <li><b>toAdd</b>: handled by the subsequent SELECTING → PROJECTING pipeline.</li>
-     * </ul>
      */
     private void applyFieldDiff() {
         Set<BlockPos> oldField = this.pendingDiffSnapshot;
@@ -999,12 +941,8 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             this.projectionCache.invalidate(pos);
         }
 
-        // Refresh camouflage on unchanged blocks (handles camo slot changes, custom mode
-        // position-dependent camo, and glow module changes that accompany geometry changes).
+        // Refresh camouflage on unchanged blocks.
         // Server state is updated immediately; client packets are queued for rate-limited delivery.
-        // Collect into a list and shuffle before queuing so the drain order is scattered,
-        // matching the random placement order used during the build phase — prevents the
-        // visible "slice" artifact that appears when HashSet iteration order is used directly.
         if (!unchanged.isEmpty()) {
             List<BlockPos> camoToRefresh = new ArrayList<>();
             for (BlockPos pos : unchanged) {
@@ -1029,6 +967,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
      * Called before a soft-destroy to prevent orphan glow on blocks sitting in the
      * pending-removal queue.  Reclaimed blocks receive a corrected value during the
      * next {@code projectField()} pass.
+     * This is probably not the best way to handle this, will look into it later.
      */
     private void zeroFieldBlockLights(Set<BlockPos> positions) {
         if (this.world == null || this.world.isRemote || positions.isEmpty()) return;
@@ -1045,7 +984,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
 
     @Override
     public void destroyField() {
-        // Hard destroy: immediately remove everything (Fortron loss, block break, etc.).
+        // Hard destroy: immediately remove everything (block break).
         // Also flush any blocks pending from a prior soft destroy and cancel any in-flight diff.
         this.pendingDiffSnapshot = null;
         Set<BlockPos> alsoRemove = new HashSet<>(this.pendingRemoval);
@@ -1230,15 +1169,11 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
     /**
      * Gap-fill sweep: iterates the full calculated field geometry and projects any position
      * that is currently projectable (air / liquid / replaceable) but not yet occupied by our
-     * force field. This is the counterpart to the initial construction pass — it catches
-     * positions that were blocked when the field first formed (e.g. terrain half-submerged)
-     * and fills them as soon as they are dug out.
+     * force field. This is useful for PvP, not much else.
      *
      * Unlike the async selection path this runs entirely on the main thread, so it reads
      * current world state directly rather than going through the projection cache. The cache
      * is still invalidated for each placed block so the async selection stays coherent.
-     *
-     * Respects the projector speed limit so speed upgrade modules remain meaningful.
      */
     private void fillGaps() {
         invalidateNeighborCamoCache();
@@ -1374,8 +1309,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
             if (block.hasTileEntity(defaultState)) {
                 return Optional.empty();
             }
-            // Only allow geometrically full-cube blocks. Non-cube shapes (stairs, slabs, fences)
-            // clip and z-fight badly when rendered as a force field face.
+            // Only allow geometrically full-cube blocks.
             try {
                 if (!Block.FULL_BLOCK_AABB.equals(block.getBoundingBox(defaultState, null, BlockPos.ORIGIN))) {
                     return Optional.empty();
@@ -1384,7 +1318,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                 // If bounding box lookup crashes (world-dependent shape), conservatively reject.
                 return Optional.empty();
             }
-            // Preserve item damage value so colour-carrying meta (e.g. stained glass tint) is kept.
+            // Preserve item meta value so colour-carrying meta (e.g. stained glass tint) is kept.
             return Optional.of(block.getStateFromMeta(stack.getMetadata()));
         }
         return Optional.empty();

@@ -61,11 +61,6 @@ public final class ModClientSetup {
      */
     private static WorldClient lastClientWorld = null;
 
-    /**
-     * Register item model/texture mappings for all MFFS items.
-     * In 1.12.2, items don't automatically pick up model JSONs — each one
-     * must be explicitly bound via ModelLoader.setCustomModelResourceLocation().
-     */
     @SubscribeEvent
     public static void registerModels(ModelRegistryEvent event) {
         // Bind TileEntity Special Renderers for rotating accents
@@ -78,12 +73,7 @@ public final class ModClientSetup {
         // A large force field can contain thousands of ForceFieldBlockEntity instances, and
         // registering a TESR for the class causes meldexun renderlib to run a frustum test
         // (and allocate a CallbackInfoReturnable via a third-party mixin) for every single one
-        // on every frame — ~34% frame time overhead at scale.
-        // The only work ForceFieldBlockEntityRenderer ever did was delegate TESR rendering for
-        // camouflage blocks that themselves have a TESR (chests, ender chests, etc.).  That is
-        // an extremely rare configuration, so it is handled directly in RenderWorldLastEvent via
-        // BlockEntityRenderDelegate.renderAllDelegates(), which iterates only the small set of
-        // instances that actually need it.
+        // on every frame
 
         // Block items
         registerBlockItemModel(ModBlocks.PROJECTOR);
@@ -193,7 +183,7 @@ public final class ModClientSetup {
      * positions per tick. This spreads the BFS cost of relighting Glow Module force fields over
      * multiple frames instead of spiking all at once when a chunk loads.
      *
-     * <p>Also clears the queue whenever the active world changes (join/leave/dimension switch)
+     * Also clears the queue whenever the active world changes (join/leave/dimension switch)
      * so that positions queued for a previous session do not corrupt lighting in the new world.
      */
     @SubscribeEvent

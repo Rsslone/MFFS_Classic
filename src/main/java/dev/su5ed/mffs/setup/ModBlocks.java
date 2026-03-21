@@ -1,13 +1,5 @@
 package dev.su5ed.mffs.setup;
 
-// =============================================================================
-// 1.12.2 Backport: Block registration
-// 1.21.x used DeferredRegister.Blocks (NeoForge). In 1.12.2 blocks are
-// registered via RegistryEvent.Register<Block> on the Forge event bus,
-// fired automatically because this class uses @Mod.EventBusSubscriber.
-// Block instances are held as static fields (initialized during registry event).
-// =============================================================================
-
 import dev.su5ed.mffs.MFFSMod;
 import dev.su5ed.mffs.block.*;
 import net.minecraft.block.Block;

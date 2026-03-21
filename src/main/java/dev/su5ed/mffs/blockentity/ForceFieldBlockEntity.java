@@ -97,6 +97,7 @@ public class ForceFieldBlockEntity extends BaseTileEntity {
     /**
      * Called from UpdateBlockEntityPacket to apply server-sent NBT on the client.
      */
+    @SuppressWarnings("deprecation")
     public void handleCustomUpdateTag(NBTTagCompound tag) {
         if (tag.hasKey("projector")) {
             int[] coords = tag.getIntArray("projector");

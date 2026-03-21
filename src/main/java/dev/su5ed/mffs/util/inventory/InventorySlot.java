@@ -62,7 +62,7 @@ public class InventorySlot {
     }
 
     /**
-     * Returns the slot's content as it was immediately <em>before</em> the most-recent
+     * Returns the slot's content as it was immediately before the most-recent
      * {@link #onChanged} notification was fired.  Only valid to call from inside an
      * {@code onChanged} callback; outside of a callback it may reflect stale state.
      */
@@ -183,7 +183,6 @@ public class InventorySlot {
     }
 
     private boolean canAdd(ItemStack stack) {
-        // In 1.12.2: same item + same NBT = stackable
         return accepts(stack) && (this.content.isEmpty()
             || (ItemStack.areItemsEqual(this.content, stack)
                 && ItemStack.areItemStackTagsEqual(this.content, stack)));

@@ -96,6 +96,7 @@ public abstract class FortronBlockEntity extends InventoryBlockEntity implements
 
         // Guard: if we somehow missed onLoad() (chunk edge-case) re-register on the first tick
         // so the FrequencyGrid is always populated with the correct, NBT-loaded frequency.
+        // I don't actually know if this solved the strange issues I was having, but oh well.
         if (getTicks() == 1 && !FrequencyGrid.instance(this.world.isRemote).get().contains(this.fortronStorage)) {
             FrequencyGrid.instance(this.world.isRemote).register(this.fortronStorage);
         }

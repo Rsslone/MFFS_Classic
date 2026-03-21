@@ -17,12 +17,6 @@ public class BiometricIdentifierScreen extends FortronScreen<BiometricIdentifier
 
     /**
      * Display order for the 7 permission buttons laid out in a 4+3 grid.
-     * Row 0 (4): Configure Security, Warp, Use Blocks, Place Blocks
-     * Row 1 (3): Bypass Defense, Remote Control, Bypass Confiscation
-     *
-     * This keeps "Configure Security" prominent in the top row and places
-     * "Remote Control" adjacent to "Bypass Defense", while fitting all 7
-     * buttons in exactly 2 rows so nothing overlaps the energy bar.
      */
     private static final FieldPermission[] PERM_DISPLAY_ORDER = {
         FieldPermission.WARP,

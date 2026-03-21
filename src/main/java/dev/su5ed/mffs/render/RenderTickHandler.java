@@ -44,8 +44,6 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 1.12.2 backport of RenderTickHandler.
- *
  * Reference (1.20.1): uses {@code @EventBusSubscriber(Dist.CLIENT)},
  *   {@code RenderLevelStageEvent.AfterWeather}, {@code MultiBufferSource.BufferSource}.
  * In 1.12.2: uses {@code @Mod.EventBusSubscriber(Side.CLIENT)},

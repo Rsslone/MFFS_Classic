@@ -25,9 +25,6 @@ public class ProjectorRotorModel extends ModelBase {
         this.textureWidth = 128;
         this.textureHeight = 128;
 
-        // All parts use rotation point (0, 16, 0) matching the 1.7.10 reference.
-        // This works with the standard TESR translate(y+1.5) + rotate(180,0,0,1) pattern.
-
         // Axle: center shaft
         this.axle = new ModelRenderer(this, 16, 26);
         this.axle.addBox(-1.0F, -2.0F, -1.0F, 2, 8, 2);

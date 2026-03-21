@@ -6,7 +6,6 @@ package dev.su5ed.mffs.setup;
 
 /**
  * Data storage constants for MFFS items (1.12.2 NBT-based approach).
- * Replaces NeoForge DataComponentType registry from 1.21.x.
  */
 public final class ModDataComponentTypes {
 

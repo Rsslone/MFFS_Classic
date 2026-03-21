@@ -209,12 +209,6 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
             player);
     }
 
-    /** Sends proximity warning messages. Called every 5 ticks for a responsive distance counter. */
-    public void scanWarnings() {
-        // Warning display is now entirely client-side via ClientZoneTracker.
-        // This method is kept for API compatibility only.
-    }
-
     /** Applies zone effects (confiscation, damage, etc.). Called on the Fortron drain cycle. */
     public void scanActions() {
         AxisAlignedBB emptyBounds = new AxisAlignedBB(this.pos, this.pos.add(1, 1, 1));

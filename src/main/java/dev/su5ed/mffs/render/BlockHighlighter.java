@@ -24,8 +24,6 @@ import java.util.Set;
 
 /**
  * 1.12.2 backport of BlockHighlighter.
- * Reference (1.20.1): uses {@code PoseStack}, {@code Vec3}, {@code VoxelShape.forAllBoxes/Edges}.
- * In 1.12.2: uses {@code GlStateManager}, {@code AxisAlignedBB}, manual 12-edge enumeration.
  *
  * Modified version of DarkKronicle's BetterBlockOutline renderer.
  * SOURCE: https://github.com/DarkKronicle/BetterBlockOutline

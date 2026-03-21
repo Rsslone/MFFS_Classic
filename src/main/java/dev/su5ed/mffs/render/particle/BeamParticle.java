@@ -41,8 +41,7 @@ public class BeamParticle extends Particle {
 
     public BeamParticle(World world, Vec3d start, Vec3d target, ParticleColor color, int lifetime, ResourceLocation texture) {
         // Position the particle at the midpoint between start and target so that
-        // frustum culling (which uses posX/posY/posZ) keeps the beam visible even
-        // when the source block is off screen.
+        // frustum culling (which uses posX/posY/posZ) keeps the beam visible
         super(world, (start.x + target.x) / 2.0, (start.y + target.y) / 2.0, (start.z + target.z) / 2.0, 0, 0, 0);
 
         this.texture = texture;
@@ -52,8 +51,7 @@ public class BeamParticle extends Particle {
         this.startOffsetZ = start.z - this.posZ;
 
         setSize(0.02F, 0.02F);
-        // Set bounding box to encompass both endpoints so the beam is not
-        // frustum-culled when only the start position is off screen.
+        // Set bounding box to encompass both endpoints so the beam is not culled.
         this.setBoundingBox(new AxisAlignedBB(start, target));
         this.canCollide = false;
         this.motionX = 0;

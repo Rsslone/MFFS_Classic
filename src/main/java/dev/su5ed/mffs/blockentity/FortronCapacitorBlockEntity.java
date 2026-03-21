@@ -69,8 +69,6 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
 
         // Distribute fortron across the network (and bill maintenance) only when active.
         if (isActive() && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
-            // Bill maintenance cost as a burst, aligned with the Fortron distribution window.
-            // Only charged when active so an inactive Capacitor doesn't silently drain the network.
             this.fortronStorage.extractFortron(getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
             Set<FortronStorage> machines = new HashSet<>();
 
