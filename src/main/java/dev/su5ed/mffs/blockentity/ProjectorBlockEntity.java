@@ -267,11 +267,13 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         int fortronCost = getFortronCost();
         // Speed up the rotor when:
         //   1. The projector is active with a mode present.
-        //   2. There is something to process
-        //   3. The Fortron reserve meets the sustained-state threshold
+        //   2. There is something to process (field blocks, pending removals, or scheduled events).
+        //   3. The Fortron reserve can cover at least one tick of operation.
+        //      Uses the same threshold as canConsumeFieldCost so the rotor stays steady
+        //      even when burst billing temporarily dips the tank between transfer windows.
         if (isActive() && getMode().isPresent()
                 && (!this.projectedBlocks.isEmpty() || !this.pendingRemoval.isEmpty() || !this.scheduledEvents.isEmpty())
-                && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
+                && canConsumeFieldCost(fortronCost)) {
             speed *= fortronCost / 8.0F;
         }
         return Math.min(300, speed);
@@ -347,12 +349,22 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         }
 
         int fortronCost = getFortronCost();
-        if (isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost)) {
-            // Bill maintenance cost as a burst, aligned with the network transfer window.
-            // Same total drain as per-tick but in sync with when Fortron actually moves.
-            if (getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
-                this.fortronStorage.extractFortron(fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS, false);
+        boolean canOperate = isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost);
+
+        // Bill maintenance cost as a burst, aligned with the network transfer
+        // window.  extractFortron is partial (takes whatever is available), so
+        // always drain the tank — but if the extraction falls short of the full
+        // burst, treat this tick as a power failure so the field collapses
+        // instead of running at a deficit indefinitely.
+        if (canOperate && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
+            int burstCost = fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS;
+            int extracted = this.fortronStorage.extractFortron(burstCost, false);
+            if (extracted < burstCost) {
+                canOperate = false;
             }
+        }
+
+        if (canOperate) {
 
             if (getTicks() % MFFSConfig.projectionCycleTicks == 0) {
                 // One-shot orphan detection: runs once per load after the async calculation first

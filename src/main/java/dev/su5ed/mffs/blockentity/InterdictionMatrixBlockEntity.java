@@ -138,10 +138,12 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
         }
 
         // Actions (confiscation, damage, etc.) on the configurable action tick rate.
+        // Always extract the maintenance cost to prevent free Fortron accumulation
+        // from network equalization.  Only run actions if the full burst was paid.
         if (getTicks() % Math.max(1, MFFSConfig.interdictionMatrixActionTickRate) == 0 && powered) {
-            int extracted = this.fortronStorage.extractFortron(getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate), true);
-            if (extracted > 0) {
-                this.fortronStorage.extractFortron(getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate), false);
+            int burstCost = getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate);
+            int extracted = this.fortronStorage.extractFortron(burstCost, false);
+            if (extracted >= burstCost) {
                 scanActions();
             }
         }
