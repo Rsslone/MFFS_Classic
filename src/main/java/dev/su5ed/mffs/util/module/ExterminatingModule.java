@@ -9,21 +9,25 @@ import dev.su5ed.mffs.util.ModUtil;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.DamageSource;
 
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class ExterminatingModule extends BaseInterdictionModule {
     private final Predicate<EntityLivingBase> predicate;
+    private final Supplier<Float> damagePerAction;
 
-    public ExterminatingModule(ModuleType<?> type, ItemStack stack, Predicate<EntityLivingBase> predicate) {
+    public ExterminatingModule(ModuleType<?> type, ItemStack stack, Predicate<EntityLivingBase> predicate, Supplier<Float> damagePerAction) {
         super(type, stack);
         this.predicate = predicate;
+        this.damagePerAction = damagePerAction;
     }
 
     @Override
     public boolean onDefend(InterdictionMatrix interdictionMatrix, EntityLivingBase target) {
         if (this.predicate.test(target)) {
-            ModUtil.shockEntity(target, Integer.MAX_VALUE);
+            target.attackEntityFrom(DamageSource.GENERIC, this.damagePerAction.get() * this.stack.getCount());
             if (MFFSConfig.interdictionMatrixMobKillEnergy > 0) {
                 TileEntity be = interdictionMatrix.be();
                 if (be.hasCapability(ModCapabilities.FORTRON, null)) {

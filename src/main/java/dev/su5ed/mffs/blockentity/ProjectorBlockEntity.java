@@ -177,22 +177,24 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                         }
                     },
                     stack -> {
-                        // Limit speed modules across all upgrade slots to the configured maximum.
+                        // Limit speed and shock modules across all upgrade slots to their configured maximums.
                         ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
-                        if (type != ModModules.SPEED) return stack.getMaxStackSize();
+                        final int maxAllowed;
+                        if (type == ModModules.SPEED) maxAllowed = MFFSConfig.maxSpeedModulesProjector;
+                        else if (type == ModModules.SHOCK) maxAllowed = MFFSConfig.shockModuleMaxSlotCount;
+                        else return stack.getMaxStackSize();
                         List<InventorySlot> allUpgradeSlots = upgradeSlotListRef.get();
                         if (allUpgradeSlots == null) return stack.getMaxStackSize();
-                        // Count speed modules already present in every OTHER upgrade slot.
                         int totalInOthers = allUpgradeSlots.stream()
                             .filter(slot -> slot != ref[0])
                             .mapToInt(slot -> {
                                 ItemStack content = slot.getItem();
                                 if (content.isEmpty()) return 0;
                                 ModuleType<?> slotType = content.getCapability(ModCapabilities.MODULE_TYPE, null);
-                                return slotType == ModModules.SPEED ? content.getCount() : 0;
+                                return slotType == type ? content.getCount() : 0;
                             })
                             .sum();
-                        return Math.max(0, Math.min(MFFSConfig.maxSpeedModulesProjector - totalInOthers, stack.getMaxStackSize()));
+                        return Math.max(0, Math.min(maxAllowed - totalInOthers, stack.getMaxStackSize()));
                     });
                 return ref[0];
             })

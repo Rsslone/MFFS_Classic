@@ -55,7 +55,12 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
                     stack -> {},
                     stack -> {
                         ModuleType<?> type = stack.getCapability(ModCapabilities.MODULE_TYPE, null);
-                        if (type != ModModules.WARN) return stack.getMaxStackSize();
+                        final int maxAllowed;
+                        if      (type == ModModules.WARN)           maxAllowed = MFFSConfig.maxWarnModulesIM;
+                        else if (type == ModModules.ANTI_FRIENDLY)  maxAllowed = MFFSConfig.antiFriendlyModuleMaxSlotCount;
+                        else if (type == ModModules.ANTI_HOSTILE)   maxAllowed = MFFSConfig.antiHostileModuleMaxSlotCount;
+                        else if (type == ModModules.ANTI_PERSONNEL) maxAllowed = MFFSConfig.antiPersonnelModuleMaxSlotCount;
+                        else return stack.getMaxStackSize();
                         List<InventorySlot> allUpgradeSlots = upgradeSlotListRef.get();
                         if (allUpgradeSlots == null) return stack.getMaxStackSize();
                         int totalInOthers = allUpgradeSlots.stream()
@@ -64,10 +69,10 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
                                 ItemStack content = slot.getItem();
                                 if (content.isEmpty()) return 0;
                                 ModuleType<?> slotType = content.getCapability(ModCapabilities.MODULE_TYPE, null);
-                                return slotType == ModModules.WARN ? content.getCount() : 0;
+                                return slotType == type ? content.getCount() : 0;
                             })
                             .sum();
-                        return Math.max(0, Math.min(MFFSConfig.maxWarnModulesIM - totalInOthers, stack.getMaxStackSize()));
+                        return Math.max(0, Math.min(maxAllowed - totalInOthers, stack.getMaxStackSize()));
                     });
                 return ref[0];
             })

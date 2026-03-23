@@ -1,5 +1,6 @@
 package dev.su5ed.mffs.item;
 
+import dev.su5ed.mffs.MFFSConfig;
 import dev.su5ed.mffs.api.module.Module;
 import dev.su5ed.mffs.api.module.ModuleType;
 import dev.su5ed.mffs.setup.ModCapabilities;
@@ -21,7 +22,7 @@ import java.text.DecimalFormat;
 import java.util.List;
 
 public class ModuleItem<T extends Module> extends BaseItem {
-    private static final DecimalFormat FORTRON_COST_FORMAT = new DecimalFormat("#.##");
+    protected static final DecimalFormat FORTRON_COST_FORMAT = new DecimalFormat("#.##");
 
     protected final ModuleType<T> module;
 
@@ -64,11 +65,25 @@ public class ModuleItem<T extends Module> extends BaseItem {
         }
         if (this.module == dev.su5ed.mffs.setup.ModModules.ANTI_PERSONNEL) {
             tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.anti_personnel.requires_biometric"));
+            addDamagePerSecondTooltip(tooltip, MFFSConfig.antiPersonnelDamagePerSecond);
+        } else if (this.module == dev.su5ed.mffs.setup.ModModules.ANTI_FRIENDLY) {
+            addDamagePerSecondTooltip(tooltip, MFFSConfig.antiFriendlyDamagePerSecond);
+        } else if (this.module == dev.su5ed.mffs.setup.ModModules.ANTI_HOSTILE) {
+            addDamagePerSecondTooltip(tooltip, MFFSConfig.antiHostileDamagePerSecond);
         } else if (this.module == dev.su5ed.mffs.setup.ModModules.BLOCK_ALTER) {
             tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.block_alter.requires_biometric"));
         } else if (this.module == dev.su5ed.mffs.setup.ModModules.BLOCK_ACCESS) {
             tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.block_access.requires_biometric"));
+        } else if (this.module == dev.su5ed.mffs.setup.ModModules.SHOCK) {
+            tooltip.add(TextFormatting.GOLD + I18n.format("info.mffs.module.shock.damage_per_module",
+                TextFormatting.YELLOW + FORTRON_COST_FORMAT.format(MFFSConfig.shockModuleDamagePerModule)));
         }
+    }
+
+    /** Adds a standard gold/yellow damage-per-second tooltip line. Override or call from subclasses to reuse. */
+    protected void addDamagePerSecondTooltip(List<String> tooltip, float damagePerSecond) {
+        tooltip.add(TextFormatting.GOLD + I18n.format("info.mffs.module.damage_per_second",
+            TextFormatting.YELLOW + FORTRON_COST_FORMAT.format(damagePerSecond)));
     }
 
     private static class ModuleTypeProvider implements ICapabilityProvider {
