@@ -137,13 +137,15 @@ public class InterdictionMatrixBlockEntity extends ModularBlockEntity implements
             sendZoneSync();
         }
 
+        // Per-tick billing: deduct maintenance cost every tick.
+        if (powered) {
+            consumeCost();
+        }
+
         // Actions (confiscation, damage, etc.) on the configurable action tick rate.
-        // Always extract the maintenance cost to prevent free Fortron accumulation
-        // from network equalization.  Only run actions if the full burst was paid.
+        // Only run actions if we can still afford the per-tick cost (i.e. still solvent).
         if (getTicks() % Math.max(1, MFFSConfig.interdictionMatrixActionTickRate) == 0 && powered) {
-            int burstCost = getFortronCost() * Math.max(1, MFFSConfig.interdictionMatrixActionTickRate);
-            int extracted = this.fortronStorage.extractFortron(burstCost, false);
-            if (extracted >= burstCost) {
+            if (this.fortronStorage.extractFortron(getFortronCost(), true) >= getFortronCost()) {
                 scanActions();
             }
         }

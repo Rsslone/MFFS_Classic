@@ -24,7 +24,7 @@ public final class MFFSConfig {
     private static Configuration configuration;
     private static final Logger LOGGER = LogManager.getLogger(MFFSConfig.class);
 
-    /** Number of ticks between each Fortron network transfer burst and machine cost billing burst. */
+    /** Number of ticks between each Fortron network transfer cycle. */
     public static final int FORTRON_TRANSFER_TICKS = 10;
 
     // -------------------------------------------------------------------------

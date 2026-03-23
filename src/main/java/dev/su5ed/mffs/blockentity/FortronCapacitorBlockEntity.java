@@ -67,11 +67,11 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
     public void tickServer() {
         super.tickServer();
 
-        // Distribute fortron across the network (and bill maintenance) only when active.
-        if (isActive() && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
-            int burstCost = getFortronCost() * MFFSConfig.FORTRON_TRANSFER_TICKS;
-            int transmissionRate = getTransmissionRate();
+        // Bill own module maintenance every tick (independent of transfer cycle).
+        consumeCost();
 
+        // Distribute Fortron across the network on the transfer cycle.
+        if (isActive() && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
             Set<FortronStorage> machines = new HashSet<>();
 
             for (ItemStack stack : getCards()) {
@@ -94,12 +94,7 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
                 }
             }
 
-            // Run equalization with the full budget for inflows, but reduce the
-            // outflow budget by the self-cost so the capacitor retains enough
-            // for its own module maintenance.  This prevents the capacitor from
-            // acting as a free pass-through when it can't actually afford its
-            // own upkeep.
-            Fortron.transferFortron(this.fortronStorage, machines.isEmpty() ? getDevicesByFrequency() : machines, this.transferMode, transmissionRate, burstCost);
+            Fortron.transferFortron(this.fortronStorage, machines.isEmpty() ? getDevicesByFrequency() : machines, this.transferMode, getTransmissionRate());
         }
     }
 

@@ -269,8 +269,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         //   1. The projector is active with a mode present.
         //   2. There is something to process (field blocks, pending removals, or scheduled events).
         //   3. The Fortron reserve can cover at least one tick of operation.
-        //      Uses the same threshold as canConsumeFieldCost so the rotor stays steady
-        //      even when burst billing temporarily dips the tank between transfer windows.
+        //      Uses canConsumeFieldCost to verify the projector can still afford operation.
         if (isActive() && getMode().isPresent()
                 && (!this.projectedBlocks.isEmpty() || !this.pendingRemoval.isEmpty() || !this.scheduledEvents.isEmpty())
                 && canConsumeFieldCost(fortronCost)) {
@@ -351,17 +350,9 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         int fortronCost = getFortronCost();
         boolean canOperate = isActive() && getMode().isPresent() && canConsumeFieldCost(fortronCost);
 
-        // Bill maintenance cost as a burst, aligned with the network transfer
-        // window.  extractFortron is partial (takes whatever is available), so
-        // always drain the tank — but if the extraction falls short of the full
-        // burst, treat this tick as a power failure so the field collapses
-        // instead of running at a deficit indefinitely.
-        if (canOperate && getTicks() % MFFSConfig.FORTRON_TRANSFER_TICKS == 0) {
-            int burstCost = fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS;
-            int extracted = this.fortronStorage.extractFortron(burstCost, false);
-            if (extracted < burstCost) {
-                canOperate = false;
-            }
+        // Per-tick billing: deduct maintenance cost every tick when operating.
+        if (canOperate) {
+            consumeCost();
         }
 
         if (canOperate) {
@@ -401,7 +392,7 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                     reCalculateForceField();
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)
                         && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS) {
-                    // Only project when the tank still holds a full billing burst's worth of Fortron
+                    // Only project when the tank still holds a comfortable Fortron reserve
                     projectField();
                 }
 
