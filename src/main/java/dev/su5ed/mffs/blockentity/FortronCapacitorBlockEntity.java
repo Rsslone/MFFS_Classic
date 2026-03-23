@@ -94,7 +94,9 @@ public class FortronCapacitorBlockEntity extends ModularBlockEntity implements F
                 }
             }
 
-            Fortron.transferFortron(this.fortronStorage, machines.isEmpty() ? getDevicesByFrequency() : machines, this.transferMode, getTransmissionRate());
+            // Convert F/s → F/cycle for the transfer limit.
+            int limitPerCycle = getTransmissionRate() * MFFSConfig.FORTRON_TRANSFER_TICKS / 20;
+            Fortron.transferFortron(this.fortronStorage, machines.isEmpty() ? getDevicesByFrequency() : machines, this.transferMode, limitPerCycle);
         }
     }
 

@@ -62,10 +62,10 @@ public final class MFFSConfig {
     public static int coercionDriverFePerFortronSpeedDiscount     = 1;
     /** FE to subtract when converting Fortron to FE. */
     public static int coercionDriverFortronToFeLoss               = 1;
-    /** Base limit of Fortron produced per second (mB/s). Divided by 20 internally to get per-tick value. */
-    public static int coercionDriverFortronPerSecond                = 4000;
-    /** Production bonus per speed module per second (mB/s). Divided by 20 internally to get per-tick value. */
-    public static int coercionDriverFortronPerSecondSpeedModule     = 4000;
+    /** Base limit of Fortron produced per second (F/s). Divided by 20 internally to get per-tick value. */
+    public static int coercionDriverFortronPerSecond                = 1000;
+    /** Production bonus per speed module per second (F/s). Divided by 20 internally to get per-tick value. */
+    public static int coercionDriverFortronPerSecondSpeedModule     = 500;
     /** Initial Fortron tank capacity in F. */
     public static int coercionDriverInitialTankCapacity             = 30000;
     /** Fortron tank capacity added per Capacity Module in F. */
@@ -83,10 +83,10 @@ public final class MFFSConfig {
     public static int fortronCapacitorInitialTankCapacity           = 700000;
     /** Fortron tank capacity added per Capacity Module in F. */
     public static int fortronCapacitorTankCapacityPerModule         = 10000;
-    /** Base Fortron transmission rate in F/s. */
-    public static int fortronCapacitorInitialTransmissionRate       = 250;
+    /** Base Fortron transmission rate in F/s. Converted to F/cycle internally. */
+    public static int fortronCapacitorInitialTransmissionRate       = 500;
     /** Additional Fortron transmission rate per Speed Module in F/s. */
-    public static int fortronCapacitorTransmissionRatePerModule     = 50;
+    public static int fortronCapacitorTransmissionRatePerModule     = 100;
     /** Initial transmission range in blocks. */
     public static int fortronCapacitorInitialRange                  = 15;
     /** Additional transmission range per Scale Module in blocks. */
@@ -94,6 +94,10 @@ public final class MFFSConfig {
     // -------------------------------------------------------------------------
     /** Energy to consume when the Interdiction Matrix kills a player. */
     public static int    interdictionMatrixKillEnergy = 0;
+    /** Fortron to consume when the Interdiction Matrix kills a mob (hostile or friendly). */
+    public static int    interdictionMatrixMobKillEnergy = 0;
+    /** Minimum warning zone buffer (in blocks) beyond the action range, even with no Warn Modules. */
+    public static int    interdictionMatrixMinWarnRange = 6;
     /** How often (in ticks) the Interdiction Matrix runs zone actions (confiscation, damage, etc.). Default 10 (0.5 s). */
     public static int    interdictionMatrixActionTickRate = 20;
     /** Initial Fortron tank capacity in F. */
@@ -115,6 +119,8 @@ public final class MFFSConfig {
     public static int     maxCustomModeScale           = 200;
     /** Maximum total number of Speed Modules that can be inserted into a Force Field Projector's upgrade slots. Default 64 (one stack). */
     public static int     maxSpeedModulesProjector     = 64;
+    /** Maximum total number of Warn Modules that can be inserted into an Interdiction Matrix's upgrade slots. Default 64 (one stack). */
+    public static int     maxWarnModulesIM             = 64;
     /** How often (in ticks) to run the main async projection cycle (calculate + select + project).
      *  Default 10 (500 ms at 20 TPS). */
     public static int projectionCycleTicks = 1;
@@ -133,14 +139,12 @@ public final class MFFSConfig {
     // -------------------------------------------------------------------------
     // Force Field
     // -------------------------------------------------------------------------
-    /** Prevent authorized players from taking damage when passing through force fields. */
-    public static boolean disableForceFieldDamageForAuthorizedPlayers  = false;
     /** Remove confusion and slowness effects for authorized players passing through force fields. */
     public static boolean disableForceFieldEffectsForAuthorizedPlayers = false;
     /** Allow authorized players to walk through force fields without sneaking. */
     public static boolean allowWalkThroughForceFields                  = false;
     /** Spacing used for force field light sources: 1 = every block, 4 = ~1/4 of blocks emit light. */
-    public static int forceFieldLightSpacing = 4;
+    public static int forceFieldLightSpacing = 3;
     /** When enabled, only place real lights on force fields touching physical blocks (with spacing applied). */
     public static boolean simpleLighting = true;
 
@@ -162,6 +166,17 @@ public final class MFFSConfig {
         moduleEnabled.put(name, configuration.getBoolean(name, "modules", true, "Enable " + description));
         moduleFortronCost.put(name, configuration.getFloat(name + "_fortron_cost", "modules",
             defaultCostPerSecond, 0F, 10000F, "Fortron cost per second (F/s) for " + description));
+    }
+
+    /**
+     * Variant that allows a negative minimum cost, enabling "discount" modules.
+     * The total machine cost is clamped to 0 via {@code consumeCost()}, so negative
+     * module costs reduce upkeep but never cause Fortron generation.
+     */
+    private static void loadModuleConfig(String name, float defaultCostPerSecond, float minCost, String description) {
+        moduleEnabled.put(name, configuration.getBoolean(name, "modules", true, "Enable " + description));
+        moduleFortronCost.put(name, configuration.getFloat(name + "_fortron_cost", "modules",
+            defaultCostPerSecond, minCost, 10000F, "Fortron cost per second (F/s) for " + description));
     }
 
     private static void applyModuleCosts() {
@@ -193,8 +208,8 @@ public final class MFFSConfig {
 
     private static void applyModuleCost(ModuleType<?> type, String name) {
         if (type instanceof ModModules.BaseModuleType<?>) {
-            // Config values are in Fortron/second; divide by 20 to get the per-tick cost used internally.
-            ((ModModules.BaseModuleType<?>) type).setFortronCost(getModuleFortronCost(name) / 20.0F);
+            // Config values are in Fortron/second; stored as F/s — billing divides by 20 at extraction time.
+            ((ModModules.BaseModuleType<?>) type).setFortronCost(getModuleFortronCost(name));
         }
     }
 
@@ -333,10 +348,10 @@ public final class MFFSConfig {
         coercionDriverFortronToFeLoss = configuration.getInt("fortronToFeLoss", "coercion_deriver", coercionDriverFortronToFeLoss, 0, Integer.MAX_VALUE,
             "FE to subtract when converting Fortron to FE");
         coercionDriverFortronPerSecond = configuration.getInt("fortronPerSecond", "coercion_deriver", coercionDriverFortronPerSecond, 1, Integer.MAX_VALUE,
-            "Base Fortron production rate (mB/s). Scales with speed modules and catalyst.");
+            "Base Fortron production rate (F/s). Scales with speed modules and catalyst.");
         coercionDriverFortronPerSecondSpeedModule = configuration.getInt("fortronPerSecondSpeedModule", "coercion_deriver",
             coercionDriverFortronPerSecondSpeedModule, 1, Integer.MAX_VALUE,
-            "Production bonus per speed module (mB/s).");
+            "Production bonus per speed module (F/s).");
         coercionDriverInitialTankCapacity = configuration.getInt("initialTankCapacity", "coercion_deriver",
             coercionDriverInitialTankCapacity, 1, Integer.MAX_VALUE,
             "Initial Fortron tank capacity in F.");
@@ -370,10 +385,10 @@ public final class MFFSConfig {
             "Fortron tank capacity added per Capacity Module in F.");
         fortronCapacitorInitialTransmissionRate = configuration.getInt("initialTransmissionRate", "fortron_capacitor",
             fortronCapacitorInitialTransmissionRate, 1, Integer.MAX_VALUE,
-            "Base Fortron transmission rate in F/s.");
+            "Base Fortron transmission rate in F/s. Default 500.");
         fortronCapacitorTransmissionRatePerModule = configuration.getInt("transmissionRatePerModule", "fortron_capacitor",
             fortronCapacitorTransmissionRatePerModule, 0, Integer.MAX_VALUE,
-            "Additional Fortron transmission rate per Speed Module in F/s.");
+            "Additional Fortron transmission rate per Speed Module in F/s. Default 100.");
         fortronCapacitorInitialRange = configuration.getInt("initialRange", "fortron_capacitor",
             fortronCapacitorInitialRange, 1, Integer.MAX_VALUE,
             "Initial transmission range in blocks.");
@@ -384,6 +399,10 @@ public final class MFFSConfig {
         // -- Interdiction Matrix --
         interdictionMatrixKillEnergy = configuration.getInt("interdictionMatrixKillEnergy", "interdiction_matrix", interdictionMatrixKillEnergy, 0, Integer.MAX_VALUE,
             "Fortron to consume when the Interdiction Matrix kills a player");
+        interdictionMatrixMobKillEnergy = configuration.getInt("interdictionMatrixMobKillEnergy", "interdiction_matrix", interdictionMatrixMobKillEnergy, 0, Integer.MAX_VALUE,
+            "Fortron to consume when the Interdiction Matrix kills a mob (hostile or friendly). Default 0 (free).");
+        interdictionMatrixMinWarnRange = configuration.getInt("minWarnRange", "interdiction_matrix", interdictionMatrixMinWarnRange, 0, Integer.MAX_VALUE,
+            "Minimum warning zone buffer in blocks beyond the action range, applied even with no Warn Modules installed. Default 6.");
         interdictionMatrixActionTickRate = configuration.getInt("actionTickRate", "interdiction_matrix", interdictionMatrixActionTickRate, 1, 200,
             "How often (in ticks) the Interdiction Matrix runs zone actions such as confiscation and damage. Lower = more responsive but higher server load. Default 20 (1 s).");
         interdictionMatrixInitialTankCapacity = configuration.getInt("initialTankCapacity", "interdiction_matrix",
@@ -404,6 +423,8 @@ public final class MFFSConfig {
             "Max custom mode field scale");
         maxSpeedModulesProjector = configuration.getInt("maxSpeedModulesProjector", "projector", maxSpeedModulesProjector, 0, Integer.MAX_VALUE,
             "Maximum total number of Speed Modules that can be inserted into a Force Field Projector's upgrade slots. Default 64 (one stack).");
+        maxWarnModulesIM = configuration.getInt("maxWarnModulesIM", "interdiction_matrix", maxWarnModulesIM, 0, Integer.MAX_VALUE,
+            "Maximum total number of Warn Modules that can be inserted into an Interdiction Matrix's upgrade slots. Default 64 (one stack).");
         projectionCycleTicks = configuration.getInt("projectionCycleTicks", "projector", projectionCycleTicks, 1, 100,
             "How often (in ticks) the main async projection cycle runs (calculate + select + project). Default 10 (500 ms at 20 TPS).");
         enableFastFill = configuration.getBoolean("enableFastFill", "projector", enableFastFill,
@@ -417,9 +438,6 @@ public final class MFFSConfig {
             "Fortron tank capacity added per Capacity Module in F.");
 
         // -- Force Field --
-        disableForceFieldDamageForAuthorizedPlayers = configuration.getBoolean("disableForceFieldDamageForAuthorizedPlayers", "force_field",
-            disableForceFieldDamageForAuthorizedPlayers,
-            "Prevent authorized players from taking damage when passing through force fields");
         disableForceFieldEffectsForAuthorizedPlayers = configuration.getBoolean("disableForceFieldEffectsForAuthorizedPlayers", "force_field",
             disableForceFieldEffectsForAuthorizedPlayers,
             "Remove confusion and slowness effects for authorized players passing through force fields");
@@ -447,7 +465,7 @@ public final class MFFSConfig {
         loadModuleConfig("collection_module",      300.0F,  "Collection Module");
         loadModuleConfig("stabilization_module",   400.0F,  "Stabilization Module");
         loadModuleConfig("inverter_module",        300.0F,  "Inverter Module");
-        loadModuleConfig("warn_module",             10.0F,  "Warn Module");
+        loadModuleConfig("warn_module",              -2.0F, -10000F, "Warn Module");
         loadModuleConfig("block_access_module",    200.0F,  "Block Access Module");
         loadModuleConfig("block_alter_module",     300.0F,  "Block Alter Module");
         loadModuleConfig("anti_friendly_module",    10.0F,  "Anti-Friendly Module");

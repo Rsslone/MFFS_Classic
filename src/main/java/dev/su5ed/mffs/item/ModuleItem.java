@@ -15,6 +15,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.client.gui.GuiScreen;
+
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -44,8 +46,22 @@ public class ModuleItem<T extends Module> extends BaseItem {
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip,
                                net.minecraft.client.util.ITooltipFlag flagIn) {
         super.addInformation(stack, worldIn, tooltip, flagIn);
-        tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.fortron_usage",
-            TextFormatting.GRAY + FORTRON_COST_FORMAT.format(this.module.getFortronCost(1) * 20)));
+        float cost = this.module.getFortronCost(1);
+        if (cost < 0) {
+            // Negative cost = Fortron discount; display as "+x F/s"
+            tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.fortron_usage",
+                TextFormatting.GREEN + "+" + FORTRON_COST_FORMAT.format(-cost)));
+            if (GuiScreen.isShiftKeyDown()) {
+                tooltip.add(TextFormatting.GRAY + I18n.format("info.mffs.module.warn.discount_hint"));
+            } else {
+                tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.show_details",
+                    TextFormatting.GRAY + I18n.format("info.mffs.key.shift")));
+            }
+        } else {
+            // Positive cost = Fortron drain; display as "-x F/s"
+            tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.fortron_usage",
+                TextFormatting.GRAY + "-" + FORTRON_COST_FORMAT.format(cost)));
+        }
         if (this.module == dev.su5ed.mffs.setup.ModModules.ANTI_PERSONNEL) {
             tooltip.add(TextFormatting.YELLOW + I18n.format("info.mffs.module.anti_personnel.requires_biometric"));
         } else if (this.module == dev.su5ed.mffs.setup.ModModules.BLOCK_ALTER) {

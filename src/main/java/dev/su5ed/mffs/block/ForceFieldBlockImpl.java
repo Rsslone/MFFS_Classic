@@ -157,6 +157,8 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
                                                     BlockPos pos, @Nullable Entity entityIn) {
         Optional<Projector> projectorOpt = getProjector(world, pos);
         if (projectorOpt.isPresent() && entityIn instanceof EntityPlayer player) {
+            // Creative players always pass through.
+            if (player.capabilities.isCreativeMode) return null;
             BiometricIdentifier identifier = projectorOpt.get().getBiometricIdentifier();
             if (isAuthorized(identifier, player)) {
                 boolean isAbove = player.posY >= pos.getY() + 0.99;
@@ -198,9 +200,7 @@ public class ForceFieldBlockImpl extends Block implements ForceFieldBlock, ITile
                     }
                 }
                 boolean applyDamage = !(entity instanceof EntityPlayer player)
-                    || (!player.capabilities.isCreativeMode && !isAuthorizedPlayer)
-                    || (!isSneaking(entity) && !MFFSConfig.allowWalkThroughForceFields
-                        && !MFFSConfig.disableForceFieldDamageForAuthorizedPlayers);
+                    || (!player.capabilities.isCreativeMode && !isAuthorizedPlayer);
                 if (applyDamage) {
                     entity.attackEntityFrom(new DamageSource(ModObjects.FIELD_SHOCK_DAMAGE_TYPE), Integer.MAX_VALUE);
                 }
