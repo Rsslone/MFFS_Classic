@@ -20,8 +20,9 @@ public final class ModObjects {
         GameRegistry.registerTileEntity(InterdictionMatrixBlockEntity.class,  new ResourceLocation(MFFSMod.MODID, "interdiction_matrix"));
     }
 
-    // DamageSource string key - used when creating DamageSource("mffs.field_shock")
+    // DamageSource string keys
     public static final String FIELD_SHOCK_DAMAGE_TYPE = MFFSMod.MODID + ".field_shock";
+    public static final String INTERDICTION_DAMAGE_TYPE = MFFSMod.MODID + ".interdiction";
 
     private ModObjects() {}
 }
