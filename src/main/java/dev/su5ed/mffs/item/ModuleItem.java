@@ -27,7 +27,7 @@ public class ModuleItem<T extends Module> extends BaseItem {
     protected final ModuleType<T> module;
 
     public ModuleItem(ModuleType<T> module) {
-        super(false); // description=false; module items don't have description text
+        super(true); // show shift-for-description tooltip
         this.module = module;
     }
 
@@ -54,9 +54,6 @@ public class ModuleItem<T extends Module> extends BaseItem {
                 TextFormatting.GREEN + "+" + FORTRON_COST_FORMAT.format(-cost)));
             if (GuiScreen.isShiftKeyDown()) {
                 tooltip.add(TextFormatting.GRAY + I18n.format("info.mffs.module.warn.discount_hint"));
-            } else {
-                tooltip.add(TextFormatting.DARK_GRAY + I18n.format("info.mffs.show_details",
-                    TextFormatting.GRAY + I18n.format("info.mffs.key.shift")));
             }
         } else {
             // Positive cost = Fortron drain; display as "-x F/s"

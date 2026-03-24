@@ -1,7 +1,7 @@
 package dev.su5ed.mffs.setup;
 
 // =============================================================================
-// 1.12.2 Backport: TileEntity, Particle, and Advancement registration
+// 1.12.2 Backport: TileEntity and Particle registration
 // =============================================================================
 
 import dev.su5ed.mffs.MFFSMod;
