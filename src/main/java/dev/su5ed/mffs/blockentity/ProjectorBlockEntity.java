@@ -391,7 +391,18 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
                         return null;
                     });
                 } else if (this.semaphore.isInStage(ProjectionStage.STANDBY)) {
-                    reCalculateForceField();
+                    // If the projector was just powered back on while a power-off drain is still
+                    // in progress (projectedBlocks empty, pendingRemoval non-empty), reclaim the
+                    // queued blocks into projectedBlocks and use the soft-destroy diff path.
+                    // This prevents the drain loop from removing blocks that will immediately be
+                    // re-placed, so only blocks absent from the new field geometry are drained.
+                    if (this.projectedBlocks.isEmpty() && !this.pendingRemoval.isEmpty()) {
+                        this.projectedBlocks.addAll(this.pendingRemoval);
+                        this.pendingRemoval.clear();
+                        softDestroyField();
+                    } else {
+                        reCalculateForceField();
+                    }
                 } else if (this.semaphore.isReady() && this.semaphore.isComplete(ProjectionStage.SELECTING)
                         && this.fortronStorage.getStoredFortron() >= fortronCost * MFFSConfig.FORTRON_TRANSFER_TICKS / 20) {
                     // Only project when the tank still holds a comfortable Fortron reserve
