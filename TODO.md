@@ -16,9 +16,6 @@
 - Make the non-square camo filter an option instead of forced, some people are delusional.
 
 ## Optimization
-- Implement CCL emissives on force field blocks.
--     Based on amount of glow modules, up to 64.
-- zeroFieldBlockLights is called on a soft destroy, probably not optimal if its not needed.
 
 ## Known Bugs
 - Look into rendering of power cables not showing emittions on deriver.
