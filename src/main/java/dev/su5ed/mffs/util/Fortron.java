@@ -4,6 +4,7 @@ import dev.su5ed.mffs.api.fortron.FortronStorage;
 import dev.su5ed.mffs.api.module.ModuleAcceptor;
 import dev.su5ed.mffs.api.security.FieldPermission;
 import dev.su5ed.mffs.api.security.InterdictionMatrix;
+import dev.su5ed.mffs.blockentity.FortronCapacitorBlockEntity;
 import dev.su5ed.mffs.network.DrawBeamPacket;
 import dev.su5ed.mffs.network.Network;
 import dev.su5ed.mffs.render.particle.ParticleColor;
@@ -59,6 +60,11 @@ public final class Fortron {
         switch (transferMode) {
             case EQUALIZE -> {
                 for (FortronStorage machine : receivers) {
+                    // In EQUALIZE mode, other capacitors are read-only participants: they
+                    // contribute to the network totals so proportions are correct, but we
+                    // don't actually push/pull fortron to/from them.  This prevents two
+                    // capacitors on the same frequency from oscillating against each other.
+                    if (machine.getOwner() instanceof FortronCapacitorBlockEntity) continue;
                     double capacityPercentage = (double) machine.getFortronCapacity() / (double) totalCapacity;
                     int amountToSet = (int) (totalFortron * capacityPercentage);
                     doTransferFortron(transmitter, machine, amountToSet - machine.getStoredFortron(), limit);
@@ -94,6 +100,8 @@ public final class Fortron {
                     }
                 }
                 for (FortronStorage machine : receivers) {
+                    // Same read-only rule as EQUALIZE — skip other capacitors.
+                    if (machine.getOwner() instanceof FortronCapacitorBlockEntity) continue;
                     int target = capped.contains(machine) ? machine.getFortronCapacity() : pool / divisor;
                     doTransferFortron(transmitter, machine, target - machine.getStoredFortron(), limit);
                 }
