@@ -51,6 +51,7 @@ public final class Fortron {
             totalCapacity += storage.getFortronCapacity();
         }
 
+        int receiversBeforeRemove = receivers.size();
         receivers.remove(transmitter);
 
         if (totalFortron <= 0 || totalCapacity <= 0) return;
@@ -64,9 +65,37 @@ public final class Fortron {
                 }
             }
             case DISTRIBUTE -> {
-                int amountToSet = totalFortron / receivers.size();
+                // Compute an equal share for every machine (including the transmitter).
+                // Machines whose capacity is below the equal share are "capped" — they
+                // get filled to capacity and their surplus is redistributed among the
+                // remaining machines.  This prevents a tiny device (e.g. 1 kF biometric)
+                // from claiming a huge share slot and starving larger machines.
+                int pool = totalFortron;
+                int divisor = receiversBeforeRemove;
+                java.util.Set<FortronStorage> capped = new java.util.HashSet<>();
+                boolean recalc = true;
+                while (recalc) {
+                    recalc = false;
+                    int share = pool / divisor;
+                    for (FortronStorage machine : receivers) {
+                        if (!capped.contains(machine) && machine.getFortronCapacity() < share) {
+                            capped.add(machine);
+                            pool -= machine.getFortronCapacity();
+                            divisor--;
+                            recalc = true;
+                        }
+                    }
+                    // Also check if the transmitter itself would be capped
+                    if (!capped.contains(transmitter) && transmitter.getFortronCapacity() < share) {
+                        capped.add(transmitter);
+                        pool -= transmitter.getFortronCapacity();
+                        divisor--;
+                        recalc = true;
+                    }
+                }
                 for (FortronStorage machine : receivers) {
-                    doTransferFortron(transmitter, machine, amountToSet - machine.getStoredFortron(), limit);
+                    int target = capped.contains(machine) ? machine.getFortronCapacity() : pool / divisor;
+                    doTransferFortron(transmitter, machine, target - machine.getStoredFortron(), limit);
                 }
             }
             case DRAIN -> {
