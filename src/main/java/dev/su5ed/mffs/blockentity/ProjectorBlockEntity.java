@@ -306,6 +306,10 @@ public class ProjectorBlockEntity extends ModularBlockEntity implements Projecto
         this.camoModulePresent = hasModule(ModModules.CAMOUFLAGE);
         if (!this.world.isRemote) {
             MinecraftForge.EVENT_BUS.register(this);
+            // Reset the calculation pipeline so that stale in-flight stages from a previous
+            // lifecycle (e.g. onLoad called twice on the same instance during chunk loading)
+            // don't cause "Attempted to switch stage before it was completed".
+            this.semaphore.reset();
             reCalculateForceField();
         }
     }
